@@ -1,0 +1,57 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: ai-study-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ai_study_root
+      MYSQL_DATABASE: ai_study
+      MYSQL_USER: ai_study
+      MYSQL_PASSWORD: ai_study_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-study-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build: ./backend
+    container_name: ai-study-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://ai_study:ai_study_pass@mysql:3306/ai_study?charset=utf8mb4
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-me-before-production
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      AI_PROVIDER: deepseek
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - redis
+
+  worker:
+    build: ./backend
+    container_name: ai-study-worker
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: mysql+pymysql://ai_study:ai_study_pass@mysql:3306/ai_study?charset=utf8mb4
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-me-before-production
+    depends_on:
+      - mysql
+      - redis
+
+volumes:
+  mysql_data:
+  redis_data:
