@@ -60,6 +60,12 @@ async function submit() {
         </button>
       </form>
       <p class="auth-link">已有账号？<router-link to="/login">去登录</router-link></p>
+      <p class="auth-link">
+        注册即代表同意
+        <router-link to="/terms">用户协议</router-link>
+        与
+        <router-link to="/privacy">隐私政策</router-link>
+      </p>
     </div>
   </div>
 </template>

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -47,6 +47,9 @@ class WrongBookOut(ORMModel):
     question_id: int
     review_count: int
     mastered: bool
+    review_stage: int = 1
+    next_review_date: date | None = None
+    last_reviewed_at: datetime | None = None
     created_at: datetime
     question: QuestionOut | None = None
 

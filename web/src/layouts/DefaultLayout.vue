@@ -8,6 +8,7 @@ import {
   LogOut,
   MessageSquareText,
   PawPrint,
+  Settings,
   Timer,
 } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
@@ -27,6 +28,7 @@ const navItems = [
   { label: '文件出题', to: '/files', icon: Files },
   { label: '专注模式', to: '/focus', icon: Timer },
   { label: '我的宠物', to: '/pet', icon: PawPrint },
+  { label: '账号设置', to: '/settings', icon: Settings },
 ]
 
 function logout() {

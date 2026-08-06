@@ -143,6 +143,9 @@ export interface WrongBookItem {
   question_id: number
   review_count: number
   mastered: boolean
+  review_stage: number
+  next_review_date?: string | null
+  last_reviewed_at?: string | null
   created_at: string
   question?: Question | null
 }

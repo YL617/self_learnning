@@ -114,6 +114,9 @@ class WrongBookItem(Base):
     mistake_reason: Mapped[str | None] = mapped_column(Text)
     review_count: Mapped[int] = mapped_column(Integer, default=0)
     mastered: Mapped[bool] = mapped_column(Boolean, default=False)
+    review_stage: Mapped[int] = mapped_column(Integer, default=1)
+    next_review_date: Mapped[date] = mapped_column(Date, default=date.today)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

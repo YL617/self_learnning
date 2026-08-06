@@ -1,4 +1,5 @@
 import json
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -30,6 +31,7 @@ from app.services.question_generator import check_answer, generate_questions
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 wrong_book_router = APIRouter(prefix="/wrong-book", tags=["wrong-book"])
+REVIEW_INTERVALS = {1: 1, 2: 3, 3: 7, 4: 15, 5: 30}
 
 
 def _save_questions(
@@ -188,6 +190,8 @@ def submit_answer(
                     user_id=current_user.id,
                     question_id=question.id,
                     mistake_reason=data.user_answer,
+                    review_stage=1,
+                    next_review_date=date.today() + timedelta(days=1),
                 )
             )
         else:
@@ -220,6 +224,25 @@ def list_wrong_book(
     )
 
 
+@wrong_book_router.get("/review", response_model=list[WrongBookOut])
+def list_due_review(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[WrongBookItem]:
+    return list(
+        db.scalars(
+            select(WrongBookItem)
+            .options(selectinload(WrongBookItem.question))
+            .where(
+                WrongBookItem.user_id == current_user.id,
+                WrongBookItem.mastered.is_(False),
+                WrongBookItem.next_review_date <= date.today(),
+            )
+            .order_by(WrongBookItem.next_review_date.asc())
+        ).all()
+    )
+
+
 @wrong_book_router.api_route("/{item_id}", response_model=WrongBookOut, methods=["PATCH", "PUT"])
 def update_wrong_book_item(
     item_id: int,
@@ -237,6 +260,12 @@ def update_wrong_book_item(
     if data.mastered is not None:
         item.mastered = data.mastered
     item.review_count += 1
+    if not item.mastered:
+        item.review_stage = min(item.review_stage + 1, 5)
+        item.next_review_date = date.today() + timedelta(
+            days=REVIEW_INTERVALS[item.review_stage]
+        )
+        item.last_reviewed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(item)
     return item

@@ -6,8 +6,12 @@
       <view v-for="item in items" :key="item.id" class="wrong-card">
         <text class="stem">{{ item.question?.stem }}</text>
         <text class="muted">{{ item.question?.analysis }}</text>
+        <text v-if="!item.mastered && item.next_review_date" class="muted">
+          阶段 {{ item.review_stage }}/5 · 下次复习 {{ item.next_review_date }}
+        </text>
         <view class="row gap">
           <button class="btn outline" @click="retry(item)">举一反三</button>
+          <button v-if="!item.mastered" class="btn teal" @click="review(item)">复习一次</button>
           <button class="btn ghost" @click="toggle(item)">
             {{ item.mastered ? "取消掌握" : "标记掌握" }}
           </button>
@@ -45,6 +49,11 @@ async function load() {
 
 async function toggle(item: WrongBookItem) {
   await api.markMastered(item.id, !item.mastered);
+  await load();
+}
+
+async function review(item: WrongBookItem) {
+  await api.markMastered(item.id, item.mastered);
   await load();
 }
 
@@ -124,6 +133,11 @@ onShow(load);
   border: 1px solid #2563eb;
   color: #2563eb;
   background: #fff;
+}
+
+.btn.teal {
+  background: #0f766e;
+  color: #fff;
 }
 
 .btn.ghost {

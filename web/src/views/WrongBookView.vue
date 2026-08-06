@@ -30,6 +30,16 @@ async function toggleMastered(item: WrongBookItem) {
   }
 }
 
+async function reviewOnce(item: WrongBookItem) {
+  try {
+    await questionsApi.updateWrongItem(item.id, item.mastered)
+    success.value = '已完成一次复习，下次复习时间已更新'
+    await load()
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '复习失败'
+  }
+}
+
 async function retry(item: WrongBookItem) {
   if (!item.question) return
   generating.value = true
@@ -74,9 +84,13 @@ onMounted(load)
         <div class="question-meta" style="display: flex; gap: 8px; margin-bottom: 8px">
           <span class="badge">{{ item.question?.subject }}</span>
           <span class="badge badge-amber">复习 {{ item.review_count }} 次</span>
+          <span class="badge badge-amber">阶段 {{ item.review_stage }}/5</span>
           <span v-if="item.mastered" class="badge badge-green">已掌握</span>
         </div>
         <h3 class="question-stem">{{ item.question?.stem }}</h3>
+        <p v-if="!item.mastered && item.next_review_date" class="muted" style="margin: 8px 0">
+          下次复习：{{ item.next_review_date }}
+        </p>
         <p v-if="item.question?.analysis" class="muted" style="margin: 8px 0">
           {{ item.question.analysis }}
         </p>
@@ -84,6 +98,9 @@ onMounted(load)
           <button class="btn btn-outline" type="button" :disabled="generating" @click="retry(item)">
             <Sparkles :size="16" />
             举一反三
+          </button>
+          <button v-if="!item.mastered" class="btn btn-teal" type="button" @click="reviewOnce(item)">
+            复习一次
           </button>
           <button class="btn btn-ghost" type="button" @click="toggleMastered(item)">
             {{ item.mastered ? '取消掌握' : '标记已掌握' }}

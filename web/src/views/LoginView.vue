@@ -51,6 +51,11 @@ async function submit() {
         </button>
       </form>
       <p class="auth-link">还没有账号？<router-link to="/register">立即注册</router-link></p>
+      <p class="auth-link">
+        <router-link to="/privacy">隐私政策</router-link>
+        ·
+        <router-link to="/terms">用户协议</router-link>
+      </p>
     </div>
   </div>
 </template>

@@ -23,6 +23,18 @@ const router = createRouter({
       component: () => import('@/views/OnboardingView.vue'),
     },
     {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/PrivacyView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('@/views/TermsView.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/',
       component: () => import('@/layouts/DefaultLayout.vue'),
       children: [
@@ -50,6 +62,11 @@ const router = createRouter({
           path: 'wrong-book',
           name: 'wrong-book',
           component: () => import('@/views/WrongBookView.vue'),
+        },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('@/views/SettingsView.vue'),
         },
       ],
     },
