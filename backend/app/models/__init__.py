@@ -7,6 +7,7 @@ from app.models.learning import (
     StudyPlan,
     WrongBookItem,
 )
+from app.models.plan_chat import PlanChatMessage, PlanChatSession
 from app.models.user import User, UserProfile
 
 __all__ = [
@@ -17,6 +18,8 @@ __all__ = [
     "FocusSession",
     "KnowledgeChunk",
     "Pet",
+    "PlanChatMessage",
+    "PlanChatSession",
     "PlanItem",
     "Question",
     "StudyPlan",

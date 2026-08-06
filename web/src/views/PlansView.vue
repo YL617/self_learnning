@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, Sparkles, Plus } from 'lucide-vue-next'
+import { CalendarDays, MessageSquareText, Plus, Sparkles } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 
 import { plansApi } from '@/api/plans'
@@ -90,6 +90,10 @@ onMounted(load)
         <h1 class="page-title">学习计划</h1>
         <p class="page-subtitle">用 AI 生成个性化周计划，或手动创建自己的学习安排</p>
       </div>
+      <router-link to="/plans/chat" class="btn btn-primary">
+        <MessageSquareText :size="16" />
+        AI 对话规划（VIP）
+      </router-link>
     </div>
 
     <p v-if="error" class="text-danger">{{ error }}</p>

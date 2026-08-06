@@ -17,6 +17,7 @@ export interface User {
   id: number
   email: string
   username: string
+  membership_level: string
   profile?: UserProfile | null
 }
 
@@ -62,6 +63,37 @@ export interface StudyPlanCreate {
   goal?: string
   start_date: string
   end_date: string
+}
+
+export interface PlanChatMessage {
+  id: number
+  role: string
+  content: string
+  created_at: string
+}
+
+export interface PlanChatStart {
+  session_id: number
+  reply: string
+  status: string
+}
+
+export interface PlanChatReply {
+  session_id: number
+  reply: string
+  status: string
+  draft?: PlanDraft | null
+}
+
+export interface PlanDraft {
+  title: string
+  goal?: string | null
+  items: PlanItem[]
+}
+
+export interface PlanChatConfirm {
+  plan_id: number
+  message: string
 }
 
 export interface OnboardingPayload {

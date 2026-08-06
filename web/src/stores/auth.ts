@@ -28,6 +28,10 @@ export const useAuthStore = defineStore('auth', {
       this.token = data.access_token
       this.user = data.user
     },
+    setUser(user: User) {
+      this.user = user
+      localStorage.setItem('ai_study_user', JSON.stringify(user))
+    },
     logout() {
       clearSession()
       this.token = ''

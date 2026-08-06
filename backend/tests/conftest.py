@@ -5,6 +5,7 @@ os.environ["DATABASE_URL"] = (
     f"sqlite:///{tempfile.gettempdir()}/ai_study_test_{os.getpid()}.db"
 )
 os.environ["SECRET_KEY"] = "test-secret"
+os.environ["DEEPSEEK_API_KEY"] = ""
 
 import pytest
 from fastapi.testclient import TestClient

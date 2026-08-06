@@ -29,6 +29,11 @@ const router = createRouter({
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
         { path: 'plans', name: 'plans', component: () => import('@/views/PlansView.vue') },
         {
+          path: 'plans/chat',
+          name: 'plan-chat',
+          component: () => import('@/views/PlanChatView.vue'),
+        },
+        {
           path: 'plans/:id',
           name: 'plan-detail',
           component: () => import('@/views/PlanDetailView.vue'),

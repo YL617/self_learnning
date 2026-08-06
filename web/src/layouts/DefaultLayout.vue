@@ -6,6 +6,7 @@ import {
   Files,
   LayoutDashboard,
   LogOut,
+  MessageSquareText,
   PawPrint,
   Timer,
 } from 'lucide-vue-next'
@@ -20,6 +21,7 @@ const auth = useAuthStore()
 const navItems = [
   { label: '学习总览', to: '/', icon: LayoutDashboard },
   { label: '学习计划', to: '/plans', icon: CalendarDays },
+  { label: '对话规划', to: '/plans/chat', icon: MessageSquareText },
   { label: '智能练习', to: '/questions', icon: FileQuestion },
   { label: '错题本', to: '/wrong-book', icon: BookOpenCheck },
   { label: '文件出题', to: '/files', icon: Files },
