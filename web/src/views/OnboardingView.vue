@@ -11,7 +11,7 @@ const form = ref({
   major: '',
   grade: '',
   goals: [] as string[],
-  weekly_minutes: 420,
+  weekly_minutes: 420 as number | 'unknown',
   learning_style: [] as string[],
   pain_point: [] as string[],
   school_level: '',
@@ -34,12 +34,12 @@ const steps = [
 
 const grades = ['大一', '大二', '大三', '大四', '研究生', '其他']
 const goals = ['期末高分', '通过四六级', '掌握编程', '考研', '考证', '留学', '巩固基础', '其他']
-const durations = [
+const durations: Array<{ label: string; value: number | 'unknown' }> = [
   { label: '少于 5 小时', value: 240 },
   { label: '5-10 小时', value: 420 },
   { label: '10-20 小时', value: 840 },
   { label: '20 小时以上', value: 1260 },
-  { label: '不确定', value: 420 },
+  { label: '不确定', value: 'unknown' },
 ]
 const styles = ['看视频', '做题', '读教材', '混合学习', '不清楚']
 const pains = ['计划难执行', '知识点难懂', '练习不够', '时间不够', '容易拖延', '不清楚', '没有明显痛点']
@@ -74,7 +74,10 @@ async function submit(complete: boolean) {
       major: form.value.major || undefined,
       grade: form.value.grade || undefined,
       goals: goalsList,
-      weekly_minutes: form.value.weekly_minutes || undefined,
+      weekly_minutes:
+        form.value.weekly_minutes === 'unknown'
+          ? undefined
+          : form.value.weekly_minutes,
       learning_style: form.value.learning_style,
       pain_point: form.value.pain_point,
       school_level: form.value.school_level || undefined,
