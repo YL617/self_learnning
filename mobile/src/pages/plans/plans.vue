@@ -32,7 +32,10 @@
       <view v-for="plan in plans" :key="plan.id" class="plan-card">
         <view class="row space-between">
           <text class="plan-title">{{ plan.title }}</text>
-          <text class="badge">{{ progress(plan) }}%</text>
+          <view class="row gap">
+            <text class="badge">{{ progress(plan) }}%</text>
+            <text class="delete-link" @click="deletePlan(plan)">删除</text>
+          </view>
         </view>
         <text class="muted">{{ plan.start_date }} 至 {{ plan.end_date }}</text>
         <view class="plan-items">
@@ -101,6 +104,23 @@ async function generate() {
 async function toggleItem(item: PlanItem) {
   await api.completePlanItem(item.id, !item.completed);
   await load();
+}
+
+function deletePlan(plan: StudyPlan) {
+  uni.showModal({
+    title: "删除计划",
+    content: `确定删除「${plan.title}」吗？删除后无法恢复。`,
+    success: async (res) => {
+      if (!res.confirm) return;
+      try {
+        await api.deletePlan(plan.id);
+        message.value = "计划已删除";
+        await load();
+      } catch (err: any) {
+        message.value = err?.detail || "删除失败";
+      }
+    },
+  });
 }
 
 onShow(load);
@@ -194,6 +214,12 @@ onShow(load);
   border-radius: 999rpx;
   padding: 4rpx 14rpx;
   font-size: 22rpx;
+}
+
+.delete-link {
+  color: #dc2626;
+  font-size: 24rpx;
+  padding: 4rpx 12rpx;
 }
 
 .muted {

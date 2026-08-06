@@ -107,6 +107,17 @@ def get_plan(
     return _get_own_plan(db, current_user.id, plan_id)
 
 
+@router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_plan(
+    plan_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    plan = _get_own_plan(db, current_user.id, plan_id)
+    db.delete(plan)
+    db.commit()
+
+
 @router.post("/{plan_id}/items", response_model=PlanItemOut, status_code=status.HTTP_201_CREATED)
 def add_plan_item(
     plan_id: int,
@@ -121,6 +132,20 @@ def add_plan_item(
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_plan_item(
+    item_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    item = db.get(PlanItem, item_id)
+    plan = db.get(StudyPlan, item.plan_id) if item else None
+    if item is None or plan is None or plan.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="计划任务不存在")
+    db.delete(item)
+    db.commit()
 
 
 @router.api_route("/items/{item_id}", response_model=PlanItemOut, methods=["PATCH", "PUT"])

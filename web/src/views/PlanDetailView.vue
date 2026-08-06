@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ArrowLeft, CheckCircle2, Circle } from 'lucide-vue-next'
+import { ArrowLeft, CheckCircle2, Circle, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { plansApi } from '@/api/plans'
 import type { StudyPlan } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
 const plan = ref<StudyPlan | null>(null)
 const error = ref('')
 
@@ -32,6 +33,18 @@ function progress(): number {
   )
 }
 
+async function deletePlan() {
+  if (!plan.value) return
+  if (!window.confirm(`确定删除计划「${plan.value.title}」吗？删除后无法恢复。`)) return
+  error.value = ''
+  try {
+    await plansApi.remove(plan.value.id)
+    router.push('/plans')
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '删除失败'
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -49,7 +62,13 @@ onMounted(load)
           <h1 class="page-title">{{ plan.title }}</h1>
           <p class="page-subtitle">{{ plan.goal || '暂无目标描述' }}</p>
         </div>
-        <span class="badge badge-green">{{ progress() }}% 完成</span>
+        <div class="row gap">
+          <span class="badge badge-green">{{ progress() }}% 完成</span>
+          <button class="btn btn-danger" type="button" @click="deletePlan">
+            <Trash2 :size="16" />
+            删除计划
+          </button>
+        </div>
       </div>
 
       <div class="card">

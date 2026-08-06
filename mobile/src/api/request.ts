@@ -32,7 +32,7 @@ export function clearToken(): void {
 
 export function request<T>(options: {
   url: string;
-  method?: "GET" | "POST" | "PUT";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   data?: unknown;
 }): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -101,6 +101,8 @@ export const api = {
       method: "PUT",
       data: { completed },
     }),
+  deletePlan: (planId: number) =>
+    request<void>({ url: `/plans/${planId}`, method: "DELETE" }),
   questions: () => request<Question[]>({ url: "/questions" }),
   generateQuestions: (data: QuestionGeneratePayload) =>
     request<Question[]>({ url: "/questions/generate", method: "POST", data }),

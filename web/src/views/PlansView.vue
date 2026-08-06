@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, MessageSquareText, Plus, Sparkles } from 'lucide-vue-next'
+import { CalendarDays, MessageSquareText, Plus, Sparkles, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 
 import { plansApi } from '@/api/plans'
@@ -78,6 +78,19 @@ async function createManual() {
 function progress(plan: StudyPlan): number {
   if (!plan.items.length) return 0
   return Math.round((plan.items.filter((item) => item.completed).length / plan.items.length) * 100)
+}
+
+async function deletePlan(plan: StudyPlan) {
+  if (!window.confirm(`确定删除计划「${plan.title}」吗？删除后无法恢复。`)) return
+  error.value = ''
+  success.value = ''
+  try {
+    await plansApi.remove(plan.id)
+    success.value = '计划已删除'
+    await load()
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '删除失败'
+  }
 }
 
 onMounted(load)
@@ -183,6 +196,15 @@ onMounted(load)
             </div>
           </div>
           <span class="badge badge-green">{{ progress(plan) }}%</span>
+          <button
+            class="btn btn-ghost"
+            type="button"
+            style="padding: 6px"
+            title="删除计划"
+            @click.stop.prevent="deletePlan(plan)"
+          >
+            <Trash2 :size="16" color="#dc2626" />
+          </button>
         </router-link>
       </div>
     </div>

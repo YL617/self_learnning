@@ -8,4 +8,6 @@ export const plansApi = {
   generate: (data: PlanGenerateRequest) => http.post<StudyPlan>('/plans/generate', data),
   completeItem: (itemId: number, completed: boolean) =>
     http.patch<PlanItem>(`/plans/items/${itemId}`, { completed }),
+  remove: (id: number) => http.delete<void>(`/plans/${id}`),
+  removeItem: (itemId: number) => http.delete<void>(`/plans/items/${itemId}`),
 }
