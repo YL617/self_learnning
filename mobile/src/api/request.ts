@@ -95,6 +95,8 @@ export const api = {
   plans: () => request<StudyPlan[]>({ url: "/plans" }),
   generatePlan: (data: PlanGenerateRequest) =>
     request<StudyPlan>({ url: "/plans/generate", method: "POST", data }),
+  adjustPlan: (planId: number) =>
+    request<StudyPlan>({ url: `/plans/${planId}/adjust`, method: "POST" }),
   completePlanItem: (itemId: number, completed: boolean) =>
     request<PlanItem>({
       url: `/plans/items/${itemId}`,

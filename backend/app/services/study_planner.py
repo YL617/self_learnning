@@ -50,6 +50,9 @@ def _default_items(
                     "subject": major or "综合学习",
                     "scheduled_date": (start + timedelta(days=day)).isoformat(),
                     "duration_minutes": daily_minutes,
+                    "difficulty": "medium",
+                    "suggested_time_slot": "晚间" if week % 2 == 0 else "上午",
+                    "buffer_minutes": max(10, round(daily_minutes * 0.2)),
                     "order_index": len(items) + 1,
                 }
             )
@@ -79,6 +82,9 @@ def _normalize(
                 "subject": str(item.get("subject", major or "综合学习")).strip(),
                 "scheduled_date": scheduled.isoformat(),
                 "duration_minutes": max(10, int(item.get("duration_minutes") or 60)),
+                "difficulty": str(item.get("difficulty", "medium")).strip() or "medium",
+                "suggested_time_slot": str(item.get("suggested_time_slot", "")).strip() or None,
+                "buffer_minutes": max(0, int(item.get("buffer_minutes") or 0)),
                 "order_index": idx,
             }
         )
@@ -106,4 +112,82 @@ def generate_study_plan(
         "title": f"{major or '综合'}学习计划",
         "goal": goal,
         "items": _default_items(major, daily_minutes, weeks),
+    }
+
+
+def _lower_difficulty(difficulty: str) -> str:
+    order = {"hard": "medium", "medium": "easy", "easy": "easy"}
+    return order.get(difficulty, "medium")
+
+
+def adjust_study_plan(plan: Any) -> tuple[str, dict]:
+    """Rule-based adjustment: lighten overdue tasks and reward fast learners."""
+    from app.models import PlanItem
+
+    items = sorted(plan.items, key=lambda item: item.order_index)
+    today = date.today()
+    total = len(items)
+    completed = sum(1 for item in items if item.completed)
+    overdue = [
+        item for item in items if not item.completed and item.scheduled_date < today
+    ]
+
+    before = [
+        {
+            "id": item.id,
+            "title": item.title,
+            "scheduled_date": item.scheduled_date.isoformat(),
+            "duration_minutes": item.duration_minutes,
+            "difficulty": item.difficulty,
+            "suggested_time_slot": item.suggested_time_slot,
+            "completed": item.completed,
+        }
+        for item in items
+    ]
+
+    changes: list[str] = []
+    for item in overdue:
+        item.scheduled_date = today + timedelta(days=1)
+        item.duration_minutes = max(15, int(item.duration_minutes * 0.8))
+        item.difficulty = _lower_difficulty(item.difficulty)
+        item.suggested_time_slot = "周末"
+        changes.append(f"「{item.title}」延后并减轻负担")
+
+    if total and completed / total >= 0.8:
+        last = items[-1] if items else None
+        plan.items.append(
+            PlanItem(
+                plan_id=plan.id,
+                title="拓展挑战任务",
+                subject=items[0].subject if items else "综合",
+                scheduled_date=today + timedelta(days=1),
+                duration_minutes=45,
+                difficulty="hard",
+                suggested_time_slot="晚间",
+                buffer_minutes=10,
+                order_index=(last.order_index + 1 if last else 1),
+            )
+        )
+        changes.append("新增拓展挑战任务")
+
+    reason = "；".join(changes) if changes else "当前计划执行情况良好，无需调整"
+    after_items = sorted(plan.items, key=lambda item: item.order_index)
+    after = [
+        {
+            "id": item.id,
+            "title": item.title,
+            "scheduled_date": item.scheduled_date.isoformat(),
+            "duration_minutes": item.duration_minutes,
+            "difficulty": item.difficulty,
+            "suggested_time_slot": item.suggested_time_slot,
+            "completed": item.completed,
+        }
+        for item in after_items
+    ]
+    return reason, {
+        "before": before,
+        "after": after,
+        "completed": completed,
+        "total": total,
+        "overdue": len(overdue),
     }

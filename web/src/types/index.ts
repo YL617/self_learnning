@@ -36,6 +36,9 @@ export interface PlanItem {
   duration_minutes: number
   completed: boolean
   order_index: number
+  difficulty: string
+  suggested_time_slot?: string | null
+  buffer_minutes: number
 }
 
 export interface StudyPlan {

@@ -26,6 +26,9 @@ class PlanItemCreate(BaseModel):
     subject: str | None = None
     scheduled_date: date
     duration_minutes: int = Field(default=60, ge=1, le=600)
+    difficulty: str = Field(default="medium", max_length=32)
+    suggested_time_slot: str | None = Field(default=None, max_length=64)
+    buffer_minutes: int = Field(default=0, ge=0, le=600)
 
 
 class PlanItemUpdate(BaseModel):
@@ -41,6 +44,9 @@ class PlanItemOut(ORMModel):
     duration_minutes: int
     completed: bool
     order_index: int
+    difficulty: str = "medium"
+    suggested_time_slot: str | None = None
+    buffer_minutes: int = 0
 
 
 class StudyPlanOut(ORMModel):

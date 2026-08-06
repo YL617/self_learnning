@@ -2,6 +2,7 @@ from app.models.engagement import CoinTransaction, DailyStat, FocusSession, Pet
 from app.models.knowledge import Document, KnowledgeChunk
 from app.models.learning import (
     AnswerRecord,
+    PlanAdjustmentLog,
     PlanItem,
     Question,
     StudyPlan,
@@ -18,6 +19,7 @@ __all__ = [
     "FocusSession",
     "KnowledgeChunk",
     "Pet",
+    "PlanAdjustmentLog",
     "PlanChatMessage",
     "PlanChatSession",
     "PlanItem",

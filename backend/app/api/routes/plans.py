@@ -1,3 +1,4 @@
+import json
 from datetime import date, timedelta
 from typing import Annotated
 
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models import PlanItem, StudyPlan, User
+from app.models import PlanAdjustmentLog, PlanItem, StudyPlan, User
 from app.schemas.plan import (
     PlanGenerateRequest,
     PlanItemCreate,
@@ -17,7 +18,7 @@ from app.schemas.plan import (
     StudyPlanOut,
 )
 from app.services.engagement import award_coins, award_pet_exp
-from app.services.study_planner import generate_study_plan
+from app.services.study_planner import adjust_study_plan, generate_study_plan
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -90,10 +91,33 @@ def generate_plan(
                 subject=item["subject"],
                 scheduled_date=date.fromisoformat(item["scheduled_date"]),
                 duration_minutes=item["duration_minutes"],
+                difficulty=item["difficulty"],
+                suggested_time_slot=item["suggested_time_slot"],
+                buffer_minutes=item["buffer_minutes"],
                 order_index=item["order_index"],
             )
         )
     db.add(plan)
+    db.commit()
+    return _get_own_plan(db, current_user.id, plan.id)
+
+
+@router.post("/{plan_id}/adjust", response_model=StudyPlanOut)
+def adjust_plan(
+    plan_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> StudyPlan:
+    plan = _get_own_plan(db, current_user.id, plan_id)
+    reason, snapshot = adjust_study_plan(plan)
+    db.add(
+        PlanAdjustmentLog(
+            plan_id=plan.id,
+            reason=reason,
+            before_json=json.dumps(snapshot["before"], ensure_ascii=False),
+            after_json=json.dumps(snapshot["after"], ensure_ascii=False),
+        )
+    )
     db.commit()
     return _get_own_plan(db, current_user.id, plan.id)
 

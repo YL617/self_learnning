@@ -41,8 +41,24 @@ class PlanItem(Base):
     duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
+    difficulty: Mapped[str] = mapped_column(String(32), default="medium")
+    suggested_time_slot: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    buffer_minutes: Mapped[int] = mapped_column(Integer, default=0)
 
     plan: Mapped[StudyPlan] = relationship(back_populates="items")
+
+
+class PlanAdjustmentLog(Base):
+    __tablename__ = "plan_adjustment_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    plan_id: Mapped[int] = mapped_column(
+        ForeignKey("study_plans.id", ondelete="CASCADE"), index=True
+    )
+    reason: Mapped[str] = mapped_column(Text)
+    before_json: Mapped[str | None] = mapped_column(Text)
+    after_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class Question(Base):

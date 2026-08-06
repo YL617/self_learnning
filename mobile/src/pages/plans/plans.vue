@@ -34,6 +34,7 @@
           <text class="plan-title">{{ plan.title }}</text>
           <view class="row gap">
             <text class="badge">{{ progress(plan) }}%</text>
+            <text class="adjust-link" @click="adjustPlan(plan)">调整</text>
             <text class="delete-link" @click="deletePlan(plan)">删除</text>
           </view>
         </view>
@@ -104,6 +105,16 @@ async function generate() {
 async function toggleItem(item: PlanItem) {
   await api.completePlanItem(item.id, !item.completed);
   await load();
+}
+
+async function adjustPlan(plan: StudyPlan) {
+  try {
+    await api.adjustPlan(plan.id);
+    message.value = "计划已按最新学习情况调整";
+    await load();
+  } catch (err: any) {
+    message.value = err?.detail || "调整失败";
+  }
 }
 
 function deletePlan(plan: StudyPlan) {
@@ -218,6 +229,12 @@ onShow(load);
 
 .delete-link {
   color: #dc2626;
+  font-size: 24rpx;
+  padding: 4rpx 12rpx;
+}
+
+.adjust-link {
+  color: #2563eb;
   font-size: 24rpx;
   padding: 4rpx 12rpx;
 }

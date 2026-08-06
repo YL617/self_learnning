@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, CheckCircle2, Circle, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, CheckCircle2, Circle, Sparkles, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -10,6 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const plan = ref<StudyPlan | null>(null)
 const error = ref('')
+const success = ref('')
 
 async function load() {
   error.value = ''
@@ -45,6 +46,19 @@ async function deletePlan() {
   }
 }
 
+async function adjustPlan() {
+  if (!plan.value) return
+  error.value = ''
+  success.value = ''
+  try {
+    const { data } = await plansApi.adjust(plan.value.id)
+    plan.value = data
+    success.value = '计划已按最新学习情况调整'
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '调整失败'
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -56,6 +70,7 @@ onMounted(load)
     </router-link>
 
     <p v-if="error" class="text-danger">{{ error }}</p>
+    <p v-if="success" style="color: #15803d">{{ success }}</p>
     <template v-if="plan">
       <div class="page-head">
         <div>
@@ -64,6 +79,10 @@ onMounted(load)
         </div>
         <div class="row gap">
           <span class="badge badge-green">{{ progress() }}% 完成</span>
+          <button class="btn btn-primary" type="button" @click="adjustPlan">
+            <Sparkles :size="16" />
+            AI 调整计划
+          </button>
           <button class="btn btn-danger" type="button" @click="deletePlan">
             <Trash2 :size="16" />
             删除计划
