@@ -53,10 +53,13 @@ function planProgress(plan: StudyPlan): number {
         <h1 class="page-title">学习总览</h1>
         <p class="page-subtitle">欢迎回来，{{ auth.user?.username || '同学' }}，保持你的学习节奏</p>
       </div>
-      <router-link to="/plans" class="btn btn-primary">
-        <CalendarDays :size="16" />
-        制定学习计划
-      </router-link>
+      <div class="row gap">
+        <router-link to="/onboarding" class="btn btn-outline">完善学情</router-link>
+        <router-link to="/plans" class="btn btn-primary">
+          <CalendarDays :size="16" />
+          制定学习计划
+        </router-link>
+      </div>
     </div>
 
     <div v-if="loading" class="empty">正在加载数据...</div>

@@ -4,6 +4,13 @@ export interface UserProfile {
   goals?: string | null
   daily_study_minutes: number
   weak_subjects?: string | null
+  school_level?: string | null
+  pain_point?: string | null
+  learning_style?: string | null
+  weekly_study_minutes: number
+  available_time_slots?: string | null
+  onboarding_completed: boolean
+  onboarding_completed_at?: string | null
 }
 
 export interface User {
@@ -55,6 +62,24 @@ export interface StudyPlanCreate {
   goal?: string
   start_date: string
   end_date: string
+}
+
+export interface OnboardingPayload {
+  major?: string
+  grade?: string
+  goals: string[]
+  weekly_minutes?: number
+  learning_style: string[]
+  pain_point: string[]
+  school_level?: string
+  available_time_slots: string[]
+  generate_plan: boolean
+  complete: boolean
+}
+
+export interface OnboardingResponse {
+  profile: UserProfile
+  plan?: StudyPlan | null
 }
 
 export interface Question {

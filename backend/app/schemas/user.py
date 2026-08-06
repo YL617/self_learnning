@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field
 
 from app.schemas.common import ORMModel
@@ -20,12 +22,20 @@ class UserProfileOut(ORMModel):
     goals: str | None = None
     daily_study_minutes: int = 60
     weak_subjects: str | None = None
+    school_level: str | None = None
+    pain_point: str | None = None
+    learning_style: str | None = None
+    weekly_study_minutes: int = 420
+    available_time_slots: str | None = None
+    onboarding_completed: bool = False
+    onboarding_completed_at: datetime | None = None
 
 
 class UserOut(ORMModel):
     id: int
     email: str
     username: str
+    membership_level: str = "free"
     profile: UserProfileOut | None = None
 
 
@@ -35,6 +45,11 @@ class UserProfileUpdate(BaseModel):
     goals: str | None = None
     daily_study_minutes: int | None = Field(default=None, ge=10, le=600)
     weak_subjects: str | None = None
+    school_level: str | None = None
+    pain_point: str | None = None
+    learning_style: str | None = None
+    weekly_study_minutes: int | None = Field(default=None, ge=60, le=10080)
+    available_time_slots: str | None = None
 
 
 class TokenOut(BaseModel):

@@ -26,7 +26,7 @@ async function submit() {
       email: email.value,
       password: password.value,
     })
-    router.push('/')
+    router.push('/onboarding')
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '注册失败，请稍后重试'
   } finally {

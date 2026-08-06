@@ -27,6 +27,7 @@
           <text class="stat-label">智学币余额</text>
         </view>
       </view>
+      <button class="btn outline" @click="goOnboarding">完善学情</button>
       <button class="btn outline" @click="logout">退出登录</button>
     </template>
   </view>
@@ -85,6 +86,10 @@ function logout() {
   loggedIn.value = false;
   pet.value = null;
   transactions.value = [];
+}
+
+function goOnboarding() {
+  uni.navigateTo({ url: "/pages/onboarding/onboarding" });
 }
 </script>
 

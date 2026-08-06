@@ -2,6 +2,8 @@ import type {
   CoinTransaction,
   DocumentItem,
   FocusStats,
+  OnboardingPayload,
+  OnboardingResponse,
   Pet,
   PlanGenerateRequest,
   PlanItem,
@@ -138,4 +140,12 @@ export const api = {
   feedPet: (id: number, amount: number) =>
     request<Pet>({ url: `/pets/${id}/feed`, method: "POST", data: { amount } }),
   transactions: () => request<CoinTransaction[]>({ url: "/coins/transactions" }),
+  getOnboarding: () =>
+    request<OnboardingResponse>({ url: "/users/me/onboarding" }),
+  submitOnboarding: (data: OnboardingPayload) =>
+    request<OnboardingResponse>({
+      url: "/onboarding",
+      method: "POST",
+      data,
+    }),
 };

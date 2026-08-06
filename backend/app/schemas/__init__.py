@@ -9,6 +9,7 @@ from app.schemas.focus import (
     PetOut,
     PetUpdate,
 )
+from app.schemas.onboarding import OnboardingIn, OnboardingOut
 from app.schemas.plan import (
     PlanGenerateRequest,
     PlanItemCreate,
@@ -16,6 +17,13 @@ from app.schemas.plan import (
     PlanItemUpdate,
     StudyPlanCreate,
     StudyPlanOut,
+)
+from app.schemas.plan_chat import (
+    PlanChatConfirmOut,
+    PlanChatMessageOut,
+    PlanChatReply,
+    PlanChatSendIn,
+    PlanChatStartOut,
 )
 from app.schemas.question import (
     AnswerOut,
@@ -46,9 +54,16 @@ __all__ = [
     "GenerateFileQuestionsRequest",
     "Message",
     "ORMModel",
+    "OnboardingIn",
+    "OnboardingOut",
     "ParseResultOut",
     "PetOut",
     "PetUpdate",
+    "PlanChatConfirmOut",
+    "PlanChatMessageOut",
+    "PlanChatReply",
+    "PlanChatSendIn",
+    "PlanChatStartOut",
     "PlanGenerateRequest",
     "PlanItemCreate",
     "PlanItemOut",

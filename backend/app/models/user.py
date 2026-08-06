@@ -14,6 +14,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    membership_level: Mapped[str] = mapped_column(String(32), default="free")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
@@ -36,5 +37,12 @@ class UserProfile(Base):
     goals: Mapped[str | None] = mapped_column(Text)
     daily_study_minutes: Mapped[int] = mapped_column(default=60)
     weak_subjects: Mapped[str | None] = mapped_column(Text)
+    school_level: Mapped[str | None] = mapped_column(String(64))
+    pain_point: Mapped[str | None] = mapped_column(Text)
+    learning_style: Mapped[str | None] = mapped_column(Text)
+    weekly_study_minutes: Mapped[int] = mapped_column(default=420)
+    available_time_slots: Mapped[str | None] = mapped_column(Text)
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="profile")

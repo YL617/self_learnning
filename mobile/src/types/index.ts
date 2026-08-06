@@ -88,3 +88,33 @@ export interface CoinTransaction {
   reason: string
   created_at: string
 }
+
+export interface OnboardingProfile {
+  major?: string | null
+  grade?: string | null
+  goals?: string | null
+  weekly_study_minutes: number
+  learning_style?: string | null
+  pain_point?: string | null
+  school_level?: string | null
+  available_time_slots?: string | null
+  onboarding_completed: boolean
+}
+
+export interface OnboardingPayload {
+  major?: string
+  grade?: string
+  goals: string[]
+  weekly_minutes?: number
+  learning_style: string[]
+  pain_point: string[]
+  school_level?: string
+  available_time_slots: string[]
+  generate_plan: boolean
+  complete: boolean
+}
+
+export interface OnboardingResponse {
+  profile: OnboardingProfile
+  plan?: unknown
+}
