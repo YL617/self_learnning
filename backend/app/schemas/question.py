@@ -23,6 +23,11 @@ class QuestionOut(ORMModel):
     answer: str
     analysis: str | None = None
     source: str
+    is_favorite: bool = False
+
+
+class QuestionFavoriteUpdate(BaseModel):
+    is_favorite: bool
 
 
 class AnswerSubmit(BaseModel):

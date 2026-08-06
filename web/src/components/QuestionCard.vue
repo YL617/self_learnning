@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { Check, Eye, RotateCcw } from 'lucide-vue-next'
+import { Check, Eye, Heart, RotateCcw, Trash2 } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 import { questionsApi } from '@/api/questions'
 import type { Question } from '@/types'
 
-const props = defineProps<{ question: Question }>()
+const props = defineProps<{ question: Question; showManage?: boolean }>()
+const emit = defineEmits<{
+  favorite: [question: Question]
+  remove: [question: Question]
+}>()
 
 const answer = ref('')
 const submitted = ref(false)
@@ -51,8 +55,23 @@ function reset() {
 <template>
   <article class="card question-card">
     <div class="question-meta">
-      <span class="badge">{{ question.subject }}</span>
-      <span class="badge badge-teal">{{ question.question_type }}</span>
+      <div class="row gap">
+        <span class="badge">{{ question.subject }}</span>
+        <span class="badge badge-teal">{{ question.question_type }}</span>
+      </div>
+      <div v-if="showManage" class="row gap">
+        <button class="btn btn-ghost" type="button" title="收藏题目" @click="emit('favorite', question)">
+          <Heart
+            :size="16"
+            :fill="question.is_favorite ? 'currentColor' : 'none'"
+            :color="question.is_favorite ? '#dc2626' : '#94a3b8'"
+          />
+          {{ question.is_favorite ? '已收藏' : '收藏' }}
+        </button>
+        <button class="btn btn-ghost" type="button" title="删除题目" @click="emit('remove', question)">
+          <Trash2 :size="16" color="#dc2626" />
+        </button>
+      </div>
     </div>
     <h3 class="question-stem">{{ question.stem }}</h3>
     <div v-if="parseOptions().length" class="option-list">

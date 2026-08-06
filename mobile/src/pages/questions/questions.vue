@@ -35,6 +35,14 @@
         <view class="row gap">
           <text class="badge">{{ question.subject }}</text>
           <text class="badge teal">{{ question.question_type }}</text>
+          <text
+            class="action-link"
+            :class="{ favorited: question.is_favorite }"
+            @click="favorite(question)"
+          >
+            {{ question.is_favorite ? "已收藏" : "收藏" }}
+          </text>
+          <text class="delete-link" @click="removeQuestion(question)">删除</text>
         </view>
         <text class="stem">{{ question.stem }}</text>
         <view v-if="options(question).length" class="options">
@@ -123,6 +131,32 @@ async function submit(question: Question) {
   if (!answers[question.id]) return;
   const result = await api.submitAnswer(question.id, answers[question.id]);
   results[question.id] = result.is_correct;
+}
+
+async function favorite(question: Question) {
+  try {
+    const updated = await api.setQuestionFavorite(question.id, !question.is_favorite);
+    question.is_favorite = updated.is_favorite;
+  } catch (err: any) {
+    message.value = err?.detail || "收藏失败";
+  }
+}
+
+function removeQuestion(question: Question) {
+  uni.showModal({
+    title: "删除题目",
+    content: `确定删除这道题目吗？删除后无法恢复。`,
+    success: async (res) => {
+      if (!res.confirm) return;
+      try {
+        await api.deleteQuestion(question.id);
+        questions.value = questions.value.filter((item) => item.id !== question.id);
+        message.value = "题目已删除";
+      } catch (err: any) {
+        message.value = err?.detail || "删除失败";
+      }
+    },
+  });
 }
 
 function toggleAnalysis(question: Question) {
@@ -262,5 +296,21 @@ function toggleAnalysis(question: Question) {
   margin-top: 10rpx;
   color: #2563eb;
   font-size: 24rpx;
+}
+
+.action-link {
+  color: #2563eb;
+  font-size: 24rpx;
+  padding: 4rpx 8rpx;
+}
+
+.action-link.favorited {
+  color: #dc2626;
+}
+
+.delete-link {
+  color: #dc2626;
+  font-size: 24rpx;
+  padding: 4rpx 8rpx;
 }
 </style>

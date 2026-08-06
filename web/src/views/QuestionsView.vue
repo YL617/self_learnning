@@ -41,6 +41,31 @@ async function load() {
   }
 }
 
+async function toggleFavorite(question: Question) {
+  error.value = ''
+  success.value = ''
+  try {
+    const { data } = await questionsApi.setFavorite(question.id, !question.is_favorite)
+    const index = questions.value.findIndex((item) => item.id === question.id)
+    if (index >= 0) questions.value[index] = data
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '收藏操作失败'
+  }
+}
+
+async function removeQuestion(question: Question) {
+  if (!window.confirm(`确定删除题目「${question.stem.slice(0, 20)}...」吗？删除后无法恢复。`)) return
+  error.value = ''
+  success.value = ''
+  try {
+    await questionsApi.remove(question.id)
+    questions.value = questions.value.filter((item) => item.id !== question.id)
+    success.value = '题目已删除'
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '删除失败'
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -90,7 +115,14 @@ onMounted(load)
         <h2 style="margin: 0"><FileQuestion :size="16" style="vertical-align: -2px" /> 题目列表</h2>
       </div>
       <div class="list">
-        <QuestionCard v-for="question in questions" :key="question.id" :question="question" />
+        <QuestionCard
+          v-for="question in questions"
+          :key="question.id"
+          :question="question"
+          :show-manage="true"
+          @favorite="toggleFavorite"
+          @remove="removeQuestion"
+        />
       </div>
     </div>
     <div v-else class="empty">还没有题目，先在上面生成一组吧</div>

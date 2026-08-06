@@ -106,6 +106,14 @@ export const api = {
   questions: () => request<Question[]>({ url: "/questions" }),
   generateQuestions: (data: QuestionGeneratePayload) =>
     request<Question[]>({ url: "/questions/generate", method: "POST", data }),
+  setQuestionFavorite: (questionId: number, isFavorite: boolean) =>
+    request<Question>({
+      url: `/questions/${questionId}/favorite`,
+      method: "PUT",
+      data: { is_favorite: isFavorite },
+    }),
+  deleteQuestion: (questionId: number) =>
+    request<void>({ url: `/questions/${questionId}`, method: "DELETE" }),
   submitAnswer: (questionId: number, userAnswer: string) =>
     request<{ is_correct: boolean }>({
       url: `/questions/${questionId}/answers`,

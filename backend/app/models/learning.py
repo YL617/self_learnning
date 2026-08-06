@@ -63,6 +63,7 @@ class Question(Base):
     answer: Mapped[str] = mapped_column(Text)
     analysis: Mapped[str | None] = mapped_column(Text)
     source: Mapped[str] = mapped_column(String(32), default="ai")
+    is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

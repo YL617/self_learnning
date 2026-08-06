@@ -124,6 +124,7 @@ export interface Question {
   answer: string
   analysis?: string | null
   source: string
+  is_favorite: boolean
 }
 
 export interface AnswerRecord {

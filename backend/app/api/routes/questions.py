@@ -2,6 +2,7 @@ import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -18,6 +19,7 @@ from app.models import (
 from app.schemas.question import (
     AnswerOut,
     AnswerSubmit,
+    QuestionFavoriteUpdate,
     QuestionGenerateRequest,
     QuestionOut,
     WrongBookItemUpdate,
@@ -105,6 +107,51 @@ def list_questions(
             .limit(100)
         ).all()
     )
+
+
+@router.api_route(
+    "/{question_id}/favorite",
+    response_model=QuestionOut,
+    methods=["PATCH", "PUT"],
+)
+def update_question_favorite(
+    question_id: int,
+    data: QuestionFavoriteUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> Question:
+    question = db.scalar(
+        select(Question).where(
+            Question.id == question_id,
+            Question.user_id == current_user.id,
+        )
+    )
+    if question is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
+    question.is_favorite = data.is_favorite
+    db.commit()
+    db.refresh(question)
+    return question
+
+
+@router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_question(
+    question_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    question = db.scalar(
+        select(Question).where(
+            Question.id == question_id,
+            Question.user_id == current_user.id,
+        )
+    )
+    if question is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
+    db.execute(sa_delete(AnswerRecord).where(AnswerRecord.question_id == question.id))
+    db.execute(sa_delete(WrongBookItem).where(WrongBookItem.question_id == question.id))
+    db.delete(question)
+    db.commit()
 
 
 @router.post("/{question_id}/answers", response_model=AnswerOut, status_code=status.HTTP_201_CREATED)
