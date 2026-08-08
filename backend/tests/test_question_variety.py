@@ -1,23 +1,7 @@
+import pytest
+
 from app.services.ai_gateway import AIModelGateway
-from app.services.question_generator import (
-    _fallback_questions,
-    _variant_questions,
-    generate_questions,
-)
-
-
-def test_fallback_questions_are_distinct():
-    questions = _fallback_questions("Data Structures", "Stack", 3, "choice")
-    assert len(questions) == 3
-    assert len({q["stem"] for q in questions}) == 3
-    assert len(questions[0]["analysis"]) >= 40
-
-
-def test_generate_questions_fallback_distinct(monkeypatch):
-    monkeypatch.setattr(AIModelGateway, "generate_json", lambda *args, **kwargs: {})
-    questions = generate_questions("Data Structures", "Stack", 3, "choice")
-    assert len(questions) == 3
-    assert len({q["stem"] for q in questions}) == 3
+from app.services.question_generator import generate_questions
 
 
 def test_generate_questions_dedupes_ai_output(monkeypatch):
@@ -36,48 +20,37 @@ def test_generate_questions_dedupes_ai_output(monkeypatch):
         lambda *args, **kwargs: [duplicate, duplicate, duplicate],
     )
     questions = generate_questions("Data Structures", "Stack", 3, "choice")
-    assert len(questions) == 3
-    assert len({q["stem"] for q in questions}) == 3
+    assert len(questions) == 1
 
 
-def test_variant_questions_are_distinct_and_different_from_original():
-    reference = {
-        "subject": "Data Structures",
-        "knowledge_point": "Stack",
-        "stem": "Which operation removes an element from a stack?",
-        "options": ["A. push", "B. pop", "C. peek", "D. enqueue"],
-        "answer": "B",
-        "analysis": "pop removes the top element.",
-    }
-    questions = _variant_questions(reference, 3, "choice")
-    assert len(questions) == 3
-    stems = [q["stem"] for q in questions]
-    assert len(set(stems)) == 3
-    assert reference["stem"] not in stems
-    option_sets = [tuple(q["options"]) for q in questions]
-    assert len(set(option_sets)) == 3
-
-
-def test_generate_with_reference_fallback(monkeypatch):
+def test_generate_questions_raises_when_ai_unavailable(monkeypatch):
     monkeypatch.setattr(AIModelGateway, "generate_json", lambda *args, **kwargs: {})
-    reference = {
-        "subject": "Data Structures",
-        "knowledge_point": "Stack",
-        "stem": "Original stem",
-        "options": ["A. push", "B. pop", "C. peek", "D. enqueue"],
-        "answer": "B",
-        "analysis": "Analysis",
-    }
-    questions = generate_questions(
-        "Data Structures",
-        "Stack",
-        3,
-        "choice",
-        reference=reference,
+    with pytest.raises(RuntimeError):
+        generate_questions("Data Structures", "Stack", 3, "choice")
+
+
+def test_api_generate_returns_502_when_ai_unavailable(client, monkeypatch):
+    register = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "ai502@example.com",
+            "username": "ai502",
+            "password": "123456",
+        },
     )
-    assert len(questions) == 3
-    assert len({q["stem"] for q in questions}) == 3
-    assert reference["stem"] not in [q["stem"] for q in questions]
+    headers = {"Authorization": f"Bearer {register.json()['access_token']}"}
+    monkeypatch.setattr(AIModelGateway, "generate_json", lambda *args, **kwargs: {})
+    response = client.post(
+        "/api/v1/questions/generate",
+        headers=headers,
+        json={
+            "subject": "Data Structures",
+            "knowledge_point": "Stack",
+            "count": 3,
+            "question_type": "choice",
+        },
+    )
+    assert response.status_code == 502
 
 
 def test_api_generate_with_reference(client):

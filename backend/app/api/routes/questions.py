@@ -106,14 +106,20 @@ def generate(
             "analysis": original.analysis,
         }
 
-    questions = generate_questions(
-        data.subject,
-        data.knowledge_point,
-        data.count,
-        data.question_type,
-        context=context,
-        reference=reference,
-    )
+    try:
+        questions = generate_questions(
+            data.subject,
+            data.knowledge_point,
+            data.count,
+            data.question_type,
+            context=context,
+            reference=reference,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        )
     return _save_questions(db, current_user.id, document_id, questions)
 
 

@@ -86,7 +86,7 @@ flowchart LR
 | 向量库 | Chroma（本地），Milvus（扩展） | 演示环境轻量，后续可平滑替换 |
 | RAG 管理 | 薄封装 + LlamaIndex 可选 | 先控制复杂度，必要时再引入 LlamaIndex |
 | 模型接入 | OpenAI 兼容 HTTP 接口 | DeepSeek/通义/GLM 均提供兼容端点，统一协议 |
-| 降级策略 | 模板/离线响应兜底 | 保证演示现场不因网络或额度中断 |
+| 降级策略 | 多模型切换 + 明确报错 | AI 不可用时返回 502，不生成模板内容 |
 | 初始化 | create_all + Alembic 双轨 | 开发期快速建表，生产走迁移 |
 | 数据隔离 | user_id 逻辑隔离 | 不引入多租户 Tenant ID，保持 V9.0 轻量化架构 |
 | 代码沙箱 | 接入 E2B / Piston | 避免重复开发底层安全设施，不引入 K8s |

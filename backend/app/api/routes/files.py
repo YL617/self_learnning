@@ -186,25 +186,31 @@ def generate_file_questions(
         .limit(8)
     ).all()
     context = [chunk.content for chunk in chunks]
-    if data.question_plan:
-        questions: list[dict] = []
-        for item in data.question_plan:
-            questions.extend(
-                generate_questions(
-                    subject="综合",
-                    knowledge_point=f"《{document.filename}》",
-                    count=item.count,
-                    question_type=item.question_type,
-                    context=context,
+    try:
+        if data.question_plan:
+            questions = []
+            for item in data.question_plan:
+                questions.extend(
+                    generate_questions(
+                        subject="综合",
+                        knowledge_point=f"《{document.filename}》",
+                        count=item.count,
+                        question_type=item.question_type,
+                        context=context,
+                    )
                 )
+        else:
+            questions = generate_questions(
+                subject="综合",
+                knowledge_point=f"《{document.filename}》",
+                count=data.count,
+                question_type=data.question_type,
+                context=context,
             )
-    else:
-        questions = generate_questions(
-            subject="综合",
-            knowledge_point=f"《{document.filename}》",
-            count=data.count,
-            question_type=data.question_type,
-            context=context,
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
         )
     saved: list[Question] = []
     for question in questions:

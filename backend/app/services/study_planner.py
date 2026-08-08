@@ -33,33 +33,6 @@ def _build_user_prompt(
     )
 
 
-def _default_items(
-    major: str,
-    daily_minutes: int,
-    weeks: int,
-) -> list[dict[str, Any]]:
-    items: list[dict[str, Any]] = []
-    start = date.today()
-    day = 0
-    templates = ["专业基础复习", "核心知识点学习", "练习与错题整理", "周复盘与计划调整"]
-    for week in range(1, weeks + 1):
-        for base in templates:
-            items.append(
-                {
-                    "title": f"第{week}周·{base}",
-                    "subject": major or "综合学习",
-                    "scheduled_date": (start + timedelta(days=day)).isoformat(),
-                    "duration_minutes": daily_minutes,
-                    "difficulty": "medium",
-                    "suggested_time_slot": "晚间" if week % 2 == 0 else "上午",
-                    "buffer_minutes": max(10, round(daily_minutes * 0.2)),
-                    "order_index": len(items) + 1,
-                }
-            )
-            day += 1
-    return items
-
-
 def _normalize(
     data: dict[str, Any],
     major: str,
@@ -106,13 +79,13 @@ def generate_study_plan(
     gateway = AIModelGateway()
     user_prompt = _build_user_prompt(major, grade, goal, daily_minutes, weeks, subjects)
     data = gateway.generate_json(SYSTEM_PROMPT, user_prompt)
-    if isinstance(data, dict) and isinstance(data.get("items"), list) and data["items"]:
-        return _normalize(data, major, goal)
-    return {
-        "title": f"{major or '综合'}学习计划",
-        "goal": goal,
-        "items": _default_items(major, daily_minutes, weeks),
-    }
+    if not (
+        isinstance(data, dict)
+        and isinstance(data.get("items"), list)
+        and data["items"]
+    ):
+        raise RuntimeError("AI 服务暂不可用，请稍后重试")
+    return _normalize(data, major, goal)
 
 
 def _lower_difficulty(difficulty: str) -> str:

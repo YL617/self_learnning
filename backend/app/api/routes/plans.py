@@ -68,14 +68,20 @@ def generate_plan(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> StudyPlan:
-    result = generate_study_plan(
-        major=data.major,
-        grade=data.grade,
-        goal=data.goal,
-        daily_minutes=data.daily_minutes,
-        weeks=data.weeks,
-        subjects=data.subjects,
-    )
+    try:
+        result = generate_study_plan(
+            major=data.major,
+            grade=data.grade,
+            goal=data.goal,
+            daily_minutes=data.daily_minutes,
+            weeks=data.weeks,
+            subjects=data.subjects,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        )
     start = date.today()
     plan = StudyPlan(
         user_id=current_user.id,
