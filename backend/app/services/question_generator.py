@@ -66,48 +66,58 @@ def _variant_questions(
     subject = str(reference.get("subject", "")).strip() or "综合"
     knowledge_point = str(reference.get("knowledge_point", "")).strip()
     original_stem = str(reference.get("stem", "")).strip()
-    original_options = (
-        reference.get("options")
-        if isinstance(reference.get("options"), list)
-        else []
-    )
-    original_answer = str(reference.get("answer", "")).strip()
     size = min(count, 5)
-    letters = ["A", "B", "C", "D"]
 
     if question_type == "choice":
-        base = [str(opt).strip() for opt in original_options if str(opt).strip()]
-        if not base:
-            base = ["A. 正确表述", "B. 常见错误表述", "C. 拓展理解", "D. 无关特征"]
-        answer_index = 0
-        for index, option in enumerate(base):
-            if option[:1].lower() == original_answer[:1].lower():
-                answer_index = index
-                break
-        stem_templates = [
-            f"关于「{knowledge_point}」，下列说法最准确的是？",
-            f"在{subject}中，以下哪项符合「{knowledge_point}」的含义？",
-            f"下列哪项最能体现「{knowledge_point}」的特征？",
-            f"关于「{knowledge_point}」的理解，正确的是？",
-            f"与「{knowledge_point}」相关的说法，正确的是？",
+        variant_sets = [
+            {
+                "stem": f"关于「{knowledge_point}」，下列说法最准确的是？",
+                "options": ["A. 教材标准表述", "B. 常见错误表述", "C. 拓展理解", "D. 以上都不对"],
+                "answer": "A",
+            },
+            {
+                "stem": f"「{knowledge_point}」的核心特点是？",
+                "options": ["A. 定义明确、结构清晰", "B. 实现方式不唯一", "C. 依赖具体语言", "D. 没有固定规律"],
+                "answer": "A",
+            },
+            {
+                "stem": f"学习「{knowledge_point}」时，最容易出现的错误是？",
+                "options": ["A. 混淆相关概念", "B. 忽略基础定义", "C. 死记硬背", "D. 以上都是"],
+                "answer": "D",
+            },
+            {
+                "stem": f"「{knowledge_point}」的典型应用场景是？",
+                "options": ["A. 教材示例", "B. 实际问题求解", "C. 竞赛题目", "D. 以上都是"],
+                "answer": "D",
+            },
+            {
+                "stem": f"「{knowledge_point}」在考试中的常见考法是？",
+                "options": ["A. 概念辨析", "B. 原理推导", "C. 综合应用", "D. 以上都是"],
+                "answer": "D",
+            },
         ]
-        stem_candidates = [stem for stem in stem_templates if stem != original_stem]
-        if len(stem_candidates) < size:
-            stem_candidates = (stem_candidates + stem_templates)[:size]
         questions: list[dict[str, Any]] = []
+        used_stems: set[str] = set()
         for index in range(size):
-            rotated = base[answer_index:] + base[:answer_index]
-            shift = index % len(rotated)
-            rotated = rotated[shift:] + rotated[:shift]
-            correct = letters[rotated.index(base[answer_index])]
+            item = None
+            for candidate in variant_sets:
+                if (
+                    candidate["stem"] != original_stem
+                    and candidate["stem"] not in used_stems
+                ):
+                    item = candidate
+                    break
+            if item is None:
+                item = variant_sets[index]
+            used_stems.add(item["stem"])
             questions.append(
                 {
                     "subject": subject,
                     "knowledge_point": knowledge_point,
                     "question_type": "choice",
-                    "stem": stem_candidates[index],
-                    "options": rotated,
-                    "answer": correct,
+                    "stem": item["stem"],
+                    "options": item["options"],
+                    "answer": item["answer"],
                     "analysis": (
                         f"本题为「{knowledge_point}」的变体题，原始题干："
                         f"{original_stem[:80]}"
