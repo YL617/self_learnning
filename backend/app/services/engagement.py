@@ -101,7 +101,7 @@ def today_focus_coins(db: Session, user_id: int) -> int:
         tx.amount
         for tx in rows
         if tx.created_at is not None
-        and tx.created_at.date() == today
+        and (tx.created_at + timedelta(hours=8)).date() == today
     )
 
 

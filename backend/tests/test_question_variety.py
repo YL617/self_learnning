@@ -10,6 +10,7 @@ def test_fallback_questions_are_distinct():
     questions = _fallback_questions("Data Structures", "Stack", 3, "choice")
     assert len(questions) == 3
     assert len({q["stem"] for q in questions}) == 3
+    assert len(questions[0]["analysis"]) >= 40
 
 
 def test_generate_questions_fallback_distinct(monkeypatch):

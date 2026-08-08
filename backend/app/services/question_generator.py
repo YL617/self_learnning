@@ -13,6 +13,7 @@ SYSTEM_PROMPT = (
     "每题结构：{\"subject\": \"...\", \"knowledge_point\": \"...\", "
     "\"question_type\": \"choice|fill|short_answer\", \"stem\": \"...\", "
     "\"options\": [\"A. ...\", \"B. ...\"], \"answer\": \"...\", \"analysis\": \"...\"}"
+    "解析必须包含：正确答案的依据、错误选项的辨析、常见易错点、复习建议，且不少于 60 个汉字。"
 )
 
 
@@ -50,8 +51,9 @@ def _fallback_questions(
                 "options": options if question_type == "choice" else [],
                 "answer": "A" if question_type == "choice" else f"围绕{knowledge_point}的核心概念进行说明",
                 "analysis": (
-                    f"请结合{subject}教材确认「{knowledge_point}」的准确表述，"
-                    f"并记录第 {index + 1} 个复习要点。"
+                    f"本题考察「{knowledge_point}」的核心概念。选项 A 为教材标准表述，是最准确的答案；"
+                    f"选项 B 属于常见错误表述，C 是拓展理解，D 不能作为有效结论。"
+                    f"复习建议：结合{subject}教材确认定义，并整理第 {index + 1} 条错题笔记。"
                 ),
             }
         )
@@ -119,8 +121,9 @@ def _variant_questions(
                     "options": item["options"],
                     "answer": item["answer"],
                     "analysis": (
-                        f"本题为「{knowledge_point}」的变体题，原始题干："
-                        f"{original_stem[:80]}"
+                        f"本题为「{knowledge_point}」的变体题。正确选项与题干要求一一对应，"
+                        f"做题时注意区分教材标准表述与常见错误。原始题干：{original_stem[:60]}。"
+                        f"复习建议：结合{subject}教材强化概念辨析与易错点。"
                     ),
                 }
             )
@@ -144,7 +147,11 @@ def _variant_questions(
             "stem": stem_candidates[index],
             "options": [],
             "answer": f"围绕「{knowledge_point}」的核心概念，参考原始题目：{original_stem[:60]}",
-            "analysis": f"本题为「{knowledge_point}」的变体题，请结合{subject}教材确认。",
+            "analysis": (
+                f"本题为「{knowledge_point}」的变体题。回答时应先给出定义，再补充特点或应用，"
+                f"最后点明易错点。原始题干：{original_stem[:60]}。"
+                f"复习建议：结合{subject}教材整理复习要点。"
+            ),
         }
         for index in range(size)
     ]
@@ -166,10 +173,26 @@ def _normalize(raw: Any, subject: str, knowledge_point: str) -> list[dict[str, A
                 "stem": str(item["stem"]).strip(),
                 "options": [str(opt).strip() for opt in options if str(opt).strip()],
                 "answer": str(item.get("answer", "")).strip(),
-                "analysis": str(item.get("analysis", "")).strip(),
+                "analysis": _ensure_analysis(
+                    str(item.get("analysis", "")).strip(),
+                    subject,
+                    knowledge_point,
+                ),
             }
         )
     return questions
+
+
+def _ensure_analysis(analysis: str, subject: str, knowledge_point: str) -> str:
+    hint = (
+        f"复习提示：请结合{subject}教材确认「{knowledge_point}」的定义、"
+        "应用场景与常见错误。"
+    )
+    if not analysis:
+        return hint
+    if len(analysis) < 40:
+        return f"{analysis} {hint}"
+    return analysis
 
 
 def generate_questions(
