@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import {
+  BarChart3,
+  Bell,
   BookOpenCheck,
+  Calendar,
   CalendarDays,
   FileQuestion,
   Files,
+  GraduationCap,
   LayoutDashboard,
   LogOut,
   MessageSquareText,
@@ -28,6 +32,10 @@ const navItems = [
   { label: '文件出题', to: '/files', icon: Files },
   { label: '专注模式', to: '/focus', icon: Timer },
   { label: '我的宠物', to: '/pet', icon: PawPrint },
+  { label: '待办与日历', to: '/todos', icon: Calendar },
+  { label: '提醒通知', to: '/reminders', icon: Bell },
+  { label: '公开课程', to: '/courses', icon: GraduationCap },
+  { label: '学习周报', to: '/reports', icon: BarChart3 },
   { label: '账号设置', to: '/settings', icon: Settings },
 ]
 

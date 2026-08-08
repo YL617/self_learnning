@@ -68,6 +68,31 @@ const router = createRouter({
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
         },
+        {
+          path: 'todos',
+          name: 'todos',
+          component: () => import('@/views/TodosView.vue'),
+        },
+        {
+          path: 'calendar',
+          name: 'calendar',
+          component: () => import('@/views/CalendarView.vue'),
+        },
+        {
+          path: 'reminders',
+          name: 'reminders',
+          component: () => import('@/views/RemindersView.vue'),
+        },
+        {
+          path: 'courses',
+          name: 'courses',
+          component: () => import('@/views/CoursesView.vue'),
+        },
+        {
+          path: 'reports',
+          name: 'reports',
+          component: () => import('@/views/ReportsView.vue'),
+        },
       ],
     },
   ],

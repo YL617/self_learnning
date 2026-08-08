@@ -142,6 +142,7 @@ docker compose up -d --build
 - [V8.0 → V9.0 功能合并清单](./docs/FEATURE_RECONCILIATION.md)
 - [法律风险与可行性检测报告](./docs/RISK_ASSESSMENT.md)
 - [功能实现状态清单](./docs/FEATURE_STATUS.md)
+- [部署指南](./docs/DEPLOYMENT_GUIDE.md)
 
 ## 开发路线
 

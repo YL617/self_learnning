@@ -80,3 +80,27 @@ def cleanup_expired_documents() -> dict:
             db.delete(document)
         db.commit()
         return {"ok": True, "cleaned": len(expired)}
+
+
+@celery_app.task(name="reminders.notify_due")
+def notify_due_reminders() -> dict:
+    from datetime import datetime, timezone
+
+    from sqlalchemy import select
+
+    from app.core.database import SessionLocal
+    from app.models import Reminder
+
+    with SessionLocal() as db:
+        due = list(
+            db.scalars(
+                select(Reminder).where(
+                    Reminder.remind_at <= datetime.now(timezone.utc),
+                    Reminder.triggered.is_(False),
+                )
+            ).all()
+        )
+        for reminder in due:
+            reminder.triggered = True
+        db.commit()
+        return {"ok": True, "triggered": len(due)}

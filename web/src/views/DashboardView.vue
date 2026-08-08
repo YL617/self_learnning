@@ -9,6 +9,7 @@ import {
 import { onMounted, ref } from 'vue'
 
 import { focusApi } from '@/api/focus'
+import { demoApi } from '@/api/ops'
 import { plansApi } from '@/api/plans'
 import { questionsApi } from '@/api/questions'
 import { useAuthStore } from '@/stores/auth'
@@ -20,8 +21,9 @@ const plans = ref<StudyPlan[]>([])
 const questionCount = ref(0)
 const coinBalance = ref(0)
 const loading = ref(true)
+const demoLoading = ref(false)
 
-onMounted(async () => {
+async function load() {
   try {
     const [statsRes, plansRes, questionsRes, coinsRes] = await Promise.allSettled([
       focusApi.stats(),
@@ -38,11 +40,23 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(load)
 
 function planProgress(plan: StudyPlan): number {
   if (!plan.items.length) return 0
   return Math.round((plan.items.filter((item) => item.completed).length / plan.items.length) * 100)
+}
+
+async function seedDemoData() {
+  demoLoading.value = true
+  try {
+    await demoApi.seed()
+    await load()
+  } finally {
+    demoLoading.value = false
+  }
 }
 </script>
 
@@ -55,10 +69,13 @@ function planProgress(plan: StudyPlan): number {
       </div>
       <div class="row gap">
         <router-link to="/onboarding" class="btn btn-outline">完善学情</router-link>
-        <router-link to="/plans" class="btn btn-primary">
-          <CalendarDays :size="16" />
-          制定学习计划
-        </router-link>
+      <router-link to="/plans" class="btn btn-primary">
+        <CalendarDays :size="16" />
+        制定学习计划
+      </router-link>
+      <button class="btn btn-outline" type="button" :disabled="demoLoading" @click="seedDemoData">
+        {{ demoLoading ? '填充中...' : '填充演示数据' }}
+      </button>
       </div>
     </div>
 

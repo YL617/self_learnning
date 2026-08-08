@@ -195,3 +195,59 @@ export interface CoinTransaction {
   reason: string
   created_at: string
 }
+
+export interface Todo {
+  id: number
+  title: string
+  due_date: string
+  completed: boolean
+}
+
+export interface Reminder {
+  id: number
+  title: string
+  remind_at: string
+  triggered: boolean
+  dismissed: boolean
+}
+
+export interface NotificationItem {
+  id: number
+  kind: string
+  title: string
+  remind_at?: string | null
+}
+
+export interface CalendarEvent {
+  date: string
+  title: string
+  kind: string
+  id: number
+  completed: boolean
+}
+
+export interface CourseChapter {
+  id: number
+  title: string
+  order_index: number
+}
+
+export interface Course {
+  id: number
+  title: string
+  platform: string
+  url: string
+  description?: string | null
+  chapters: CourseChapter[]
+}
+
+export interface WeeklyReport {
+  start_date: string
+  end_date: string
+  focus_minutes: number
+  sessions: number
+  answered: number
+  correct: number
+  coins_earned: number
+  wrong_added: number
+}
