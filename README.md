@@ -136,6 +136,7 @@ docker compose up -d --build
 ## 文档
 
 - [项目开发计划书](./docs/项目开发计划书.md)（含 Word 版）
+- [文件出题与错题本 功能开发文档](./docs/开发文档_文件出题与错题本.md)（含 Word 版）
 - [开发计划](./docs/DEVELOPMENT_PLAN.md)
 - [技术架构](./docs/ARCHITECTURE.md)
 - [V8.0 → V9.0 功能合并清单](./docs/FEATURE_RECONCILIATION.md)

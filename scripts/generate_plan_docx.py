@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 from docx import Document
@@ -14,8 +15,8 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "docs" / "项目开发计划书.md"
-OUTPUT = ROOT / "docs" / "项目开发计划书.docx"
+DEFAULT_SOURCE = ROOT / "docs" / "项目开发计划书.md"
+DEFAULT_OUTPUT = ROOT / "docs" / "项目开发计划书.docx"
 
 HEADING_COLOR = RGBColor(0x2E, 0x74, 0xB5)
 HEADING_DARK = RGBColor(0x1F, 0x4D, 0x78)
@@ -255,12 +256,15 @@ def parse_markdown(source: Path) -> list[tuple[str, object]]:
 
 
 def build_docx() -> None:
+    source_arg = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_SOURCE
+    output_arg = Path(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_OUTPUT
+    source = source_arg if source_arg.is_absolute() else ROOT / source_arg
+    output = output_arg if output_arg.is_absolute() else ROOT / output_arg
     doc = Document()
     setup_section(doc)
     setup_styles(doc)
 
-    blocks = parse_markdown(SOURCE)
-    first_title = True
+    blocks = parse_markdown(source)
     for kind, payload in blocks:
         if kind == "title":
             para = doc.add_paragraph()
@@ -304,8 +308,8 @@ def build_docx() -> None:
             rows = [row for row in payload if row]
             add_table(doc, rows)
 
-    doc.save(OUTPUT)
-    print(f"saved: {OUTPUT}")
+    doc.save(output)
+    print(f"saved: {output}")
 
 
 if __name__ == "__main__":
