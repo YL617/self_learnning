@@ -1,4 +1,10 @@
-from app.models.engagement import CoinTransaction, DailyStat, FocusSession, Pet
+from app.models.engagement import (
+    CoinTransaction,
+    DailyStat,
+    FocusSession,
+    Pet,
+    ShopItem,
+)
 from app.models.knowledge import Document, FileAnalyzeResult, KnowledgeChunk
 from app.models.learning import (
     AnswerRecord,
@@ -25,6 +31,7 @@ __all__ = [
     "PlanChatSession",
     "PlanItem",
     "Question",
+    "ShopItem",
     "StudyPlan",
     "User",
     "UserProfile",

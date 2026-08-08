@@ -31,6 +31,10 @@ class PetOut(ORMModel):
     level: int
     exp: int
     mood: int
+    hunger: int = 100
+    evolution_stage: int = 1
+    runaway: bool = False
+    last_fed_at: datetime | None = None
 
 
 class PetUpdate(BaseModel):
@@ -39,6 +43,18 @@ class PetUpdate(BaseModel):
 
 class FeedPetRequest(BaseModel):
     amount: int = Field(default=10, ge=1, le=100)
+
+
+class FocusCompleteRequest(BaseModel):
+    verified: bool = True
+
+
+class ShopItemOut(ORMModel):
+    id: int
+    name: str
+    price: int
+    effect_type: str
+    description: str | None = None
 
 
 class CoinTransactionOut(ORMModel):

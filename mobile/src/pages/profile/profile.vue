@@ -19,7 +19,10 @@
         <text class="card-title">{{ username }} 的学习空间</text>
         <view v-if="pet" class="pet">
           <text class="pet-name">{{ pet.name }} · Lv.{{ pet.level }}</text>
-          <text class="muted">经验 {{ pet.exp }}/{{ pet.level * 100 }} · 心情 {{ pet.mood }}</text>
+          <text v-if="pet.runaway" class="muted">离家出走，请使用寻回卷轴</text>
+          <text class="muted">
+            经验 {{ pet.exp }}/{{ pet.level * 100 }} · 心情 {{ pet.mood }} · 饱食度 {{ pet.hunger }}
+          </text>
           <button class="btn teal" @click="feed">喂食 10 智学币</button>
         </view>
         <view class="balance">

@@ -7,22 +7,29 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models import CoinTransaction, FocusSession, Pet, User
+from app.models import CoinTransaction, FocusSession, Pet, ShopItem, User
 from app.schemas.focus import (
     CoinTransactionOut,
     FeedPetRequest,
+    FocusCompleteRequest,
     FocusSessionOut,
     FocusSessionStart,
     FocusStatsOut,
     PetOut,
     PetUpdate,
+    ShopItemOut,
 )
 from app.services.engagement import (
-    add_pet_exp,
+    DAILY_FOCUS_COIN_CAP,
     award_coins,
     award_pet_exp,
+    feed_pet,
     get_or_create_pet,
+    record_checkin,
     record_daily_stat,
+    refresh_pet_state,
+    seed_shop_items,
+    today_focus_coins,
 )
 
 router = APIRouter(prefix="/focus", tags=["focus"])
@@ -57,6 +64,7 @@ def complete_focus_session(
     session_id: int,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    data: FocusCompleteRequest | None = None,
 ) -> FocusSession:
     session = db.scalar(
         select(FocusSession).where(
@@ -69,15 +77,21 @@ def complete_focus_session(
     if not session.completed:
         session.completed = True
         session.ended_at = datetime.now(timezone.utc)
-        coins = max(1, session.duration_minutes // 5)
-        award_coins(db, current_user.id, coins, "完成番茄钟")
-        award_pet_exp(db, current_user.id, coins)
-        record_daily_stat(
-            db,
-            current_user.id,
-            focus_minutes=session.duration_minutes,
-            coins=coins,
-        )
+        verified = data.verified if data else True
+        if verified:
+            coins = max(1, session.duration_minutes // 5)
+            remaining = DAILY_FOCUS_COIN_CAP - today_focus_coins(db, current_user.id)
+            coins = max(0, min(coins, remaining))
+            if coins > 0:
+                award_coins(db, current_user.id, coins, "完成番茄钟")
+                award_pet_exp(db, current_user.id, coins)
+            record_daily_stat(
+                db,
+                current_user.id,
+                focus_minutes=session.duration_minutes,
+                coins=coins,
+            )
+            record_checkin(db, current_user)
     db.commit()
     db.refresh(session)
     return session
@@ -112,6 +126,7 @@ def get_pet(
     db: Annotated[Session, Depends(get_db)],
 ) -> Pet:
     pet = get_or_create_pet(db, current_user.id)
+    refresh_pet_state(pet)
     db.commit()
     db.refresh(pet)
     return pet
@@ -136,7 +151,7 @@ def rename_pet(
 
 
 @pet_router.post("/{pet_id}/feed", response_model=PetOut)
-def feed_pet(
+def feed_pet_endpoint(
     pet_id: int,
     data: FeedPetRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -147,6 +162,7 @@ def feed_pet(
     )
     if pet is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="宠物不存在")
+    refresh_pet_state(pet)
     balance = sum(
         tx.amount
         for tx in db.scalars(
@@ -156,10 +172,18 @@ def feed_pet(
     if balance < data.amount:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="智学币不足")
     award_coins(db, current_user.id, -data.amount, "喂食宠物")
-    add_pet_exp(pet, data.amount)
+    feed_pet(pet, data.amount)
     db.commit()
     db.refresh(pet)
     return pet
+
+
+@pet_router.get("/shop", response_model=list[ShopItemOut])
+def list_shop(
+    db: Annotated[Session, Depends(get_db)],
+) -> list[ShopItem]:
+    seed_shop_items(db)
+    return list(db.scalars(select(ShopItem).order_by(ShopItem.price)).all())
 
 
 @coin_router.get("/transactions", response_model=list[CoinTransactionOut])

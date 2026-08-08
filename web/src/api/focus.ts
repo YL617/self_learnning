@@ -7,8 +7,8 @@ export const focusApi = {
       task_label: taskLabel,
       duration_minutes: durationMinutes,
     }),
-  completeSession: (sessionId: number) =>
-    http.patch<FocusSession>(`/focus/sessions/${sessionId}/complete`),
+  completeSession: (sessionId: number, verified = true) =>
+    http.patch<FocusSession>(`/focus/sessions/${sessionId}/complete`, { verified }),
   stats: () => http.get<FocusStats>('/focus/stats'),
   pet: () => http.get<Pet>('/pets'),
   renamePet: (petId: number, name: string) =>

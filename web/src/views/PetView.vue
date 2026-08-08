@@ -19,6 +19,10 @@ const expPercent = computed(() => {
   const threshold = pet.value.level * 100
   return Math.min(100, Math.round((pet.value.exp / threshold) * 100))
 })
+const hungerPercent = computed(() => {
+  if (!pet.value) return 0
+  return Math.min(100, pet.value.hunger)
+})
 
 async function load() {
   error.value = ''
@@ -78,7 +82,12 @@ onMounted(load)
             <h2 style="text-align: center; margin: 4px 0 0">
               {{ pet.name }} · Lv.{{ pet.level }}
             </h2>
-            <div class="muted" style="text-align: center">心情 {{ pet.mood }}/100</div>
+            <div v-if="pet.runaway" class="badge badge-amber" style="margin: 0 auto">
+              离家出走，请使用寻回卷轴
+            </div>
+            <div class="muted" style="text-align: center">
+              心情 {{ pet.mood }}/100 · 进化阶段 {{ pet.evolution_stage }}
+            </div>
             <div>
               <div class="progress-label">
                 <span>经验</span>
@@ -88,10 +97,22 @@ onMounted(load)
                 <div class="progress-bar" :style="{ width: `${expPercent}%` }" />
               </div>
             </div>
+            <div style="margin-top: 10px">
+              <div class="progress-label">
+                <span>饱食度</span>
+                <span>{{ pet.hunger }}/100</span>
+              </div>
+              <div class="progress-track">
+                <div
+                  class="progress-bar"
+                  :style="{ width: `${hungerPercent}%`, background: pet.hunger < 20 ? '#dc2626' : '#0f766e' }"
+                />
+              </div>
+            </div>
           </div>
           <div class="row gap wrap" style="margin-top: 16px; justify-content: center">
-            <button class="btn btn-teal" type="button" @click="feed(10)">喂食 10 币</button>
-            <button class="btn btn-teal" type="button" @click="feed(50)">喂食 50 币</button>
+            <button class="btn btn-teal" type="button" @click="feed(10)">普通饲料 10 币</button>
+            <button class="btn btn-teal" type="button" @click="feed(50)">高级营养膏 50 币</button>
           </div>
           <div class="row gap" style="margin-top: 16px">
             <input v-model="newName" class="input" placeholder="输入新名字" />

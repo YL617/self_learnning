@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -40,6 +41,11 @@ class Pet(Base):
     level: Mapped[int] = mapped_column(Integer, default=1)
     exp: Mapped[int] = mapped_column(Integer, default=0)
     mood: Mapped[int] = mapped_column(Integer, default=100)
+    hunger: Mapped[int] = mapped_column(Integer, default=100)
+    evolution_stage: Mapped[int] = mapped_column(Integer, default=1)
+    runaway: Mapped[bool] = mapped_column(Boolean, default=False)
+    hunger_updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_fed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
@@ -73,3 +79,13 @@ class DailyStat(Base):
     answered_count: Mapped[int] = mapped_column(Integer, default=0)
     correct_count: Mapped[int] = mapped_column(Integer, default=0)
     coin_earned: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ShopItem(Base):
+    __tablename__ = "shop_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    price: Mapped[int] = mapped_column(Integer, default=0)
+    effect_type: Mapped[str] = mapped_column(String(32), default="feed")
+    description: Mapped[str | None] = mapped_column(Text)

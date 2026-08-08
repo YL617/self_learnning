@@ -143,10 +143,11 @@ export const api = {
       method: "POST",
       data: { task_label: taskLabel, duration_minutes: durationMinutes },
     }),
-  completeFocus: (id: number) =>
+  completeFocus: (id: number, verified = true) =>
     request<{ id: number }>({
       url: `/focus/sessions/${id}/complete`,
       method: "PUT",
+      data: { verified },
     }),
   pet: () => request<Pet>({ url: "/pets" }),
   feedPet: (id: number, amount: number) =>

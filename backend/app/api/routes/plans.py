@@ -17,7 +17,7 @@ from app.schemas.plan import (
     StudyPlanCreate,
     StudyPlanOut,
 )
-from app.services.engagement import award_coins, award_pet_exp
+from app.services.engagement import award_coins, award_pet_exp, record_checkin
 from app.services.study_planner import adjust_study_plan, generate_study_plan
 
 router = APIRouter(prefix="/plans", tags=["plans"])
@@ -186,6 +186,7 @@ def update_plan_item(
     if data.completed is True and not item.completed:
         award_coins(db, current_user.id, 10, "完成学习任务")
         award_pet_exp(db, current_user.id, 5)
+        record_checkin(db, current_user)
     if data.completed is not None:
         item.completed = data.completed
     db.commit()

@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { onHide } from "@dcloudio/uni-app";
 import { computed, onBeforeUnmount, ref } from "vue";
 
 import { api } from "@/api/request";
@@ -52,6 +53,7 @@ const active = ref(false);
 const sessionId = ref(0);
 const remaining = ref(0);
 const timerHandle = ref<number | null>(null);
+const activeVerified = ref(true);
 const stats = ref<FocusStats>({ total_minutes: 0, session_count: 0, today_minutes: 0 });
 const message = ref("");
 
@@ -77,6 +79,7 @@ async function start() {
   const session = await api.startFocus(taskLabel.value, duration.value);
   sessionId.value = session.id;
   remaining.value = duration.value * 60;
+  activeVerified.value = true;
   active.value = true;
   timerHandle.value = setInterval(() => {
     remaining.value -= 1;
@@ -88,8 +91,11 @@ async function complete() {
   if (timerHandle.value !== null) clearInterval(timerHandle.value);
   timerHandle.value = null;
   try {
-    await api.completeFocus(sessionId.value);
+    await api.completeFocus(sessionId.value, activeVerified.value);
     message.value = "已完成并记录";
+    if (!activeVerified.value) {
+      message.value = "检测到切换后台，本次未计入金币与经验";
+    }
     await loadStats();
   } catch (err: any) {
     message.value = err?.detail || "记录失败";
@@ -97,6 +103,10 @@ async function complete() {
     active.value = false;
   }
 }
+
+onHide(() => {
+  activeVerified.value = false;
+});
 
 onBeforeUnmount(() => {
   if (timerHandle.value !== null) clearInterval(timerHandle.value);

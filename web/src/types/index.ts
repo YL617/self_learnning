@@ -183,6 +183,10 @@ export interface Pet {
   level: number
   exp: number
   mood: number
+  hunger: number
+  evolution_stage: number
+  runaway: boolean
+  last_fed_at?: string | null
 }
 
 export interface CoinTransaction {

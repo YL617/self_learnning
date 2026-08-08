@@ -12,6 +12,8 @@ const activeSession = ref<FocusSession | null>(null)
 const remainingSeconds = ref(0)
 const timerHandle = ref<number | null>(null)
 const error = ref('')
+const lastActivity = ref(Date.now())
+const activeVerified = ref(true)
 
 const displayTime = computed(() => {
   const minutes = Math.floor(remainingSeconds.value / 60)
@@ -34,13 +36,24 @@ async function start() {
     const { data } = await focusApi.startSession(taskLabel.value, duration.value)
     activeSession.value = data
     remainingSeconds.value = data.duration_minutes * 60
+    lastActivity.value = Date.now()
+    activeVerified.value = true
+    window.addEventListener('mousemove', markActivity)
+    window.addEventListener('keydown', markActivity)
     timerHandle.value = window.setInterval(() => {
       remainingSeconds.value -= 1
+      if (Date.now() - lastActivity.value > 5 * 60 * 1000) {
+        activeVerified.value = false
+      }
       if (remainingSeconds.value <= 0) complete()
     }, 1000)
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '开始失败'
   }
+}
+
+function markActivity() {
+  lastActivity.value = Date.now()
 }
 
 async function complete() {
@@ -51,9 +64,14 @@ async function complete() {
   if (!activeSession.value) return
   const session = activeSession.value
   activeSession.value = null
+  window.removeEventListener('mousemove', markActivity)
+  window.removeEventListener('keydown', markActivity)
   try {
-    await focusApi.completeSession(session.id)
+    await focusApi.completeSession(session.id, activeVerified.value)
     await loadStats()
+    if (!activeVerified.value) {
+      error.value = '检测到长时间无操作，本次专注未计入金币与经验'
+    }
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '记录失败'
   }
@@ -62,6 +80,8 @@ async function complete() {
 onMounted(loadStats)
 onBeforeUnmount(() => {
   if (timerHandle.value !== null) window.clearInterval(timerHandle.value)
+  window.removeEventListener('mousemove', markActivity)
+  window.removeEventListener('keydown', markActivity)
 })
 </script>
 
@@ -103,6 +123,9 @@ onBeforeUnmount(() => {
         <template v-else>
           <div class="timer-display">{{ displayTime }}</div>
           <p style="text-align: center" class="muted">{{ activeSession.task_label }}</p>
+          <p v-if="!activeVerified" class="text-danger" style="text-align: center">
+            检测到长时间无操作，本次不会获得金币与经验
+          </p>
           <button class="btn btn-danger btn-block" type="button" @click="complete">
             <Square :size="16" />
             完成并记录
