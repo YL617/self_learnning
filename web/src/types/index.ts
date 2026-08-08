@@ -157,6 +157,8 @@ export interface DocumentItem {
   storage_path: string
   status: string
   chunks_count: number
+  size_bytes: number
+  temp_cleanup_at?: string | null
   created_at: string
 }
 

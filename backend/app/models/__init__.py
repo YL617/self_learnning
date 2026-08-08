@@ -1,5 +1,5 @@
 from app.models.engagement import CoinTransaction, DailyStat, FocusSession, Pet
-from app.models.knowledge import Document, KnowledgeChunk
+from app.models.knowledge import Document, FileAnalyzeResult, KnowledgeChunk
 from app.models.learning import (
     AnswerRecord,
     PlanAdjustmentLog,
@@ -16,6 +16,7 @@ __all__ = [
     "CoinTransaction",
     "DailyStat",
     "Document",
+    "FileAnalyzeResult",
     "FocusSession",
     "KnowledgeChunk",
     "Pet",

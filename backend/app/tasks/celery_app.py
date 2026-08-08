@@ -42,3 +42,41 @@ def parse_and_index(document_id: int) -> dict:
         if chunks:
             RAGEngine().add_chunks(document.id, chunks)
         return {"ok": bool(chunks), "chunks": len(chunks)}
+
+
+@celery_app.task(name="documents.cleanup_expired")
+def cleanup_expired_documents() -> dict:
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    from sqlalchemy import delete as sa_delete
+    from sqlalchemy import select
+
+    from app.core.database import SessionLocal
+    from app.models import Document, FileAnalyzeResult, KnowledgeChunk
+
+    with SessionLocal() as db:
+        expired = list(
+            db.scalars(
+                select(Document).where(
+                    Document.temp_cleanup_at <= datetime.now(timezone.utc)
+                )
+            ).all()
+        )
+        for document in expired:
+            db.execute(
+                sa_delete(KnowledgeChunk).where(
+                    KnowledgeChunk.document_id == document.id
+                )
+            )
+            db.execute(
+                sa_delete(FileAnalyzeResult).where(
+                    FileAnalyzeResult.document_id == document.id
+                )
+            )
+            path = Path(document.storage_path)
+            if path.exists():
+                path.unlink()
+            db.delete(document)
+        db.commit()
+        return {"ok": True, "cleaned": len(expired)}
