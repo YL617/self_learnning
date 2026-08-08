@@ -86,12 +86,33 @@ def generate(
         ).all()
         context = [chunk.content for chunk in chunks]
 
+    reference: dict | None = None
+    if data.reference_question_id is not None:
+        original = db.scalar(
+            select(Question).where(
+                Question.id == data.reference_question_id,
+                Question.user_id == current_user.id,
+            )
+        )
+        if original is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="原题目不存在")
+        reference = {
+            "subject": original.subject,
+            "knowledge_point": original.knowledge_point,
+            "question_type": original.question_type,
+            "stem": original.stem,
+            "options": json.loads(original.options_json or "[]"),
+            "answer": original.answer,
+            "analysis": original.analysis,
+        }
+
     questions = generate_questions(
         data.subject,
         data.knowledge_point,
         data.count,
         data.question_type,
         context=context,
+        reference=reference,
     )
     return _save_questions(db, current_user.id, document_id, questions)
 

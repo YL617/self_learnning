@@ -50,6 +50,7 @@ async function retry(item: WrongBookItem) {
       knowledge_point: item.question.knowledge_point,
       count: 3,
       question_type: 'choice',
+      reference_question_id: item.question_id,
     })
     generated.value = data
     success.value = `已基于「${item.question.knowledge_point}」生成 3 道同类题`

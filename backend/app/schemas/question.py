@@ -11,6 +11,7 @@ class QuestionGenerateRequest(BaseModel):
     count: int = Field(default=5, ge=1, le=20)
     question_type: str = Field(default="choice", pattern="^(choice|fill|short_answer)$")
     document_id: int | None = None
+    reference_question_id: int | None = None
 
 
 class QuestionOut(ORMModel):

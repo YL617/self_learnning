@@ -57,6 +57,7 @@ export interface QuestionGeneratePayload {
   count: number
   question_type: "choice" | "fill" | "short_answer"
   document_id?: number
+  reference_question_id?: number
 }
 
 export interface WrongBookItem {
