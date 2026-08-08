@@ -15,6 +15,10 @@ from app.schemas.focus import (
     FocusSessionOut,
     FocusSessionStart,
     FocusStatsOut,
+    PetChatIn,
+    PetChatOut,
+    PetInteractionOut,
+    PetMessageOut,
     PetOut,
     PetUpdate,
     ShopItemOut,
@@ -30,6 +34,15 @@ from app.services.engagement import (
     refresh_pet_state,
     seed_shop_items,
     today_focus_coins,
+)
+from app.services.pet_ai import (
+    PetAIServiceError,
+    chat_with_pet,
+    greet_pet,
+    list_pet_messages,
+    pat_pet,
+    play_pet,
+    revive_pet,
 )
 
 router = APIRouter(prefix="/focus", tags=["focus"])
@@ -132,6 +145,15 @@ def get_pet(
     return pet
 
 
+def _owned_pet(db: Session, user_id: int, pet_id: int) -> Pet:
+    pet = db.scalar(
+        select(Pet).where(Pet.id == pet_id, Pet.user_id == user_id)
+    )
+    if pet is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="宠物不存在")
+    return pet
+
+
 @pet_router.api_route("/{pet_id}", response_model=PetOut, methods=["PATCH", "PUT"])
 def rename_pet(
     pet_id: int,
@@ -139,15 +161,121 @@ def rename_pet(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> Pet:
-    pet = db.scalar(
-        select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id)
-    )
-    if pet is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="宠物不存在")
+    pet = _owned_pet(db, current_user.id, pet_id)
     pet.name = data.name
     db.commit()
     db.refresh(pet)
     return pet
+
+
+@pet_router.get("/{pet_id}/messages", response_model=list[PetMessageOut])
+def list_pet_messages_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = 50,
+) -> list[PetMessageOut]:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    rows = list_pet_messages(db, pet, limit=min(max(limit, 1), 100))
+    return list(reversed(rows))
+
+
+@pet_router.post("/{pet_id}/greet", response_model=PetChatOut)
+def greet_pet_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetChatOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    refresh_pet_state(pet)
+    try:
+        reply = greet_pet(db, pet)
+    except PetAIServiceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+    db.refresh(pet)
+    messages = list(reversed(list_pet_messages(db, pet, 50)))
+    return PetChatOut(reply=reply, pet=pet, messages=messages)
+
+
+@pet_router.post("/{pet_id}/chat", response_model=PetChatOut)
+def chat_with_pet_endpoint(
+    pet_id: int,
+    data: PetChatIn,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetChatOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    refresh_pet_state(pet)
+    try:
+        reply = chat_with_pet(db, pet, data.message)
+    except PetAIServiceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+    db.refresh(pet)
+    messages = list(reversed(list_pet_messages(db, pet, 50)))
+    return PetChatOut(reply=reply, pet=pet, messages=messages)
+
+
+@pet_router.post("/{pet_id}/pat", response_model=PetInteractionOut)
+def pat_pet_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetInteractionOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    refresh_pet_state(pet)
+    try:
+        reply = pat_pet(pet)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    db.refresh(pet)
+    return PetInteractionOut(reply=reply, pet=pet)
+
+
+@pet_router.post("/{pet_id}/play", response_model=PetInteractionOut)
+def play_pet_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetInteractionOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    refresh_pet_state(pet)
+    try:
+        reply = play_pet(pet)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    db.refresh(pet)
+    return PetInteractionOut(reply=reply, pet=pet)
+
+
+@pet_router.post("/{pet_id}/revive", response_model=PetInteractionOut)
+def revive_pet_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetInteractionOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    refresh_pet_state(pet)
+    balance = sum(
+        tx.amount
+        for tx in db.scalars(
+            select(CoinTransaction).where(CoinTransaction.user_id == current_user.id)
+        ).all()
+    )
+    try:
+        reply = revive_pet(db, pet, balance)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    db.refresh(pet)
+    return PetInteractionOut(reply=reply, pet=pet)
 
 
 @pet_router.post("/{pet_id}/feed", response_model=PetOut)
@@ -157,11 +285,7 @@ def feed_pet_endpoint(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> Pet:
-    pet = db.scalar(
-        select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id)
-    )
-    if pet is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="宠物不存在")
+    pet = _owned_pet(db, current_user.id, pet_id)
     refresh_pet_state(pet)
     balance = sum(
         tx.amount

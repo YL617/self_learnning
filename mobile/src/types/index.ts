@@ -94,6 +94,25 @@ export interface Pet {
   last_fed_at?: string | null
 }
 
+export interface PetMessage {
+  id: number
+  role: string
+  kind: string
+  content: string
+  created_at: string
+}
+
+export interface PetChatReply {
+  reply: string
+  pet: Pet
+  messages: PetMessage[]
+}
+
+export interface PetInteraction {
+  reply: string
+  pet: Pet
+}
+
 export interface CoinTransaction {
   id: number
   amount: number

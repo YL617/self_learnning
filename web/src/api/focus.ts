@@ -1,5 +1,13 @@
 import { http } from './http'
-import type { CoinTransaction, FocusSession, FocusStats, Pet } from '@/types'
+import type {
+  CoinTransaction,
+  FocusSession,
+  FocusStats,
+  Pet,
+  PetChatReply,
+  PetInteraction,
+  PetMessage,
+} from '@/types'
 
 export const focusApi = {
   startSession: (taskLabel: string, durationMinutes: number) =>
@@ -15,5 +23,17 @@ export const focusApi = {
     http.patch<Pet>(`/pets/${petId}`, { name }),
   feedPet: (petId: number, amount: number) =>
     http.post<Pet>(`/pets/${petId}/feed`, { amount }),
+  petMessages: (petId: number) =>
+    http.get<PetMessage[]>(`/pets/${petId}/messages`),
+  greetPet: (petId: number) =>
+    http.post<PetChatReply>(`/pets/${petId}/greet`),
+  chatPet: (petId: number, message: string) =>
+    http.post<PetChatReply>(`/pets/${petId}/chat`, { message }),
+  patPet: (petId: number) =>
+    http.post<PetInteraction>(`/pets/${petId}/pat`),
+  playPet: (petId: number) =>
+    http.post<PetInteraction>(`/pets/${petId}/play`),
+  revivePet: (petId: number) =>
+    http.post<PetInteraction>(`/pets/${petId}/revive`),
   transactions: () => http.get<CoinTransaction[]>('/coins/transactions'),
 }

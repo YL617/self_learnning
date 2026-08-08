@@ -5,6 +5,9 @@ import type {
   OnboardingPayload,
   OnboardingResponse,
   Pet,
+  PetChatReply,
+  PetInteraction,
+  PetMessage,
   PlanGenerateRequest,
   PlanItem,
   Question,
@@ -152,6 +155,22 @@ export const api = {
   pet: () => request<Pet>({ url: "/pets" }),
   feedPet: (id: number, amount: number) =>
     request<Pet>({ url: `/pets/${id}/feed`, method: "POST", data: { amount } }),
+  petMessages: (id: number) =>
+    request<PetMessage[]>({ url: `/pets/${id}/messages` }),
+  greetPet: (id: number) =>
+    request<PetChatReply>({ url: `/pets/${id}/greet`, method: "POST" }),
+  chatPet: (id: number, message: string) =>
+    request<PetChatReply>({
+      url: `/pets/${id}/chat`,
+      method: "POST",
+      data: { message },
+    }),
+  patPet: (id: number) =>
+    request<PetInteraction>({ url: `/pets/${id}/pat`, method: "POST" }),
+  playPet: (id: number) =>
+    request<PetInteraction>({ url: `/pets/${id}/play`, method: "POST" }),
+  revivePet: (id: number) =>
+    request<PetInteraction>({ url: `/pets/${id}/revive`, method: "POST" }),
   transactions: () => request<CoinTransaction[]>({ url: "/coins/transactions" }),
   getOnboarding: () =>
     request<OnboardingResponse>({ url: "/users/me/onboarding" }),

@@ -24,6 +24,7 @@
             经验 {{ pet.exp }}/{{ pet.level * 100 }} · 心情 {{ pet.mood }} · 饱食度 {{ pet.hunger }}
           </text>
           <button class="btn teal" @click="feed">喂食 10 智学币</button>
+          <button class="btn outline" @click="goPet">陪 AI 宠物聊天</button>
         </view>
         <view class="balance">
           <text class="stat-value">{{ balance }}</text>
@@ -93,6 +94,10 @@ function logout() {
 
 function goOnboarding() {
   uni.navigateTo({ url: "/pages/onboarding/onboarding" });
+}
+
+function goPet() {
+  uni.navigateTo({ url: "/pages/pet/pet" });
 }
 </script>
 

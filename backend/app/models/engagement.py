@@ -52,6 +52,19 @@ class Pet(Base):
     )
 
 
+class PetMessage(Base):
+    __tablename__ = "pet_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    pet_id: Mapped[int] = mapped_column(
+        ForeignKey("pets.id", ondelete="CASCADE"), index=True
+    )
+    role: Mapped[str] = mapped_column(String(16), default="assistant")
+    kind: Mapped[str] = mapped_column(String(32), default="chat")
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class CoinTransaction(Base):
     __tablename__ = "coin_transactions"
 

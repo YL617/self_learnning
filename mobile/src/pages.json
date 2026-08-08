@@ -47,6 +47,12 @@
       "style": {
         "navigationBarTitleText": "完善学情"
       }
+    },
+    {
+      "path": "pages/pet/pet",
+      "style": {
+        "navigationBarTitleText": "AI 宠物"
+      }
     }
   ],
   "globalStyle": {

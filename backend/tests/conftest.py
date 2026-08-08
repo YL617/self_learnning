@@ -28,6 +28,12 @@ def mock_ai(monkeypatch):
 
     from app.services.ai_gateway import AIModelGateway
 
+    def fake_chat(self, messages, *, temperature=0.7, timeout=60.0):
+        system = messages[0]["content"] if messages else ""
+        if "学习规划顾问" in system:
+            return "离线降级响应：请在 .env 中配置模型 API Key 后获得完整能力。"
+        return "好的，我们一起加油！记得按计划完成今天的复习哦。"
+
     def fake_generate_json(self, system: str, user: str, temperature: float = 0.3):
         if "items" in system:
             return {
@@ -63,6 +69,7 @@ def mock_ai(monkeypatch):
         ]
 
     monkeypatch.setattr(AIModelGateway, "generate_json", fake_generate_json)
+    monkeypatch.setattr(AIModelGateway, "chat", fake_chat)
 
 
 @pytest.fixture()

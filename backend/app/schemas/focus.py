@@ -37,12 +37,35 @@ class PetOut(ORMModel):
     last_fed_at: datetime | None = None
 
 
+class PetMessageOut(ORMModel):
+    id: int
+    role: str
+    kind: str = "chat"
+    content: str
+    created_at: datetime
+
+
 class PetUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=64)
 
 
 class FeedPetRequest(BaseModel):
     amount: int = Field(default=10, ge=1, le=100)
+
+
+class PetChatIn(BaseModel):
+    message: str = Field(min_length=1, max_length=1000)
+
+
+class PetChatOut(BaseModel):
+    reply: str
+    pet: PetOut
+    messages: list[PetMessageOut]
+
+
+class PetInteractionOut(BaseModel):
+    reply: str
+    pet: PetOut
 
 
 class FocusCompleteRequest(BaseModel):
