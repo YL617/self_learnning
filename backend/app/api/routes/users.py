@@ -15,6 +15,7 @@ from app.models import (
     CoinTransaction,
     DailyStat,
     Document,
+    FileAnalyzeResult,
     FocusSession,
     KnowledgeChunk,
     Pet,
@@ -48,6 +49,11 @@ def _delete_user_data(db: Session, user_id: int) -> None:
     db.execute(sa_delete(Question).where(Question.user_id == user_id))
 
     document_ids = select(Document.id).where(Document.user_id == user_id)
+    db.execute(
+        sa_delete(FileAnalyzeResult).where(
+            FileAnalyzeResult.document_id.in_(document_ids)
+        )
+    )
     db.execute(
         sa_delete(KnowledgeChunk).where(KnowledgeChunk.document_id.in_(document_ids))
     )

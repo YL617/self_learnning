@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -138,6 +139,9 @@ def delete_plan(
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     plan = _get_own_plan(db, current_user.id, plan_id)
+    db.execute(
+        sa_delete(PlanAdjustmentLog).where(PlanAdjustmentLog.plan_id == plan.id)
+    )
     db.delete(plan)
     db.commit()
 
