@@ -186,7 +186,37 @@ export interface Pet {
   hunger: number
   evolution_stage: number
   runaway: boolean
+  play_count_today: number
+  playing_until?: string | null
   last_fed_at?: string | null
+}
+
+export interface PetPlaySession {
+  id: number
+  status: string
+  started_at: string
+  ended_at?: string | null
+  duration_minutes: number
+  coin_cost: number
+  mood_gain: number
+  exp_gain: number
+  hunger_loss: number
+  created_at: string
+}
+
+export interface PetPlaySummary {
+  elapsed_minutes: number
+  mood_gain: number
+  exp_gain: number
+  hunger_loss: number
+  coins_spent: number
+  message: string
+}
+
+export interface PetPlayState {
+  session?: PetPlaySession | null
+  summary?: PetPlaySummary | null
+  pet: Pet
 }
 
 export interface PetMessage {

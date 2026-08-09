@@ -20,6 +20,7 @@ from app.schemas.focus import (
     PetInteractionOut,
     PetMessageOut,
     PetOut,
+    PetPlayStateOut,
     PetUpdate,
     ShopItemOut,
 )
@@ -43,6 +44,12 @@ from app.services.pet_ai import (
     pat_pet,
     play_pet,
     revive_pet,
+)
+from app.services.pet_play import (
+    PetPlayError,
+    end_pet_play,
+    get_play_state,
+    start_pet_play,
 )
 
 router = APIRouter(prefix="/focus", tags=["focus"])
@@ -276,6 +283,50 @@ def revive_pet_endpoint(
     db.commit()
     db.refresh(pet)
     return PetInteractionOut(reply=reply, pet=pet)
+
+
+@pet_router.post("/{pet_id}/play-out", response_model=PetPlayStateOut)
+def start_pet_play_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetPlayStateOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    try:
+        session, _ = start_pet_play(db, pet)
+    except PetPlayError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    db.refresh(pet)
+    return PetPlayStateOut(session=session, summary=None, pet=pet)
+
+
+@pet_router.get("/{pet_id}/play-session", response_model=PetPlayStateOut)
+def get_pet_play_state_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetPlayStateOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    session, summary, pet = get_play_state(db, pet)
+    db.commit()
+    db.refresh(pet)
+    return PetPlayStateOut(session=session, summary=summary, pet=pet)
+
+
+@pet_router.post("/{pet_id}/play-out/end", response_model=PetPlayStateOut)
+def end_pet_play_endpoint(
+    pet_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PetPlayStateOut:
+    pet = _owned_pet(db, current_user.id, pet_id)
+    try:
+        session, summary = end_pet_play(db, pet)
+    except PetPlayError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.refresh(pet)
+    return PetPlayStateOut(session=session, summary=summary, pet=pet)
 
 
 @pet_router.post("/{pet_id}/feed", response_model=PetOut)

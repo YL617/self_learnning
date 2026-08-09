@@ -4,6 +4,7 @@ from app.models.engagement import (
     FocusSession,
     Pet,
     PetMessage,
+    PetPlaySession,
     ShopItem,
 )
 from app.models.knowledge import Document, FileAnalyzeResult, KnowledgeChunk
@@ -31,6 +32,7 @@ __all__ = [
     "KnowledgeChunk",
     "Pet",
     "PetMessage",
+    "PetPlaySession",
     "PlanAdjustmentLog",
     "PlanChatMessage",
     "PlanChatSession",

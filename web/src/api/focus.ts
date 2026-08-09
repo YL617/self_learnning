@@ -7,6 +7,7 @@ import type {
   PetChatReply,
   PetInteraction,
   PetMessage,
+  PetPlayState,
 } from '@/types'
 
 export const focusApi = {
@@ -35,5 +36,11 @@ export const focusApi = {
     http.post<PetInteraction>(`/pets/${petId}/play`),
   revivePet: (petId: number) =>
     http.post<PetInteraction>(`/pets/${petId}/revive`),
+  startPetPlay: (petId: number) =>
+    http.post<PetPlayState>(`/pets/${petId}/play-out`),
+  petPlayState: (petId: number) =>
+    http.get<PetPlayState>(`/pets/${petId}/play-session`),
+  endPetPlay: (petId: number) =>
+    http.post<PetPlayState>(`/pets/${petId}/play-out/end`),
   transactions: () => http.get<CoinTransaction[]>('/coins/transactions'),
 }

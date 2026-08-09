@@ -44,12 +44,33 @@ class Pet(Base):
     hunger: Mapped[int] = mapped_column(Integer, default=100)
     evolution_stage: Mapped[int] = mapped_column(Integer, default=1)
     runaway: Mapped[bool] = mapped_column(Boolean, default=False)
+    play_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    play_count_today: Mapped[int] = mapped_column(Integer, default=0)
+    playing_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     hunger_updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_fed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
+
+
+class PetPlaySession(Base):
+    __tablename__ = "pet_play_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    pet_id: Mapped[int] = mapped_column(
+        ForeignKey("pets.id", ondelete="CASCADE"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    started_at: Mapped[datetime] = mapped_column(DateTime)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=15)
+    coin_cost: Mapped[int] = mapped_column(Integer, default=20)
+    mood_gain: Mapped[int] = mapped_column(Integer, default=15)
+    exp_gain: Mapped[int] = mapped_column(Integer, default=20)
+    hunger_loss: Mapped[int] = mapped_column(Integer, default=15)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class PetMessage(Base):

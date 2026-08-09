@@ -4,6 +4,7 @@ import {
   Gamepad2,
   Hand,
   HeartHandshake,
+  Home,
   MessageCircle,
   PawPrint,
   Send,
@@ -13,6 +14,7 @@ import {
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { focusApi } from '@/api/focus'
+import { usePetStore } from '@/stores/pet'
 import type { CoinTransaction, Pet, PetMessage } from '@/types'
 
 const SPRITE_URL = '/pets/airi/spritesheet.webp'
@@ -35,7 +37,8 @@ const ANIMATIONS: Record<
   waiting: { row: 6, durations: [150, 150, 150, 150, 150, 260], loop: true },
 }
 
-const pet = ref<Pet | null>(null)
+const petStore = usePetStore()
+const pet = computed(() => petStore.pet)
 const transactions = ref<CoinTransaction[]>([])
 const messages = ref<PetMessage[]>([])
 const newName = ref('')
@@ -47,9 +50,11 @@ const loadingChat = ref(false)
 const petSays = ref('')
 const animation = ref<AnimationId>('idle')
 const frame = ref(0)
+const countdown = ref(0)
 const chatBodyRef = ref<HTMLElement | null>(null)
 let animationTimer: number | undefined
 let speechTimer: number | undefined
+let countdownTimer: number | undefined
 
 const balance = computed(() =>
   transactions.value.reduce((sum, tx) => sum + tx.amount, 0),
@@ -67,6 +72,9 @@ const moodPercent = computed(() => {
   if (!pet.value) return 0
   return Math.min(100, pet.value.mood)
 })
+const dailyLimitReached = computed(
+  () => (pet.value?.play_count_today ?? 0) >= 5,
+)
 const spriteStyle = computed(() => {
   const state = ANIMATIONS[animation.value]
   return {
@@ -112,6 +120,9 @@ function stopAnimation() {
   if (speechTimer !== undefined) {
     window.clearTimeout(speechTimer)
   }
+  if (countdownTimer !== undefined) {
+    window.clearInterval(countdownTimer)
+  }
 }
 
 function showPetSays(text: string) {
@@ -122,6 +133,34 @@ function showPetSays(text: string) {
   speechTimer = window.setTimeout(() => {
     petSays.value = ''
   }, 4200)
+}
+
+function stopCountdown() {
+  if (countdownTimer !== undefined) {
+    window.clearInterval(countdownTimer)
+    countdownTimer = undefined
+  }
+}
+
+function tickCountdown() {
+  countdown.value = petStore.remainingSeconds
+  if (countdown.value <= 0 && petStore.isPlaying) {
+    stopCountdown()
+    void endOuting()
+  }
+}
+
+function startCountdown() {
+  stopCountdown()
+  tickCountdown()
+  countdownTimer = window.setInterval(tickCountdown, 1000)
+}
+
+function formatCountdown() {
+  const total = Math.max(0, countdown.value)
+  const minutes = Math.floor(total / 60).toString().padStart(2, '0')
+  const seconds = (total % 60).toString().padStart(2, '0')
+  return `${minutes}:${seconds}`
 }
 
 async function scrollChat() {
@@ -141,7 +180,7 @@ async function greet() {
   loadingChat.value = true
   try {
     const { data } = await focusApi.greetPet(pet.value.id)
-    pet.value = data.pet
+    petStore.applyPet(data.pet)
     messages.value = data.messages
     await scrollChat()
   } catch (err: any) {
@@ -171,13 +210,24 @@ async function loadChat() {
 async function load() {
   error.value = ''
   try {
-    const [petRes, coinRes] = await Promise.all([
-      focusApi.pet(),
+    const [coinRes] = await Promise.all([
       focusApi.transactions(),
+      petStore.loadPet(),
     ])
-    pet.value = petRes.data
     transactions.value = coinRes.data
-    runAnimation(pet.value.runaway ? 'waiting' : 'idle')
+    await petStore.syncPlayState()
+    if (petStore.summary) {
+      const summary = petStore.summary
+      success.value =
+        `${summary.message} 心情 +${summary.mood_gain}，` +
+        `经验 +${summary.exp_gain}，饱食度 -${summary.hunger_loss}`
+      showPetSays(summary.message)
+      petStore.clearSummary()
+    }
+    if (petStore.isPlaying) {
+      startCountdown()
+    }
+    runAnimation(pet.value?.runaway ? 'waiting' : 'idle')
     await loadChat()
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '加载失败'
@@ -188,7 +238,7 @@ async function rename() {
   if (!pet.value || !newName.value.trim()) return
   try {
     const { data } = await focusApi.renamePet(pet.value.id, newName.value.trim())
-    pet.value = data
+    petStore.applyPet(data)
     newName.value = ''
     success.value = '改名成功'
   } catch (err: any) {
@@ -200,7 +250,7 @@ async function feed(amount: number) {
   if (!pet.value) return
   try {
     const { data } = await focusApi.feedPet(pet.value.id, amount)
-    pet.value = data
+    petStore.applyPet(data)
     success.value = `喂食成功，消耗 ${amount} 智学币`
     showPetSays(data.runaway ? '吃饱啦，我回来啦！' : '好吃，能量满满！')
     runAnimation(data.runaway ? 'waiting' : 'jumping')
@@ -214,7 +264,7 @@ async function pat() {
   if (!pet.value) return
   try {
     const { data } = await focusApi.patPet(pet.value.id)
-    pet.value = data.pet
+    petStore.applyPet(data.pet)
     showPetSays(data.reply)
     runAnimation('waving')
   } catch (err: any) {
@@ -226,7 +276,7 @@ async function play() {
   if (!pet.value) return
   try {
     const { data } = await focusApi.playPet(pet.value.id)
-    pet.value = data.pet
+    petStore.applyPet(data.pet)
     showPetSays(data.reply)
     runAnimation('jumping')
   } catch (err: any) {
@@ -238,12 +288,47 @@ async function revive() {
   if (!pet.value) return
   try {
     const { data } = await focusApi.revivePet(pet.value.id)
-    pet.value = data.pet
+    petStore.applyPet(data.pet)
     showPetSays(data.reply)
     runAnimation('jumping')
     await loadTransactions()
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '找回失败'
+  }
+}
+
+async function startOuting() {
+  if (!pet.value) return
+  try {
+    const data = await petStore.startPlay()
+    if (data?.session) {
+      success.value = '小智出门玩啦，记得 15 分钟后回来'
+      showPetSays('出门玩啦！')
+      runAnimation('jumping')
+      startCountdown()
+      await loadTransactions()
+    }
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '出门失败'
+  }
+}
+
+async function endOuting() {
+  if (!petStore.isPlaying) return
+  try {
+    const data = await petStore.endPlay()
+    stopCountdown()
+    if (data?.summary) {
+      const summary = data.summary
+      success.value =
+        `${summary.message} 心情 +${summary.mood_gain}，` +
+        `经验 +${summary.exp_gain}，饱食度 -${summary.hunger_loss}`
+      showPetSays(summary.message)
+      runAnimation('jumping')
+    }
+    await loadTransactions()
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '回家失败'
   }
 }
 
@@ -254,7 +339,7 @@ async function sendMessage() {
   error.value = ''
   try {
     const { data } = await focusApi.chatPet(pet.value.id, text)
-    pet.value = data.pet
+    petStore.applyPet(data.pet)
     messages.value = data.messages
     chatInput.value = ''
     runAnimation('idle')
@@ -374,6 +459,33 @@ onBeforeUnmount(stopAnimation)
             <HeartHandshake :size="16" />
             寻回
           </button>
+        </div>
+
+        <div class="play-row">
+          <template v-if="petStore.isPlaying">
+            <span class="badge badge-teal">
+              <Gamepad2 :size="13" />
+              出门玩中 · {{ formatCountdown() }}
+            </span>
+            <button class="btn btn-outline" type="button" @click="endOuting">
+              <Home :size="16" />
+              回家
+            </button>
+          </template>
+          <template v-else>
+            <button
+              class="btn btn-outline"
+              type="button"
+              :disabled="dailyLimitReached || !pet"
+              @click="startOuting"
+            >
+              <Gamepad2 :size="16" />
+              出门玩（20 币）
+            </button>
+            <span v-if="dailyLimitReached" class="badge badge-amber">
+              今日次数已用完
+            </span>
+          </template>
         </div>
 
         <div class="rename-row">
@@ -598,6 +710,13 @@ onBeforeUnmount(stopAnimation)
 .actions .btn {
   padding: 8px 6px;
   font-size: 13px;
+}
+
+.play-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .rename-row {

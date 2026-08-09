@@ -17,6 +17,7 @@ import {
 } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 
+import AIPetFloater from '@/components/AIPetFloater.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -77,5 +78,6 @@ function logout() {
     <main class="main">
       <router-view />
     </main>
+    <AIPetFloater />
   </div>
 </template>

@@ -11,6 +11,9 @@ from app.schemas.focus import (
     PetInteractionOut,
     PetMessageOut,
     PetOut,
+    PetPlaySessionOut,
+    PetPlayStateOut,
+    PetPlaySummaryOut,
     PetUpdate,
 )
 from app.schemas.onboarding import OnboardingIn, OnboardingOut
@@ -66,6 +69,9 @@ __all__ = [
     "PetInteractionOut",
     "PetMessageOut",
     "PetOut",
+    "PetPlaySessionOut",
+    "PetPlayStateOut",
+    "PetPlaySummaryOut",
     "PetUpdate",
     "PlanChatConfirmOut",
     "PlanChatMessageOut",

@@ -34,7 +34,37 @@ class PetOut(ORMModel):
     hunger: int = 100
     evolution_stage: int = 1
     runaway: bool = False
+    play_count_today: int = 0
+    playing_until: datetime | None = None
     last_fed_at: datetime | None = None
+
+
+class PetPlaySessionOut(ORMModel):
+    id: int
+    status: str = "active"
+    started_at: datetime
+    ended_at: datetime | None = None
+    duration_minutes: int
+    coin_cost: int
+    mood_gain: int
+    exp_gain: int
+    hunger_loss: int
+    created_at: datetime
+
+
+class PetPlaySummaryOut(BaseModel):
+    elapsed_minutes: int
+    mood_gain: int
+    exp_gain: int
+    hunger_loss: int
+    coins_spent: int
+    message: str
+
+
+class PetPlayStateOut(BaseModel):
+    session: PetPlaySessionOut | None = None
+    summary: PetPlaySummaryOut | None = None
+    pet: PetOut
 
 
 class PetMessageOut(ORMModel):
