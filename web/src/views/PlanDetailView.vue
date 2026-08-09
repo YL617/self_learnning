@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { plansApi } from '@/api/plans'
 import type { StudyPlan } from '@/types'
+import { petEvents } from '@/utils/petEvents'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,8 +24,12 @@ async function load() {
 }
 
 async function toggle(itemId: number, completed: boolean) {
-  await plansApi.completeItem(itemId, !completed)
+  const next = !completed
+  await plansApi.completeItem(itemId, next)
   await load()
+  if (next) {
+    petEvents.emit({ kind: 'plan' })
+  }
 }
 
 function progress(): number {

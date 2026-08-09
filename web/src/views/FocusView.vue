@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { focusApi } from '@/api/focus'
 import type { FocusSession, FocusStats } from '@/types'
+import { petEvents } from '@/utils/petEvents'
 
 const stats = ref<FocusStats>({ total_minutes: 0, session_count: 0, today_minutes: 0 })
 const taskLabel = ref('专注学习')
@@ -68,6 +69,9 @@ async function complete() {
   window.removeEventListener('keydown', markActivity)
   try {
     await focusApi.completeSession(session.id, activeVerified.value)
+    if (activeVerified.value) {
+      petEvents.emit({ kind: 'focus' })
+    }
     await loadStats()
     if (!activeVerified.value) {
       error.value = '检测到长时间无操作，本次专注未计入金币与经验'

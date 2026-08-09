@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { Gamepad2, Home, X } from 'lucide-vue-next'
+import { Gamepad2, Home, Send, X } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import { focusApi } from '@/api/focus'
 import { useAuthStore } from '@/stores/auth'
 import { usePetStore } from '@/stores/pet'
+import type { PetMessage } from '@/types'
+import { petEvents } from '@/utils/petEvents'
 
 const SPRITE_URL = '/pets/airi/spritesheet.webp'
 const CELL_WIDTH = 192
@@ -58,11 +61,17 @@ const frame = ref(0)
 const direction = ref<'left' | 'right'>('right')
 const petSays = ref('')
 const countdown = ref(0)
+const chatMessages = ref<PetMessage[]>([])
+const chatInput = ref('')
+const chatSending = ref(false)
+const chatLoading = ref(false)
+const chatError = ref('')
 
 let animationTimer: number | undefined
 let roamFrame: number | undefined
 let countdownTimer: number | undefined
 let speechTimer: number | undefined
+let unsubscribeEvents: (() => void) | undefined
 let dragOffset = { x: 0, y: 0 }
 let dragStart = { x: 0, y: 0 }
 
@@ -266,6 +275,52 @@ function onPointerUp() {
 function onClickPet() {
   if (moved.value) return
   bubbleOpen.value = !bubbleOpen.value
+  if (bubbleOpen.value && !petStore.isPlaying) {
+    void openChat()
+  }
+}
+
+async function openChat() {
+  if (!petStore.pet || chatMessages.value.length) return
+  chatLoading.value = true
+  chatError.value = ''
+  try {
+    const { data } = await focusApi.petMessages(petStore.pet.id)
+    chatMessages.value = data
+  } catch (err: any) {
+    chatError.value = err?.response?.data?.detail || '聊天加载失败'
+  } finally {
+    chatLoading.value = false
+  }
+}
+
+async function sendChat() {
+  const text = chatInput.value.trim()
+  if (!petStore.pet || !text || chatSending.value) return
+  chatSending.value = true
+  chatError.value = ''
+  try {
+    const { data } = await focusApi.chatPet(petStore.pet.id, text)
+    petStore.applyPet(data.pet)
+    chatMessages.value = data.messages
+    chatInput.value = ''
+  } catch (err: any) {
+    chatError.value = err?.response?.data?.detail || '发送失败'
+  } finally {
+    chatSending.value = false
+  }
+}
+
+function handlePetEvent(event: { kind: 'focus' | 'plan' | 'wrong-book' }) {
+  if (hidden.value) return
+  const reactions: Record<string, string> = {
+    focus: '专注完成，好厉害！休息一下继续吧！',
+    plan: '又完成一项计划，太棒啦！',
+    'wrong-book': '错题又少一道，继续加油！',
+  }
+  showPetSays(reactions[event.kind])
+  bubbleOpen.value = true
+  runAnimation('jumping')
 }
 
 function hidePet() {
@@ -324,6 +379,7 @@ onMounted(async () => {
   loadPosition()
   updateWidth()
   window.addEventListener('resize', updateWidth)
+  unsubscribeEvents = petEvents.on(handlePetEvent)
   if (auth.isLoggedIn) {
     try {
       await petStore.loadPet()
@@ -350,6 +406,9 @@ onBeforeUnmount(() => {
   stopRoaming()
   stopCountdown()
   window.removeEventListener('resize', updateWidth)
+  if (unsubscribeEvents) {
+    unsubscribeEvents()
+  }
 })
 </script>
 
@@ -388,13 +447,54 @@ onBeforeUnmount(() => {
               回家
             </button>
           </template>
-          <template v-else-if="petSays">
-            <div class="bubble-title">{{ pet?.name || '小智' }}</div>
-            <div class="bubble-text">{{ petSays }}</div>
-          </template>
           <template v-else>
-            <div class="bubble-title">{{ pet?.name || '小智' }} · Lv.{{ pet?.level || 1 }}</div>
-            <div class="bubble-text">
+            <div class="chat-head-row">
+              <div class="bubble-title">
+                {{ pet?.name || '小智' }} · Lv.{{ pet?.level || 1 }}
+              </div>
+              <button
+                class="bubble-close"
+                type="button"
+                aria-label="关闭"
+                @click.stop="bubbleOpen = false"
+              >
+                <X :size="14" />
+              </button>
+            </div>
+            <div v-if="petSays" class="bubble-text pet-says">{{ petSays }}</div>
+            <div v-if="chatError" class="chat-error">{{ chatError }}</div>
+            <div class="chat-messages">
+              <div v-if="chatLoading" class="chat-hint">正在思考……</div>
+              <div v-else-if="!chatMessages.length" class="chat-hint">
+                先打个招呼吧
+              </div>
+              <div
+                v-for="msg in chatMessages"
+                :key="msg.id"
+                class="msg-line"
+                :class="msg.role"
+              >
+                <span>{{ msg.content }}</span>
+              </div>
+              <div v-if="chatSending" class="msg-line assistant">
+                <span>正在思考……</span>
+              </div>
+            </div>
+            <form class="chat-form" @submit.prevent="sendChat">
+              <input
+                v-model="chatInput"
+                maxlength="500"
+                :placeholder="`和${pet?.name || '小智'}聊聊学习`"
+              />
+              <button
+                class="send-btn"
+                type="submit"
+                :disabled="chatSending || !chatInput.trim()"
+              >
+                <Send :size="14" />
+              </button>
+            </form>
+            <div class="bubble-text stat-line">
               心情 {{ pet?.mood || 0 }} · 饱食度 {{ pet?.hunger || 0 }}
             </div>
           </template>
@@ -446,7 +546,8 @@ onBeforeUnmount(() => {
   left: 50%;
   bottom: 108px;
   transform: translateX(-50%);
-  width: 200px;
+  width: 280px;
+  max-height: 340px;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 8px 8px 8px 2px;
@@ -480,6 +581,130 @@ onBeforeUnmount(() => {
   width: 100%;
   padding: 6px 10px;
   font-size: 13px;
+}
+
+.chat-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-head-row .bubble-title {
+  margin-bottom: 0;
+}
+
+.bubble-close {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.bubble-close:hover {
+  background: #f1f5f9;
+}
+
+.pet-says {
+  margin: 8px 0;
+  padding: 6px 9px;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+.chat-error {
+  margin: 6px 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.chat-messages {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.chat-hint {
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.msg-line {
+  display: flex;
+}
+
+.msg-line.assistant {
+  justify-content: flex-start;
+}
+
+.msg-line.user {
+  justify-content: flex-end;
+}
+
+.msg-line span {
+  max-width: 82%;
+  padding: 5px 8px;
+  border-radius: 8px 8px 8px 2px;
+  background: #eef3f8;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msg-line.user span {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px 8px 2px 8px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 6px;
+}
+
+.chat-form input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.send-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.send-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.stat-line {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
 }
 
 .pop-enter-active,

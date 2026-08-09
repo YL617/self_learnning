@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue'
 import { questionsApi } from '@/api/questions'
 import QuestionCard from '@/components/QuestionCard.vue'
 import type { Question, WrongBookItem } from '@/types'
+import { petEvents } from '@/utils/petEvents'
 
 const items = ref<WrongBookItem[]>([])
 const generated = ref<Question[]>([])
@@ -23,8 +24,12 @@ async function load() {
 
 async function toggleMastered(item: WrongBookItem) {
   try {
-    await questionsApi.updateWrongItem(item.id, !item.mastered)
+    const next = !item.mastered
+    await questionsApi.updateWrongItem(item.id, next)
     await load()
+    if (next) {
+      petEvents.emit({ kind: 'wrong-book' })
+    }
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '更新失败'
   }
@@ -35,6 +40,7 @@ async function reviewOnce(item: WrongBookItem) {
     await questionsApi.updateWrongItem(item.id, item.mastered)
     success.value = '已完成一次复习，下次复习时间已更新'
     await load()
+    petEvents.emit({ kind: 'wrong-book' })
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '复习失败'
   }
