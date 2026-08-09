@@ -66,6 +66,9 @@ const animation = ref<AnimationId>('idle')
 const frame = ref(0)
 const direction = ref<'left' | 'right'>('right')
 const petSays = ref('')
+const spokenText = ref('')
+const revealedCount = ref(0)
+const spokenVisible = ref(false)
 const countdown = ref(0)
 const chatMessages = ref<PetMessage[]>([])
 const chatInput = ref('')
@@ -78,6 +81,8 @@ let roamFrame: number | undefined
 let countdownTimer: number | undefined
 let speechTimer: number | undefined
 let talkTimer: number | undefined
+let revealTimer: number | undefined
+let speakTimer: number | undefined
 let unsubscribeEvents: (() => void) | undefined
 let dragOffset = { x: 0, y: 0 }
 let dragStart = { x: 0, y: 0 }
@@ -244,6 +249,38 @@ function showPetSays(text: string) {
   }, 4200)
 }
 
+function stopSpeaking() {
+  if (speakTimer !== undefined) {
+    window.clearTimeout(speakTimer)
+    speakTimer = undefined
+  }
+  if (revealTimer !== undefined) {
+    window.clearInterval(revealTimer)
+    revealTimer = undefined
+  }
+  spokenVisible.value = false
+}
+
+function speak(text: string) {
+  stopSpeaking()
+  spokenText.value = text
+  revealedCount.value = 0
+  spokenVisible.value = true
+  runAnimation('talking')
+  revealTimer = window.setInterval(() => {
+    if (revealedCount.value < spokenText.value.length) {
+      revealedCount.value += 1
+    } else if (revealTimer !== undefined) {
+      window.clearInterval(revealTimer)
+      revealTimer = undefined
+    }
+  }, 45)
+  speakTimer = window.setTimeout(() => {
+    spokenVisible.value = false
+    afterTalking()
+  }, 2800)
+}
+
 function onPointerDown(event: PointerEvent) {
   dragging.value = true
   moved.value = false
@@ -320,9 +357,12 @@ async function sendChat() {
 
 function handlePetEvent(event: { kind: 'focus' | 'plan' | 'wrong-book' }) {
   if (hidden.value) return
-  stopTalking()
-  runAnimation('talking')
-  talkTimer = window.setTimeout(afterTalking, 2600)
+  const reactions: Record<string, string> = {
+    focus: '专注完成，好厉害！休息一下继续吧！',
+    plan: '又完成一项计划，太棒啦！',
+    'wrong-book': '错题又少一道，继续加油！',
+  }
+  speak(reactions[event.kind])
 }
 
 function stopTalking() {
@@ -376,6 +416,7 @@ watch(
       stopCountdown()
       stopRoaming()
       stopTalking()
+      stopSpeaking()
       bubbleOpen.value = false
       runAnimation('idle')
     }
@@ -425,6 +466,7 @@ onBeforeUnmount(() => {
   stopRoaming()
   stopCountdown()
   stopTalking()
+  stopSpeaking()
   window.removeEventListener('resize', updateWidth)
   if (unsubscribeEvents) {
     unsubscribeEvents()
@@ -450,6 +492,12 @@ onBeforeUnmount(() => {
         :data-state="animation"
         :style="spriteStyle"
       />
+      <transition name="fade">
+        <div v-if="spokenVisible" class="spoken-line">
+          {{ spokenText.slice(0, revealedCount) }}
+          <span v-if="revealedCount < spokenText.length" class="caret" />
+        </div>
+      </transition>
       <button
         v-if="!petStore.isPlaying"
         class="hide-btn"
@@ -562,6 +610,47 @@ onBeforeUnmount(() => {
   50% {
     transform: translateY(-4px) scale(1.04);
   }
+}
+
+.spoken-line {
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  transform: translateX(-50%);
+  width: 200px;
+  text-align: center;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  font-style: italic;
+  text-shadow: 0 1px 0 #fff;
+  pointer-events: none;
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  margin-left: 2px;
+  background: var(--primary);
+  vertical-align: -2px;
+  animation: caret-blink 0.7s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .hide-btn {

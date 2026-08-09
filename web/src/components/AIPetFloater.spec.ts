@@ -117,13 +117,16 @@ describe('AIPetFloater', () => {
     })
   })
 
-  it('plays talking animation on learning events', async () => {
+  it('plays talking animation with spoken text on learning events', async () => {
     const wrapper = await mountFloater()
 
     petEvents.emit({ kind: 'focus' })
     await nextTick()
 
     expect(wrapper.find('.pet-sprite').attributes('data-state')).toBe('talking')
+    await vi.waitFor(() => {
+      expect(wrapper.find('.spoken-line').text()).toContain('专注完成')
+    })
     expect(wrapper.find('.pet-says').exists()).toBe(false)
   })
 
