@@ -7,7 +7,7 @@ from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_ai_access
 from app.core.database import get_db
 from app.models import PlanAdjustmentLog, PlanItem, StudyPlan, User
 from app.schemas.plan import (
@@ -18,6 +18,7 @@ from app.schemas.plan import (
     StudyPlanCreate,
     StudyPlanOut,
 )
+from app.services.content_filter import validate_text
 from app.services.engagement import award_coins, award_pet_exp, record_checkin
 from app.services.study_planner import adjust_study_plan, generate_study_plan
 
@@ -65,9 +66,13 @@ def create_plan(
 @router.post("/generate", response_model=StudyPlanOut, status_code=status.HTTP_201_CREATED)
 def generate_plan(
     data: PlanGenerateRequest,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_ai_access("advanced"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> StudyPlan:
+    try:
+        validate_text(data.major, data.goal, *data.subjects)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     try:
         result = generate_study_plan(
             major=data.major,
@@ -112,7 +117,7 @@ def generate_plan(
 @router.post("/{plan_id}/adjust", response_model=StudyPlanOut)
 def adjust_plan(
     plan_id: int,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_ai_access("advanced"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> StudyPlan:
     plan = _get_own_plan(db, current_user.id, plan_id)

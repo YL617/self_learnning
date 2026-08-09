@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "dev-secret-change-me"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     ADMIN_INITIAL_EMAIL: str = ""
+    TRIAL_DAYS: int = 7
+    FREE_DAILY_AI_QUOTA: int = 20
+    BASIC_DAILY_AI_QUOTA: int = 60
+    ADVANCED_DAILY_AI_QUOTA: int = 120
+    FULL_DAILY_AI_QUOTA: int = 300
 
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'ai_study_dev.db'}"
     REDIS_URL: str = "redis://localhost:6379/0"

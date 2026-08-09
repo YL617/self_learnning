@@ -111,6 +111,11 @@ const router = createRouter({
           component: () => import('@/views/admin/AdminUsersView.vue'),
         },
         {
+          path: 'codes',
+          name: 'admin-codes',
+          component: () => import('@/views/admin/AdminCodesView.vue'),
+        },
+        {
           path: 'questions',
           name: 'admin-questions',
           component: () => import('@/views/admin/AdminQuestionsView.vue'),

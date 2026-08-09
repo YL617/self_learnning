@@ -17,6 +17,9 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     membership_level: Mapped[str] = mapped_column(String(32), default="free")
+    membership_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True
+    )
     role: Mapped[str] = mapped_column(String(16), default="user")
     checkin_streak: Mapped[int] = mapped_column(Integer, default=0)
     last_checkin_date: Mapped[date | None] = mapped_column(Date, nullable=True)

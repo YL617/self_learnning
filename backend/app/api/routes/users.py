@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -31,13 +31,23 @@ from app.models import (
     UserProfile,
     WrongBookItem,
 )
+from app.schemas.billing import ActivateIn
 from app.schemas.onboarding import OnboardingOut
 from app.schemas.user import (
+    MembershipOut,
     PasswordChange,
     UserOut,
     UserProfileOut,
     UserProfileUpdate,
     UserUpdate,
+)
+from app.services.membership import (
+    ActivationCodeError,
+    activate_code,
+    daily_ai_quota,
+    get_ai_usage_today,
+    get_effective_membership,
+    is_trial_active,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -128,6 +138,50 @@ def change_password(
     return {"message": "密码修改成功"}
 
 
+@router.get("/me/membership", response_model=MembershipOut)
+def get_membership(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> MembershipOut:
+    trial_active = is_trial_active(current_user)
+    trial_days_left = 0
+    if trial_active and current_user.created_at is not None:
+        trial_days_left = max(
+            0,
+            (
+                current_user.created_at.replace(tzinfo=timezone.utc)
+                + timedelta(days=settings.TRIAL_DAYS)
+                - datetime.now(timezone.utc)
+            ).days,
+        )
+    return MembershipOut(
+        membership_level=current_user.membership_level,
+        effective_membership=get_effective_membership(current_user),
+        membership_expires_at=current_user.membership_expires_at,
+        trial_active=trial_active,
+        trial_days_left=trial_days_left,
+        ai_quota_used=get_ai_usage_today(db, current_user.id),
+        ai_quota_total=daily_ai_quota(current_user),
+    )
+
+
+@router.post("/me/activate", response_model=UserOut)
+def activate_membership_code(
+    data: ActivateIn,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    try:
+        activate_code(db, current_user, data.code)
+    except ActivationCodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    db.commit()
+    return _reload_user(db, current_user.id)
+
+
 @router.post("/me/avatar", response_model=UserOut)
 async def upload_avatar(
     file: Annotated[UploadFile, File(...)],
@@ -177,7 +231,7 @@ def enable_demo_vip(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="仅演示环境可模拟开通 VIP",
         )
-    current_user.membership_level = "vip"
+    current_user.membership_level = "advanced"
     db.commit()
     return db.scalar(
         select(User)

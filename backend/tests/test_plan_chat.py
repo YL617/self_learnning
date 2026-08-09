@@ -11,9 +11,23 @@ def _register(client, username: str, email: str) -> str:
     return response.json()["access_token"]
 
 
-def test_plan_chat_requires_vip(client):
-    token = _register(client, "chatfree", "chatfree@example.com")
+def test_plan_chat_requires_membership_after_trial(client):
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import select
+
+    from app.core.database import SessionLocal
+    from app.models import User
+
+    token = _register(client, "chatexpired", "chatexpired@example.com")
     headers = {"Authorization": f"Bearer {token}"}
+    with SessionLocal() as db:
+        user = db.scalar(
+            select(User).where(User.username == "chatexpired")
+        )
+        user.created_at = datetime.now(timezone.utc) - timedelta(days=8)
+        user.membership_level = "free"
+        db.commit()
     response = client.post("/api/v1/plans/chat", headers=headers)
     assert response.status_code == 403
 
@@ -24,7 +38,7 @@ def test_plan_chat_offline_flow(client):
 
     vip = client.post("/api/v1/users/me/membership/demo", headers=headers)
     assert vip.status_code == 200
-    assert vip.json()["membership_level"] == "vip"
+    assert vip.json()["membership_level"] == "advanced"
 
     start = client.post("/api/v1/plans/chat", headers=headers)
     assert start.status_code == 201

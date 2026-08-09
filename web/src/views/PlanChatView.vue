@@ -10,7 +10,9 @@ import type { PlanDraft } from '@/types'
 const auth = useAuthStore()
 const router = useRouter()
 
-const isVip = computed(() => auth.user?.membership_level === 'vip')
+const isVip = computed(() =>
+  ['advanced', 'full'].includes(auth.user?.membership_level || ''),
+)
 const messages = ref<Array<{ role: string; content: string }>>([])
 const draft = ref<PlanDraft | null>(null)
 const sessionId = ref<number | null>(null)

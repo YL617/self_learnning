@@ -1,5 +1,5 @@
 import { http } from './http'
-import type { User } from '@/types'
+import type { MembershipInfo, User } from '@/types'
 
 export const usersApi = {
   me: () => http.get<User>('/users/me'),
@@ -16,6 +16,9 @@ export const usersApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  membership: () => http.get<MembershipInfo>('/users/me/membership'),
+  activateCode: (code: string) =>
+    http.post<User>('/users/me/activate', { code }),
   exportData: () => http.get<Record<string, unknown>>('/users/me/export'),
   deleteAccount: () => http.delete<void>('/users/me'),
 }

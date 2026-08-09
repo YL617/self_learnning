@@ -20,9 +20,31 @@ export interface User {
   nickname?: string | null
   avatar_url?: string | null
   membership_level: string
+  membership_expires_at?: string | null
   role?: string
   is_admin?: boolean
   profile?: UserProfile | null
+}
+
+export interface MembershipInfo {
+  membership_level: string
+  effective_membership: string
+  membership_expires_at?: string | null
+  trial_active: boolean
+  trial_days_left: number
+  ai_quota_used: number
+  ai_quota_total: number
+}
+
+export interface ActivationCode {
+  id: number
+  code: string
+  tier: string
+  days: number
+  status: string
+  used_by?: number | null
+  used_at?: string | null
+  created_at: string
 }
 
 export interface AdminUser {
@@ -31,6 +53,7 @@ export interface AdminUser {
   username: string
   nickname?: string | null
   membership_level: string
+  membership_expires_at?: string | null
   role: string
   is_active: boolean
   created_at: string

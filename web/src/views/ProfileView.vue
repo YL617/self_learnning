@@ -7,7 +7,7 @@ import { plansApi } from '@/api/plans'
 import { questionsApi } from '@/api/questions'
 import { usersApi } from '@/api/users'
 import { useAuthStore } from '@/stores/auth'
-import type { FocusStats, StudyPlan } from '@/types'
+import type { FocusStats, MembershipInfo, StudyPlan } from '@/types'
 
 const auth = useAuthStore()
 const nickname = ref('')
@@ -17,6 +17,8 @@ const stats = ref<FocusStats>({ total_minutes: 0, session_count: 0, today_minute
 const plans = ref<StudyPlan[]>([])
 const questionCount = ref(0)
 const wrongCount = ref(0)
+const membership = ref<MembershipInfo | null>(null)
+const activationCode = ref('')
 const error = ref('')
 const success = ref('')
 
@@ -24,6 +26,16 @@ const displayName = computed(
   () => auth.user?.nickname || auth.user?.username || '同学',
 )
 const avatarUrl = computed(() => auth.user?.avatar_url || '')
+const tierName = computed(() => {
+  const level = membership.value?.effective_membership || auth.user?.membership_level || 'free'
+  const names: Record<string, string> = {
+    free: '免费版',
+    basic: '基础会员',
+    advanced: '进阶会员',
+    full: '完整会员',
+  }
+  return names[level] || level
+})
 
 async function load() {
   error.value = ''
@@ -40,8 +52,29 @@ async function load() {
     if (plansRes.status === 'fulfilled') plans.value = plansRes.value.data
     if (questionsRes.status === 'fulfilled') questionCount.value = questionsRes.value.data.length
     if (wrongRes.status === 'fulfilled') wrongCount.value = wrongRes.value.data.length
+    const membershipRes = await usersApi.membership()
+    membership.value = membershipRes.data
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '加载失败'
+  }
+}
+
+async function activateCode() {
+  error.value = ''
+  success.value = ''
+  if (!activationCode.value.trim()) {
+    error.value = '请输入激活码'
+    return
+  }
+  try {
+    const { data } = await usersApi.activateCode(activationCode.value.trim())
+    auth.setUser(data)
+    const membershipRes = await usersApi.membership()
+    membership.value = membershipRes.data
+    activationCode.value = ''
+    success.value = '激活成功，会员权益已生效'
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '激活失败'
   }
 }
 
@@ -106,7 +139,7 @@ onMounted(load)
       </div>
       <span class="badge badge-teal">
         <Sparkles :size="13" />
-        {{ auth.user?.membership_level === 'vip' ? 'VIP 会员' : '免费版' }}
+        {{ tierName }}
       </span>
     </div>
 
@@ -114,6 +147,40 @@ onMounted(load)
     <p v-if="success" class="text-success">{{ success }}</p>
 
     <div class="grid grid-2">
+      <div class="card">
+        <h2><Sparkles :size="16" style="vertical-align: -2px" /> 会员中心</h2>
+        <div class="membership-summary">
+          <div>
+            <span class="stat-label">当前权益</span>
+            <div class="stat-value">{{ tierName }}</div>
+          </div>
+          <div v-if="membership">
+            <span class="stat-label">AI 额度</span>
+            <div class="stat-value">
+              {{ membership.ai_quota_used }}/{{ membership.ai_quota_total }}
+            </div>
+          </div>
+        </div>
+        <p v-if="membership?.trial_active" class="muted">
+          试用期剩余 {{ membership.trial_days_left }} 天，期间开放全部功能
+        </p>
+        <p v-else-if="membership?.membership_expires_at" class="muted">
+          会员有效期至 {{ membership.membership_expires_at.slice(0, 10) }}
+        </p>
+        <p v-else class="muted">当前为免费版，兑换激活码即可升级</p>
+        <div class="row gap" style="margin-top: 12px">
+          <input
+            v-model="activationCode"
+            class="input"
+            maxlength="64"
+            placeholder="输入激活码"
+          />
+          <button class="btn btn-primary" type="button" @click="activateCode">
+            兑换
+          </button>
+        </div>
+      </div>
+
       <div class="card">
         <h2><UserRound :size="16" style="vertical-align: -2px" /> 账号资料</h2>
         <div class="row gap" style="align-items: flex-start">
@@ -250,6 +317,12 @@ onMounted(load)
 <style scoped>
 .text-success {
   color: #15803d;
+}
+
+.membership-summary {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 8px;
 }
 
 .avatar-wrap {

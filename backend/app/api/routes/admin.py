@@ -1,4 +1,5 @@
-from datetime import date
+import secrets
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
 
@@ -11,6 +12,7 @@ from app.api.deps import get_current_admin
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import (
+    ActivationCode,
     AnswerRecord,
     CoinTransaction,
     Course,
@@ -33,6 +35,7 @@ from app.schemas.admin import (
     CourseUpdate,
     StatsOverviewOut,
 )
+from app.schemas.billing import ActivationCodeCreate, ActivationCodeOut
 from app.schemas.file import DocumentOut
 from app.schemas.ops import CourseOut
 from app.services.ai_monitor import (
@@ -87,10 +90,87 @@ def update_admin_user(
         if data.role is not None and data.role != "admin":
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能取消自己的管理员角色")
     for field, value in data.model_dump(exclude_unset=True).items():
+        if (
+            field == "membership_level"
+            and value != "free"
+            and user.membership_expires_at is None
+        ):
+            user.membership_expires_at = (
+                datetime.now(timezone.utc) + timedelta(days=30)
+            ).replace(tzinfo=None)
+        if field == "membership_level" and value == "free":
+            user.membership_expires_at = None
         setattr(user, field, value)
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get("/activation-codes", response_model=list[ActivationCodeOut])
+def list_activation_codes(
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(default=200, ge=1, le=1000),
+) -> list[ActivationCode]:
+    return list(
+        db.scalars(
+            select(ActivationCode)
+            .order_by(ActivationCode.created_at.desc())
+            .limit(limit)
+        ).all()
+    )
+
+
+@router.post(
+    "/activation-codes",
+    response_model=list[ActivationCodeOut],
+    status_code=status.HTTP_201_CREATED,
+)
+def create_activation_codes(
+    data: ActivationCodeCreate,
+    current_admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[ActivationCode]:
+    codes: list[ActivationCode] = []
+    for _ in range(data.count):
+        code_value = secrets.token_hex(8).upper()
+        while db.scalar(
+            select(ActivationCode).where(ActivationCode.code == code_value)
+        ) is not None:
+            code_value = secrets.token_hex(8).upper()
+        code = ActivationCode(
+            code=code_value,
+            tier=data.tier,
+            days=data.days,
+            status="unused",
+            created_by=current_admin.id,
+        )
+        db.add(code)
+        codes.append(code)
+    db.commit()
+    for code in codes:
+        db.refresh(code)
+    return codes
+
+
+@router.post("/activation-codes/{code_id}/revoke", response_model=ActivationCodeOut)
+def revoke_activation_code(
+    code_id: int,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> ActivationCode:
+    code = db.get(ActivationCode, code_id)
+    if code is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="激活码不存在")
+    if code.status == "used":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="已使用的激活码不能撤销",
+        )
+    code.status = "revoked"
+    db.commit()
+    db.refresh(code)
+    return code
 
 
 @router.get("/ai-monitor", response_model=AiMonitorOut)

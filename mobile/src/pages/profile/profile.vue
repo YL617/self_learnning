@@ -26,9 +26,7 @@
           <view v-else class="avatar avatar-text">{{ displayName.slice(0, 1) }}</view>
           <view class="user-info">
             <text class="user-name">{{ displayName }}</text>
-            <text class="muted">
-              {{ user?.membership_level === "vip" ? "VIP 会员" : "免费版" }}
-            </text>
+            <text class="muted">{{ tierName }}</text>
           </view>
         </view>
         <text class="card-title">{{ username }} 的学习空间</text>
@@ -74,6 +72,16 @@ const balance = computed(() =>
 const displayName = computed(
   () => user.value?.nickname || user.value?.username || "同学",
 );
+const tierName = computed(() => {
+  const level = user.value?.membership_level || "free";
+  const names: Record<string, string> = {
+    free: "免费版",
+    basic: "基础会员",
+    advanced: "进阶会员",
+    full: "完整会员",
+  };
+  return names[level] || level;
+});
 
 function loadUser() {
   const raw = uni.getStorageSync("ai_study_user");

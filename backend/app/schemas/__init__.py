@@ -9,6 +9,11 @@ from app.schemas.admin import (
     CourseUpdate,
     StatsOverviewOut,
 )
+from app.schemas.billing import (
+    ActivateIn,
+    ActivationCodeCreate,
+    ActivationCodeOut,
+)
 from app.schemas.common import Message, ORMModel
 from app.schemas.file import DocumentOut, GenerateFileQuestionsRequest, ParseResultOut
 from app.schemas.focus import (
@@ -52,6 +57,7 @@ from app.schemas.question import (
     WrongBookOut,
 )
 from app.schemas.user import (
+    MembershipOut,
     PasswordChange,
     TokenOut,
     UserLogin,
@@ -63,6 +69,9 @@ from app.schemas.user import (
 )
 
 __all__ = [
+    "ActivateIn",
+    "ActivationCodeCreate",
+    "ActivationCodeOut",
     "AdminQuestionOut",
     "AdminUserOut",
     "AdminUserUpdate",
@@ -80,6 +89,7 @@ __all__ = [
     "FocusSessionStart",
     "FocusStatsOut",
     "GenerateFileQuestionsRequest",
+    "MembershipOut",
     "Message",
     "ORMModel",
     "OnboardingIn",

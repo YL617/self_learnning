@@ -4,6 +4,7 @@ import {
   FileQuestion,
   Files,
   GraduationCap,
+  KeyRound,
   LayoutDashboard,
   Users,
 } from 'lucide-vue-next'
@@ -14,6 +15,7 @@ const route = useRoute()
 const navItems = [
   { label: '运营看板', to: '/admin', icon: LayoutDashboard },
   { label: '用户管理', to: '/admin/users', icon: Users },
+  { label: '激活码管理', to: '/admin/codes', icon: KeyRound },
   { label: '题目管理', to: '/admin/questions', icon: FileQuestion },
   { label: '文档管理', to: '/admin/documents', icon: Files },
   { label: '课程管理', to: '/admin/courses', icon: GraduationCap },

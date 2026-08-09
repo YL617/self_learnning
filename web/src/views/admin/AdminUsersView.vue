@@ -55,6 +55,7 @@ onMounted(load)
           <tr>
             <th>用户</th>
             <th>会员</th>
+            <th>到期时间</th>
             <th>角色</th>
             <th>状态</th>
             <th>操作</th>
@@ -75,8 +76,13 @@ onMounted(load)
                 @change="updateUser(user, { membership_level: ($event.target as HTMLSelectElement).value })"
               >
                 <option value="free">免费</option>
-                <option value="vip">VIP</option>
+                <option value="basic">基础 10 元</option>
+                <option value="advanced">进阶 20 元</option>
+                <option value="full">完整 30 元</option>
               </select>
+            </td>
+            <td class="muted">
+              {{ user.membership_expires_at ? user.membership_expires_at.slice(0, 10) : '—' }}
             </td>
             <td>
               <select

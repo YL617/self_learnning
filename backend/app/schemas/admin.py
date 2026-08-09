@@ -11,13 +11,17 @@ class AdminUserOut(ORMModel):
     username: str
     nickname: str | None = None
     membership_level: str = "free"
+    membership_expires_at: datetime | None = None
     role: str = "user"
     is_active: bool = True
     created_at: datetime
 
 
 class AdminUserUpdate(BaseModel):
-    membership_level: str | None = Field(default=None, pattern="^(free|vip)$")
+    membership_level: str | None = Field(
+        default=None, pattern="^(free|basic|advanced|full)$"
+    )
+    membership_expires_at: datetime | None = None
     role: str | None = Field(default=None, pattern="^(user|admin)$")
     is_active: bool | None = None
 

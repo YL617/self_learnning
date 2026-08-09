@@ -9,7 +9,7 @@ from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_ai_access
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import Document, FileAnalyzeResult, KnowledgeChunk, Question, User
@@ -21,6 +21,7 @@ from app.schemas.file import (
     QuestionTypeCount,
 )
 from app.schemas.question import QuestionOut
+from app.services.content_filter import validate_text
 from app.services.document_parser import chunk_text, extract_text
 from app.services.file_analyzer import analyze_document
 from app.services.question_generator import generate_questions
@@ -133,10 +134,14 @@ def parse_document(
 @router.post("/{document_id}/analyze", response_model=FileAnalyzeOut)
 def analyze_file(
     document_id: int,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_ai_access("full"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> FileAnalyzeOut:
     document = _get_own_document(db, current_user.id, document_id)
+    try:
+        validate_text(document.filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if document.status != "parsed":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文档尚未解析")
     chunks = db.scalars(
@@ -174,7 +179,7 @@ def analyze_file(
 def generate_file_questions(
     document_id: int,
     data: GenerateFileQuestionsRequest,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_ai_access("full"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> list[Question]:
     document = _get_own_document(db, current_user.id, document_id)

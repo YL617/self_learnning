@@ -1,5 +1,6 @@
 import { http } from './http'
 import type {
+  ActivationCode,
   AdminQuestion,
   AdminUser,
   AiMonitorState,
@@ -26,6 +27,14 @@ export const adminApi = {
   aiMonitor: () => http.get<AiMonitorState>('/admin/ai-monitor'),
   refreshAiMonitor: () => http.post<AiMonitorState>('/admin/ai-monitor/refresh'),
   stats: () => http.get<StatsOverview>('/admin/stats/overview'),
+  activationCodes: () => http.get<ActivationCode[]>('/admin/activation-codes'),
+  createActivationCodes: (data: {
+    tier: string
+    days: number
+    count: number
+  }) => http.post<ActivationCode[]>('/admin/activation-codes', data),
+  revokeActivationCode: (id: number) =>
+    http.post<ActivationCode>(`/admin/activation-codes/${id}/revoke`),
   questions: () => http.get<AdminQuestion[]>('/admin/questions'),
   deleteQuestion: (id: number) => http.delete<void>(`/admin/questions/${id}`),
   documents: () => http.get<DocumentItem[]>('/admin/documents'),

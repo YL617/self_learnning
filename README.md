@@ -62,6 +62,7 @@ flowchart LR
 | 效能工具 | 待办、可视化日历、学习周报 / 月报 | 已完成 |
 | 主动提醒 | 站内通知、提醒触发与列表 | 已完成 |
 | 课程聚合 | 公开课程索引与外链，大纲作为出题参考 | 已完成 |
+| 商业 M0 | 三档会员、7 天试用、AI 每日额度、激活码、管理后台、DeepSeek 监控 | 已完成 |
 | 代码沙箱 | 接入 E2B / Piston，测试用例自动判分 | 规划中 |
 
 ## 技术架构（以 V9.0 为基准）
@@ -146,6 +147,8 @@ docker compose up -d --build
 - [文件出题与错题本 功能开发文档](./docs/开发文档_文件出题与错题本.md)（含 Word 版）
 - [AI宠物“出门玩”功能开发文档](./docs/开发文档_宠物出门玩.md)（含 Word 版）
 - [个人中心、管理系统与 AI 监控整合计划](./docs/整合计划_个人中心与管理系统与AI监控.md)
+- [商业与产品规划（含 M0）](./docs/商业与产品规划.md)
+- [第三方开源与素材声明](./THIRD_PARTY_NOTICES.md)
 - [开发计划](./docs/DEVELOPMENT_PLAN.md)
 - [技术架构](./docs/ARCHITECTURE.md)
 - [V8.0 → V9.0 功能合并清单](./docs/FEATURE_RECONCILIATION.md)

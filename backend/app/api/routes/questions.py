@@ -7,7 +7,7 @@ from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_ai_access
 from app.core.database import get_db
 from app.models import (
     AnswerRecord,
@@ -26,6 +26,7 @@ from app.schemas.question import (
     WrongBookItemUpdate,
     WrongBookOut,
 )
+from app.services.content_filter import validate_text
 from app.services.engagement import award_coins, award_pet_exp, record_daily_stat
 from app.services.question_generator import check_answer, generate_questions
 
@@ -64,9 +65,13 @@ def _save_questions(
 @router.post("/generate", response_model=list[QuestionOut], status_code=status.HTTP_201_CREATED)
 def generate(
     data: QuestionGenerateRequest,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_ai_access("basic"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> list[Question]:
+    try:
+        validate_text(data.subject, data.knowledge_point)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     context: list[str] = []
     document_id: int | None = data.document_id
     if data.document_id is not None:

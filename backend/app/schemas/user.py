@@ -38,6 +38,7 @@ class UserOut(ORMModel):
     nickname: str | None = None
     avatar_url: str | None = None
     membership_level: str = "free"
+    membership_expires_at: datetime | None = None
     role: str = "user"
     is_admin: bool = False
     profile: UserProfileOut | None = None
@@ -69,3 +70,13 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class MembershipOut(BaseModel):
+    membership_level: str
+    effective_membership: str
+    membership_expires_at: datetime | None = None
+    trial_active: bool = False
+    trial_days_left: int = 0
+    ai_quota_used: int = 0
+    ai_quota_total: int = 0

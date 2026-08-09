@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_ai_access
 from app.core.database import get_db
 from app.models import CoinTransaction, FocusSession, Pet, ShopItem, User
 from app.schemas.focus import (
@@ -24,6 +24,7 @@ from app.schemas.focus import (
     PetUpdate,
     ShopItemOut,
 )
+from app.services.content_filter import validate_text
 from app.services.engagement import (
     DAILY_FOCUS_COIN_CAP,
     award_coins,
@@ -190,7 +191,7 @@ def list_pet_messages_endpoint(
 @pet_router.post("/{pet_id}/greet", response_model=PetChatOut)
 def greet_pet_endpoint(
     pet_id: int,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_ai_access("advanced"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> PetChatOut:
     pet = _owned_pet(db, current_user.id, pet_id)
@@ -211,9 +212,13 @@ def greet_pet_endpoint(
 def chat_with_pet_endpoint(
     pet_id: int,
     data: PetChatIn,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_ai_access("advanced"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> PetChatOut:
+    try:
+        validate_text(data.message)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     pet = _owned_pet(db, current_user.id, pet_id)
     refresh_pet_state(pet)
     try:

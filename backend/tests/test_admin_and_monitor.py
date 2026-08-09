@@ -160,10 +160,10 @@ def test_admin_stats_and_user_management(client):
     changed = client.patch(
         f"/api/v1/admin/users/{target['id']}",
         headers=headers,
-        json={"membership_level": "vip", "is_active": True},
+        json={"membership_level": "advanced", "is_active": True},
     )
     assert changed.status_code == 200
-    assert changed.json()["membership_level"] == "vip"
+    assert changed.json()["membership_level"] == "advanced"
 
 
 def test_admin_content_management(client):
