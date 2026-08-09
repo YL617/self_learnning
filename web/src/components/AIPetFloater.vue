@@ -24,6 +24,7 @@ type AnimationId =
   | 'running-left'
   | 'waving'
   | 'jumping'
+  | 'talking'
   | 'failed'
   | 'waiting'
 
@@ -40,6 +41,11 @@ const ANIMATIONS: Record<
   'running-left': {
     row: 2,
     durations: [120, 120, 120, 120, 120, 120, 120, 220],
+    loop: true,
+  },
+  talking: {
+    row: 0,
+    durations: [95, 130, 95, 130, 95, 150],
     loop: true,
   },
   waving: { row: 3, durations: [140, 140, 140, 280], loop: false },
@@ -71,6 +77,7 @@ let animationTimer: number | undefined
 let roamFrame: number | undefined
 let countdownTimer: number | undefined
 let speechTimer: number | undefined
+let talkTimer: number | undefined
 let unsubscribeEvents: (() => void) | undefined
 let dragOffset = { x: 0, y: 0 }
 let dragStart = { x: 0, y: 0 }
@@ -313,14 +320,25 @@ async function sendChat() {
 
 function handlePetEvent(event: { kind: 'focus' | 'plan' | 'wrong-book' }) {
   if (hidden.value) return
-  const reactions: Record<string, string> = {
-    focus: '专注完成，好厉害！休息一下继续吧！',
-    plan: '又完成一项计划，太棒啦！',
-    'wrong-book': '错题又少一道，继续加油！',
+  stopTalking()
+  runAnimation('talking')
+  talkTimer = window.setTimeout(afterTalking, 2600)
+}
+
+function stopTalking() {
+  if (talkTimer !== undefined) {
+    window.clearTimeout(talkTimer)
+    talkTimer = undefined
   }
-  showPetSays(reactions[event.kind])
-  bubbleOpen.value = true
-  runAnimation('jumping')
+}
+
+function afterTalking() {
+  talkTimer = undefined
+  if (petStore.isPlaying) {
+    runAnimation(direction.value === 'left' ? 'running-left' : 'running-right')
+  } else {
+    runAnimation('idle')
+  }
 }
 
 function hidePet() {
@@ -357,6 +375,7 @@ watch(
     } else {
       stopCountdown()
       stopRoaming()
+      stopTalking()
       bubbleOpen.value = false
       runAnimation('idle')
     }
@@ -405,6 +424,7 @@ onBeforeUnmount(() => {
   stopAnimation()
   stopRoaming()
   stopCountdown()
+  stopTalking()
   window.removeEventListener('resize', updateWidth)
   if (unsubscribeEvents) {
     unsubscribeEvents()
@@ -424,7 +444,12 @@ onBeforeUnmount(() => {
       @pointerup="onPointerUp"
       @click="onClickPet"
     >
-      <div class="pet-sprite" :style="spriteStyle" />
+      <div
+        class="pet-sprite"
+        :class="{ talking: animation === 'talking' }"
+        :data-state="animation"
+        :style="spriteStyle"
+      />
       <button
         v-if="!petStore.isPlaying"
         class="hide-btn"
@@ -523,6 +548,20 @@ onBeforeUnmount(() => {
   image-rendering: pixelated;
   display: block;
   pointer-events: none;
+}
+
+.pet-sprite.talking {
+  animation: talk-bob 0.45s ease-in-out infinite;
+}
+
+@keyframes talk-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.04);
+  }
 }
 
 .hide-btn {
