@@ -12,9 +12,12 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    nickname: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    avatar_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     membership_level: Mapped[str] = mapped_column(String(32), default="free")
+    role: Mapped[str] = mapped_column(String(16), default="user")
     checkin_streak: Mapped[int] = mapped_column(Integer, default=0)
     last_checkin_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -25,6 +28,14 @@ class User(Base):
     profile: Mapped["UserProfile | None"] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
+
+    @property
+    def avatar_url(self) -> str | None:
+        return f"/uploads/avatars/{self.avatar_path}" if self.avatar_path else None
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
 
 
 class UserProfile(Base):

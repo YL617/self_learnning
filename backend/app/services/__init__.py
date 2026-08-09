@@ -1,4 +1,9 @@
 from app.services.ai_gateway import AIModelGateway
+from app.services.ai_monitor import (
+    can_refresh,
+    get_monitor_state,
+    refresh_deepseek_monitor,
+)
 from app.services.document_parser import chunk_text, extract_text
 from app.services.engagement import (
     award_coins,
@@ -37,6 +42,7 @@ __all__ = [
     "RAGEngine",
     "award_coins",
     "award_pet_exp",
+    "can_refresh",
     "chat_with_pet",
     "check_answer",
     "chunk_text",
@@ -45,6 +51,7 @@ __all__ = [
     "extract_text",
     "generate_questions",
     "generate_study_plan",
+    "get_monitor_state",
     "get_or_create_pet",
     "get_play_state",
     "greet_pet",
@@ -53,6 +60,7 @@ __all__ = [
     "play_pet",
     "process_message",
     "record_daily_stat",
+    "refresh_deepseek_monitor",
     "revive_pet",
     "start_chat",
     "start_pet_play",

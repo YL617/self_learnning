@@ -17,8 +17,77 @@ export interface User {
   id: number
   email: string
   username: string
+  nickname?: string | null
+  avatar_url?: string | null
   membership_level: string
+  role?: string
+  is_admin?: boolean
   profile?: UserProfile | null
+}
+
+export interface AdminUser {
+  id: number
+  email: string
+  username: string
+  nickname?: string | null
+  membership_level: string
+  role: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface AiMonitorSnapshot {
+  id: number
+  provider: string
+  total_balance: string
+  granted_balance: string
+  topped_up_balance: string
+  is_available: boolean
+  status: string
+  error_message?: string | null
+  checked_at: string
+}
+
+export interface AiUsage {
+  id: number
+  provider: string
+  usage_date: string
+  tokens: number
+  cost: number
+  recorded_at: string
+}
+
+export interface AiMonitorState {
+  provider: string
+  snapshot?: AiMonitorSnapshot | null
+  usage: AiUsage[]
+  is_low_balance?: boolean
+  low_balance_threshold?: number
+}
+
+export interface StatsOverview {
+  user_count: number
+  active_today: number
+  plan_count: number
+  question_count: number
+  wrong_book_count: number
+  document_count: number
+  course_count: number
+  total_focus_minutes: number
+  total_coins_issued: number
+  ai_monitor?: AiMonitorState | null
+}
+
+export interface AdminQuestion {
+  id: number
+  user_id: number
+  subject: string
+  knowledge_point: string
+  question_type: string
+  stem: string
+  source: string
+  is_favorite: boolean
+  created_at: string
 }
 
 export interface TokenResponse {

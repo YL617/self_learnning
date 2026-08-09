@@ -30,6 +30,7 @@ def register(
     user = User(
         email=data.email,
         username=data.username,
+        nickname=data.username,
         hashed_password=get_password_hash(data.password),
     )
     user.profile = UserProfile(daily_study_minutes=60)

@@ -16,6 +16,21 @@
 
     <template v-else>
       <view class="card">
+        <view class="user-head">
+          <image
+            v-if="user?.avatar_url"
+            class="avatar"
+            :src="user.avatar_url"
+            mode="aspectFill"
+          />
+          <view v-else class="avatar avatar-text">{{ displayName.slice(0, 1) }}</view>
+          <view class="user-info">
+            <text class="user-name">{{ displayName }}</text>
+            <text class="muted">
+              {{ user?.membership_level === "vip" ? "VIP 会员" : "免费版" }}
+            </text>
+          </view>
+        </view>
         <text class="card-title">{{ username }} 的学习空间</text>
         <view v-if="pet" class="pet">
           <text class="pet-name">{{ pet.name }} · Lv.{{ pet.level }}</text>
@@ -41,11 +56,12 @@
 import { computed, ref } from "vue";
 
 import { api, clearToken, setToken } from "@/api/request";
-import type { CoinTransaction, Pet } from "@/types";
+import type { AuthUser, CoinTransaction, Pet } from "@/types";
 
 const account = ref("");
 const password = ref("");
-const username = ref(uni.getStorageSync("ai_study_user") as string || "");
+const username = ref("");
+const user = ref<AuthUser | null>(null);
 const loggedIn = ref(Boolean(username.value));
 const pet = ref<Pet | null>(null);
 const transactions = ref<CoinTransaction[]>([]);
@@ -55,12 +71,30 @@ const balance = computed(() =>
   transactions.value.reduce((sum, tx) => sum + tx.amount, 0),
 );
 
+const displayName = computed(
+  () => user.value?.nickname || user.value?.username || "同学",
+);
+
+function loadUser() {
+  const raw = uni.getStorageSync("ai_study_user");
+  if (typeof raw === "string" && raw) {
+    try {
+      user.value = JSON.parse(raw) as AuthUser;
+      username.value = user.value?.username || "";
+    } catch {
+      username.value = raw;
+    }
+  }
+  loggedIn.value = Boolean(username.value);
+}
+
 async function login() {
   try {
     const result = await api.login(account.value, password.value);
     setToken(result.access_token);
+    user.value = result.user;
     username.value = result.user.username;
-    uni.setStorageSync("ai_study_user", username.value);
+    uni.setStorageSync("ai_study_user", JSON.stringify(result.user));
     loggedIn.value = true;
     await load();
   } catch (err: any) {
@@ -86,6 +120,7 @@ async function feed() {
 
 function logout() {
   clearToken();
+  user.value = null;
   username.value = "";
   loggedIn.value = false;
   pet.value = null;
@@ -99,6 +134,8 @@ function goOnboarding() {
 function goPet() {
   uni.navigateTo({ url: "/pages/pet/pet" });
 }
+
+loadUser();
 </script>
 
 <style scoped>
@@ -118,6 +155,40 @@ function goPet() {
   font-weight: 700;
   display: block;
   margin-bottom: 20rpx;
+}
+
+.user-head {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #e8f0fe;
+  color: #2563eb;
+}
+
+.avatar-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.user-name {
+  font-size: 34rpx;
+  font-weight: 700;
 }
 
 .field {

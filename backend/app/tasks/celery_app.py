@@ -104,3 +104,17 @@ def notify_due_reminders() -> dict:
             reminder.triggered = True
         db.commit()
         return {"ok": True, "triggered": len(due)}
+
+
+@celery_app.task(name="ai_monitor.refresh_deepseek")
+def refresh_ai_monitor_snapshot() -> dict:
+    from app.core.database import SessionLocal
+    from app.services.ai_monitor import refresh_deepseek_monitor
+
+    with SessionLocal() as db:
+        snapshot = refresh_deepseek_monitor(db)
+        return {
+            "ok": snapshot.status == "ok",
+            "provider": snapshot.provider,
+            "status": snapshot.status,
+        }

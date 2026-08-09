@@ -1,3 +1,4 @@
+from app.models.ai_monitor import AiProviderSnapshot, AiUsageRecord
 from app.models.engagement import (
     CoinTransaction,
     DailyStat,
@@ -21,6 +22,8 @@ from app.models.plan_chat import PlanChatMessage, PlanChatSession
 from app.models.user import User, UserProfile
 
 __all__ = [
+    "AiProviderSnapshot",
+    "AiUsageRecord",
     "AnswerRecord",
     "CoinTransaction",
     "Course",

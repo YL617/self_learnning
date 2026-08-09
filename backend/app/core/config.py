@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str = "dev-secret-change-me"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+    ADMIN_INITIAL_EMAIL: str = ""
 
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'ai_study_dev.db'}"
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -38,6 +39,7 @@ class Settings(BaseSettings):
     CHROMA_COLLECTION: str = "ai_study_docs"
 
     AI_PROVIDER: str = "deepseek"
+    AI_LOW_BALANCE_THRESHOLD: float = 10.0
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL: str = "deepseek-chat"

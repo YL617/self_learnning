@@ -1,7 +1,8 @@
+import time
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.deps import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.security import get_password_hash, verify_password
 from app.models import (
     AnswerRecord,
     CoinTransaction,
@@ -30,7 +32,13 @@ from app.models import (
     WrongBookItem,
 )
 from app.schemas.onboarding import OnboardingOut
-from app.schemas.user import UserOut, UserProfileOut, UserProfileUpdate
+from app.schemas.user import (
+    PasswordChange,
+    UserOut,
+    UserProfileOut,
+    UserProfileUpdate,
+    UserUpdate,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 settings = get_settings()
@@ -85,6 +93,61 @@ def get_me(
         .options(selectinload(User.profile))
         .where(User.id == current_user.id)
     )
+
+
+def _reload_user(db: Session, user_id: int) -> User:
+    return db.scalar(
+        select(User)
+        .options(selectinload(User.profile))
+        .where(User.id == user_id)
+    )
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    data: UserUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    if data.nickname is not None:
+        current_user.nickname = data.nickname
+    db.commit()
+    return _reload_user(db, current_user.id)
+
+
+@router.post("/me/password")
+def change_password(
+    data: PasswordChange,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, str]:
+    if not verify_password(data.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="原密码错误")
+    current_user.hashed_password = get_password_hash(data.new_password)
+    db.commit()
+    return {"message": "密码修改成功"}
+
+
+@router.post("/me/avatar", response_model=UserOut)
+async def upload_avatar(
+    file: Annotated[UploadFile, File(...)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    filename = file.filename or "avatar.png"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "png"
+    if ext not in {"png", "jpg", "jpeg", "webp"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 png/jpg/jpeg/webp")
+    content = await file.read()
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="头像不能超过 2MB")
+    avatars_dir = settings.UPLOAD_DIR / "avatars"
+    avatars_dir.mkdir(parents=True, exist_ok=True)
+    avatar_name = f"user_{current_user.id}_{int(time.time())}.{ext}"
+    (avatars_dir / avatar_name).write_bytes(content)
+    current_user.avatar_path = avatar_name
+    db.commit()
+    return _reload_user(db, current_user.id)
 
 
 @router.api_route("/me/profile", response_model=UserProfileOut, methods=["PATCH", "PUT"])

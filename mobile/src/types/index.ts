@@ -4,6 +4,16 @@ export interface FocusStats {
   today_minutes: number
 }
 
+export interface AuthUser {
+  id: number
+  email: string
+  username: string
+  nickname?: string | null
+  avatar_url?: string | null
+  membership_level: string
+  role?: string
+}
+
 export interface PlanItem {
   id: number
   plan_id: number

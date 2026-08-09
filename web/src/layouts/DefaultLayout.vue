@@ -48,6 +48,17 @@ function logout() {
 
 <template>
   <div class="app-shell">
+    <router-link to="/profile" class="top-user">
+      <span class="top-avatar">
+        <img
+          v-if="auth.user?.avatar_url"
+          :src="auth.user.avatar_url"
+          alt="头像"
+        />
+        <span v-else>{{ (auth.user?.nickname || auth.user?.username || '我').slice(0, 1) }}</span>
+      </span>
+      <span class="top-name">{{ auth.user?.nickname || auth.user?.username || '个人中心' }}</span>
+    </router-link>
     <aside class="sidebar">
       <div class="brand">
         <span class="brand-mark">智</span>
@@ -81,3 +92,57 @@ function logout() {
     <AIPetFloater />
   </div>
 </template>
+
+<style scoped>
+.top-user {
+  position: fixed;
+  top: 14px;
+  right: 20px;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.top-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e8f0fe;
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.top-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.top-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .top-user {
+    top: 10px;
+    right: 12px;
+  }
+}
+</style>

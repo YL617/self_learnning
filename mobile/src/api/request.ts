@@ -1,4 +1,5 @@
 import type {
+  AuthUser,
   CoinTransaction,
   DocumentItem,
   FocusStats,
@@ -83,13 +84,13 @@ export function uploadDocument(filePath: string): Promise<DocumentItem> {
 
 export const api = {
   login: (account: string, password: string) =>
-    request<{ access_token: string; user: { username: string } }>({
+    request<{ access_token: string; user: AuthUser }>({
       url: "/auth/login",
       method: "POST",
       data: { account, password },
     }),
   register: (payload: { email: string; username: string; password: string }) =>
-    request<{ access_token: string; user: { username: string } }>({
+    request<{ access_token: string; user: AuthUser }>({
       url: "/auth/register",
       method: "POST",
       data: payload,

@@ -32,6 +32,11 @@ export const useAuthStore = defineStore('auth', {
       this.user = user
       localStorage.setItem('ai_study_user', JSON.stringify(user))
     },
+    async me() {
+      const { data } = await http.get<User>('/users/me')
+      this.setUser(data)
+      return data
+    },
     logout() {
       clearSession()
       this.token = ''

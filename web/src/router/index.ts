@@ -39,6 +39,7 @@ const router = createRouter({
       component: () => import('@/layouts/DefaultLayout.vue'),
       children: [
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
+        { path: 'profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
         { path: 'plans', name: 'plans', component: () => import('@/views/PlansView.vue') },
         {
           path: 'plans/chat',
@@ -95,13 +96,56 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/admin',
+      component: () => import('@/layouts/AdminLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'admin-dashboard',
+          component: () => import('@/views/admin/AdminDashboardView.vue'),
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/AdminUsersView.vue'),
+        },
+        {
+          path: 'questions',
+          name: 'admin-questions',
+          component: () => import('@/views/admin/AdminQuestionsView.vue'),
+        },
+        {
+          path: 'documents',
+          name: 'admin-documents',
+          component: () => import('@/views/admin/AdminDocumentsView.vue'),
+        },
+        {
+          path: 'courses',
+          name: 'admin-courses',
+          component: () => import('@/views/admin/AdminCoursesView.vue'),
+        },
+      ],
+    },
   ],
 })
+
+function isAdmin(): boolean {
+  try {
+    const user = JSON.parse(localStorage.getItem('ai_study_user') || 'null')
+    return Boolean(user && (user.is_admin === true || user.role === 'admin'))
+  } catch {
+    return false
+  }
+}
 
 router.beforeEach((to) => {
   const loggedIn = Boolean(getToken())
   if (!to.meta.public && !loggedIn) {
     return { name: 'login' }
+  }
+  if (to.path.startsWith('/admin') && !isAdmin()) {
+    return { name: 'dashboard' }
   }
   if ((to.name === 'login' || to.name === 'register') && loggedIn) {
     return { name: 'dashboard' }

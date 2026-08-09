@@ -1,3 +1,14 @@
+from app.schemas.admin import (
+    AdminQuestionOut,
+    AdminUserOut,
+    AdminUserUpdate,
+    AiMonitorOut,
+    AiMonitorSnapshotOut,
+    AiUsageOut,
+    CourseCreate,
+    CourseUpdate,
+    StatsOverviewOut,
+)
 from app.schemas.common import Message, ORMModel
 from app.schemas.file import DocumentOut, GenerateFileQuestionsRequest, ParseResultOut
 from app.schemas.focus import (
@@ -41,18 +52,28 @@ from app.schemas.question import (
     WrongBookOut,
 )
 from app.schemas.user import (
+    PasswordChange,
     TokenOut,
     UserLogin,
     UserOut,
     UserProfileOut,
     UserProfileUpdate,
     UserRegister,
+    UserUpdate,
 )
 
 __all__ = [
+    "AdminQuestionOut",
+    "AdminUserOut",
+    "AdminUserUpdate",
+    "AiMonitorOut",
+    "AiMonitorSnapshotOut",
+    "AiUsageOut",
     "AnswerOut",
     "AnswerSubmit",
     "CoinTransactionOut",
+    "CourseCreate",
+    "CourseUpdate",
     "DocumentOut",
     "FeedPetRequest",
     "FocusSessionOut",
@@ -64,6 +85,7 @@ __all__ = [
     "OnboardingIn",
     "OnboardingOut",
     "ParseResultOut",
+    "PasswordChange",
     "PetChatIn",
     "PetChatOut",
     "PetInteractionOut",
@@ -84,6 +106,7 @@ __all__ = [
     "PlanItemUpdate",
     "QuestionGenerateRequest",
     "QuestionOut",
+    "StatsOverviewOut",
     "StudyPlanCreate",
     "StudyPlanOut",
     "TokenOut",
@@ -92,6 +115,7 @@ __all__ = [
     "UserProfileOut",
     "UserProfileUpdate",
     "UserRegister",
+    "UserUpdate",
     "WrongBookItemUpdate",
     "WrongBookOut",
 ]
