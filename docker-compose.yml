@@ -23,6 +23,17 @@ services:
     volumes:
       - redis_data:/data
 
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: ai-study-web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
   backend:
     build: ./backend
     container_name: ai-study-backend

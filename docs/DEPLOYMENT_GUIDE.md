@@ -40,7 +40,24 @@ docker --version
 docker compose version
 ```
 
-## 1.2 拉取并启动项目
+## 1.2 一键部署脚本
+
+脚本会完成：安装 Docker、开放端口、拉取代码、生成 `.env`、构建 Web/后端镜像、启动服务并执行迁移。
+
+```bash
+sudo dnf install -y git
+git clone https://github.com/YL617/self_learnning.git /tmp/ai-study-deploy
+sudo bash /tmp/ai-study-deploy/scripts/deploy_production.sh
+```
+
+执行后编辑 `/opt/ai-study/.env`，至少填写 `SECRET_KEY` 与 `DEEPSEEK_API_KEY`，然后重启：
+
+```bash
+cd /opt/ai-study
+docker compose up -d
+```
+
+## 1.3 拉取并启动项目（手动方式）
 
 ```bash
 cd /opt
@@ -78,6 +95,7 @@ docker compose up -d --build
 | --- | --- | --- |
 | mysql | 3306 | 业务数据库 |
 | redis | 6379 | 缓存与 Celery |
+| web | 5173 | Vue3 构建产物 + Nginx |
 | backend | 8000 | FastAPI 后端 |
 | worker | - | Celery Worker |
 
@@ -159,14 +177,7 @@ sudo dnf install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d yl617.xyz
 ```
 
-若使用 Web 构建产物（`web/dist`）而非开发服务器，可将 `location /` 指向静态目录：
-
-```nginx
-location / {
-    root /var/www/ai-study;
-    try_files $uri $uri/ /index.html;
-}
-```
+`web` 服务已使用 Docker 内 Nginx 托管构建产物，外层 Nginx 只需把 `location /` 代理到 `http://127.0.0.1:5173`。
 
 ## 3.2 上线检查清单
 
