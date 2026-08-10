@@ -4,6 +4,15 @@
 
 ## 2026-08-11
 
+本次推送：修复 pnpm 11 拒绝执行 esbuild 安装脚本
+
+- Web Dockerfile 在 `pnpm install` 前复制 `pnpm-workspace.yaml`，通过 `allowBuilds.esbuild: true` 放行 esbuild
+- 部署指南补充 `ERR_PNPM_IGNORED_BUILDS` 排查说明
+
+提交：`287272f`
+
+## 2026-08-11
+
 本次推送：修复 Web 镜像构建失败
 
 - Web Dockerfile 改用 Node 22，兼容 corepack 下载的 pnpm 11.x
