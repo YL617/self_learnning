@@ -114,6 +114,13 @@ body {
   padding-top: 12px;
 }
 
+.site-icp {
+  margin-top: 10px;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
 .main {
   flex: 1;
   min-width: 0;
@@ -472,6 +479,12 @@ body {
   color: var(--primary);
   text-decoration: none;
   font-weight: 600;
+}
+
+.auth-icp {
+  text-align: center;
+  color: var(--text-2);
+  font-size: 12px;
 }
 
 .question-card {

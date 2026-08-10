@@ -1,10 +1,70 @@
 # AI智学管家 部署指南
 
+## 0. 本机生产参数
+
+| 项目 | 值 |
+| --- | --- |
+| 域名 | yl617.xyz |
+| 服务器 IP | 8.136.194.163 |
+| 服务器系统 | Rocky Linux 9.2 64 位 |
+| ICP 备案号 | 皖ICP备2026025771号 |
+| 管理员邮箱 | 3524045145@qq.com |
+
 ## 1. 环境要求
 
 - Docker 与 Docker Compose
 - 2 核 4G 云服务器（Ubuntu 22.04 或更高）
 - 可选：域名与 HTTPS 证书
+
+## 1.1 Rocky Linux 初始化
+
+```bash
+# 更新系统
+sudo dnf update -y
+
+# 安装 Docker
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo systemctl enable --now docker
+
+# 开放端口（80/443 给 Nginx，8000 仅内网或按需开放）
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
+```
+
+验证：
+
+```bash
+docker --version
+docker compose version
+```
+
+## 1.2 拉取并启动项目
+
+```bash
+cd /opt
+git clone https://github.com/YL617/self_learnning.git ai-study
+cd ai-study
+cp .env.example backend/.env
+```
+
+编辑 `backend/.env` 与根目录 `.env`，至少配置：
+
+```dotenv
+SECRET_KEY=替换为随机长字符串
+CORS_ORIGINS=https://yl617.xyz
+DEEPSEEK_API_KEY=替换为你的 DeepSeek Key
+ADMIN_INITIAL_EMAIL=3524045145@qq.com
+DATABASE_URL=mysql+pymysql://ai_study:ai_study_pass@mysql:3306/ai_study?charset=utf8mb4
+```
+
+然后启动：
+
+```bash
+docker compose up -d --build
+docker compose exec backend alembic upgrade head
+```
 
 ## 2. 一键启动
 
@@ -71,7 +131,7 @@ curl -X POST http://localhost:8000/api/v1/demo/seed \
 ```nginx
 server {
     listen 80;
-    server_name your-domain.com;
+    server_name yl617.xyz;
 
     location / {
         proxy_pass http://127.0.0.1:8000;
@@ -92,6 +152,13 @@ server {
 }
 ```
 
+签发 HTTPS：
+
+```bash
+sudo dnf install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d yl617.xyz
+```
+
 若使用 Web 构建产物（`web/dist`）而非开发服务器，可将 `location /` 指向静态目录：
 
 ```nginx
@@ -103,13 +170,14 @@ location / {
 
 ## 3.2 上线检查清单
 
-- [ ] 域名已备案且解析到服务器
+- [ ] 域名 yl617.xyz 已解析到 8.136.194.163
 - [ ] HTTPS 证书生效
-- [ ] `.env` 已配置 `SECRET_KEY`、`CORS_ORIGINS`、`DEEPSEEK_API_KEY`、`ADMIN_INITIAL_EMAIL`
+- [ ] `.env` 已配置 `SECRET_KEY`、`CORS_ORIGINS=https://yl617.xyz`、`DEEPSEEK_API_KEY`、`ADMIN_INITIAL_EMAIL=3524045145@qq.com`
 - [ ] 首次启动后执行 `alembic upgrade head`
 - [ ] 管理员账号可通过 `ADMIN_INITIAL_EMAIL` 初始化
 - [ ] 后台可生成激活码，用户可兑换会员
 - [ ] DeepSeek 余额与用量可在 `/admin` 查看
+- [ ] 页面底部展示 ICP 备案号 皖ICP备2026025771号
 
 ## 7. 备份
 

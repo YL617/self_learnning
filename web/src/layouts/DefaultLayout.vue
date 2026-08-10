@@ -86,6 +86,7 @@ function logout() {
           <LogOut :size="16" />
           退出登录
         </button>
+        <div class="site-icp">皖ICP备2026025771号</div>
       </div>
     </aside>
     <main class="main">

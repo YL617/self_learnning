@@ -66,6 +66,7 @@ async function submit() {
         与
         <router-link to="/privacy">隐私政策</router-link>
       </p>
+      <p class="auth-icp">皖ICP备2026025771号</p>
     </div>
   </div>
 </template>
