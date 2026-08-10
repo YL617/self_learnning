@@ -34,6 +34,7 @@ from app.models import (
 from app.schemas.billing import ActivateIn
 from app.schemas.onboarding import OnboardingOut
 from app.schemas.user import (
+    DigitalHumanAccessOut,
     MembershipOut,
     PasswordChange,
     UserOut,
@@ -47,6 +48,7 @@ from app.services.membership import (
     daily_ai_quota,
     get_ai_usage_today,
     get_effective_membership,
+    has_membership,
     is_trial_active,
 )
 
@@ -162,6 +164,18 @@ def get_membership(
         trial_days_left=trial_days_left,
         ai_quota_used=get_ai_usage_today(db, current_user.id),
         ai_quota_total=daily_ai_quota(current_user),
+    )
+
+
+@router.get("/me/digital-human", response_model=DigitalHumanAccessOut)
+def digital_human_access(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> DigitalHumanAccessOut:
+    if has_membership(current_user, "full"):
+        return DigitalHumanAccessOut(access=True)
+    return DigitalHumanAccessOut(
+        access=False,
+        reason="数字人功能需要完整会员（30 元/月）",
     )
 
 

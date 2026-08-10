@@ -40,6 +40,11 @@ const router = createRouter({
       children: [
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
         { path: 'profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
+        {
+          path: 'digital-human',
+          name: 'digital-human',
+          component: () => import('@/views/DigitalHumanView.vue'),
+        },
         { path: 'plans', name: 'plans', component: () => import('@/views/PlansView.vue') },
         {
           path: 'plans/chat',

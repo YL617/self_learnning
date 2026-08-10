@@ -57,6 +57,7 @@ from app.schemas.question import (
     WrongBookOut,
 )
 from app.schemas.user import (
+    DigitalHumanAccessOut,
     MembershipOut,
     PasswordChange,
     TokenOut,
@@ -83,6 +84,7 @@ __all__ = [
     "CoinTransactionOut",
     "CourseCreate",
     "CourseUpdate",
+    "DigitalHumanAccessOut",
     "DocumentOut",
     "FeedPetRequest",
     "FocusSessionOut",
