@@ -4,6 +4,15 @@
 
 ## 2026-08-11
 
+本次推送：修复 Web 镜像构建失败
+
+- Web Dockerfile 改用 Node 22，兼容 corepack 下载的 pnpm 11.x
+- 部署指南补充 `ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite` 排查说明
+
+提交：`46542f7`
+
+## 2026-08-11
+
 本次推送：一键部署脚本与 Web 容器化
 
 - 新增 `scripts/deploy_production.sh`：自动安装 Docker、开放端口、拉取代码、生成 .env、构建并启动、执行迁移
