@@ -198,6 +198,7 @@ docker compose exec mysql mysqldump -u root -p ai_study > backup.sql
 
 ## 8. 常见问题
 
+- Web 构建报 `ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite` 时，说明 Node 20 内的 pnpm 11.x 无法运行。仓库已改用 `node:22-alpine`，重新 `git pull` 后再构建即可
 - 后端无法访问外网时，AI 接口会返回 502，不会生成模板内容
 - 首次构建较慢，建议保留 Docker 镜像缓存
 - 内存不足时先关闭 worker 服务，仅保留 backend
