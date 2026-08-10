@@ -4,6 +4,16 @@
 
 ## 2026-08-11
 
+本次推送：一键部署脚本与 Web 容器化
+
+- 新增 `scripts/deploy_production.sh`：自动安装 Docker、开放端口、拉取代码、生成 .env、构建并启动、执行迁移
+- 新增 `web/Dockerfile` 与容器内 Nginx，Web 前端随 Docker Compose 一起启动
+- 新增 Nginx 示例与根目录 .dockerignore
+
+提交：`44ab1a4`
+
+## 2026-08-11
+
 本次推送：写入生产部署参数与 ICP 备案号
 
 - 部署指南按 yl617.xyz / 8.136.194.163 / Rocky Linux 9.2 补全初始化步骤
