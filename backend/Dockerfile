@@ -6,7 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 COPY requirements.txt requirements-ai.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-ai.txt
+RUN pip install --no-cache-dir \
+    -i https://mirrors.aliyun.com/pypi/simple \
+    --timeout 180 --retries 8 \
+    -r requirements.txt -r requirements-ai.txt
 
 COPY . .
 
