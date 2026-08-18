@@ -67,6 +67,16 @@
 
 ## 2026-08-10
 
+本次推送：上线前补齐 Celery Beat 调度
+
+- 新增 beat_schedule：每小时刷新 DeepSeek 监控、每天清理过期文档
+- docker-compose 新增 beat 服务，AI 监控与提醒可在 Linux 服务器自动运行
+- 更新部署指南服务清单
+
+提交：`1930393`
+
+## 2026-08-10
+
 本次推送：个人中心、管理后台与 DeepSeek 监控
 
 - 新增管理员角色与 `ADMIN_INITIAL_EMAIL` 初始化，`get_current_admin` 权限控制
