@@ -17,6 +17,16 @@ celery_app.conf.update(
     enable_utc=True,
     task_acks_late=True,
 )
+celery_app.conf.beat_schedule = {
+    "refresh-ai-monitor-hourly": {
+        "task": "ai_monitor.refresh_deepseek",
+        "schedule": 3600.0,
+    },
+    "cleanup-expired-documents-daily": {
+        "task": "documents.cleanup_expired",
+        "schedule": 86400.0,
+    },
+}
 
 
 @celery_app.task(name="documents.parse_and_index")

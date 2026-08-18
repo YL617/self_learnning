@@ -73,6 +73,21 @@ services:
       - mysql
       - redis
 
+  beat:
+    build: ./backend
+    container_name: ai-study-beat
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: mysql+pymysql://ai_study:ai_study_pass@mysql:3306/ai_study?charset=utf8mb4
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-change-me-before-production}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      AI_LOW_BALANCE_THRESHOLD: ${AI_LOW_BALANCE_THRESHOLD:-10}
+    depends_on:
+      - mysql
+      - redis
+
 volumes:
   mysql_data:
   redis_data:

@@ -98,6 +98,7 @@ docker compose up -d --build
 | web | 5173 | Vue3 构建产物 + Nginx |
 | backend | 8000 | FastAPI 后端 |
 | worker | - | Celery Worker |
+| beat | - | Celery Beat，每小时刷新 DeepSeek 监控、每日清理过期文档 |
 
 ## 3. 配置
 
