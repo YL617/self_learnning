@@ -15,6 +15,7 @@
 - Docker 与 Docker Compose
 - 2 核 4G 云服务器（Ubuntu 22.04 或更高）
 - 可选：域名与 HTTPS 证书
+- 2 核 2G 也可运行：建议先创建 2G Swap，默认只启动 MySQL / Redis / Web / Backend
 
 ## 1.1 Rocky Linux 初始化
 
@@ -38,6 +39,16 @@ sudo firewall-cmd --reload
 ```bash
 docker --version
 docker compose version
+```
+
+2 核 2G 服务器建议先加 Swap：
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ## 1.2 一键部署脚本
@@ -97,8 +108,14 @@ docker compose up -d --build
 | redis | 6379 | 缓存与 Celery |
 | web | 5173 | Vue3 构建产物 + Nginx |
 | backend | 8000 | FastAPI 后端 |
-| worker | - | Celery Worker |
-| beat | - | Celery Beat，每小时刷新 DeepSeek 监控、每日清理过期文档 |
+| worker | - | Celery Worker（默认关闭，低配模式） |
+| beat | - | Celery Beat（默认关闭，低配模式） |
+
+需要后台自动任务（每小时刷新 DeepSeek 监控、每日清理过期文档）时，再启动：
+
+```bash
+docker compose --profile background up -d
+```
 
 ## 3. 配置
 
