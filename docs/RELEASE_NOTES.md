@@ -67,6 +67,16 @@
 
 ## 2026-08-10
 
+本次推送：适配 2 核 2G 低配服务器
+
+- MySQL 内存参数精简，默认不启动 worker/beat，低配模式默认跑 MySQL / Redis / Web / Backend
+- 需要后台任务时使用 `docker compose --profile background up -d`
+- 部署指南补充 2G Swap 配置
+
+提交：`7f82e7e`
+
+## 2026-08-10
+
 本次推送：上线前补齐 Celery Beat 调度
 
 - 新增 beat_schedule：每小时刷新 DeepSeek 监控、每天清理过期文档
