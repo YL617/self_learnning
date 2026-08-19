@@ -14,6 +14,7 @@ import {
   MessageSquareText,
   PawPrint,
   Settings,
+  Shield,
   Timer,
 } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
@@ -79,6 +80,15 @@ function logout() {
         >
           <component :is="item.icon" :size="18" />
           <span>{{ item.label }}</span>
+        </router-link>
+        <router-link
+          v-if="auth.user?.is_admin"
+          to="/admin"
+          class="nav-item"
+          :class="{ active: route.path.startsWith('/admin') }"
+        >
+          <Shield :size="18" />
+          <span>管理后台</span>
         </router-link>
       </nav>
       <div class="sidebar-footer">
