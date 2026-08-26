@@ -380,7 +380,6 @@ onMounted(() => {
             type="button"
             @click="toggleEvent(event)"
           >
-            <span class="day-event-accent" />
             <CheckCircle2 v-if="event.completed" :size="20" class="check-done" />
             <Circle v-else :size="20" class="check-pending" />
             <span class="day-event-main">
@@ -777,10 +776,6 @@ onMounted(() => {
 .day-event.done strong {
   color: var(--text-2);
   text-decoration: line-through;
-}
-
-.day-event-accent {
-  display: none;
 }
 
 .check-done {
