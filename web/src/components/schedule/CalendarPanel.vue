@@ -208,13 +208,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="page">
-    <div class="page-head">
-      <div>
-        <h1 class="page-title">学习日历</h1>
-        <p class="page-subtitle">年 / 月 / 日视图查看计划与待办</p>
-      </div>
-      <div class="calendar-toolbar">
+  <div class="calendar-panel">
+    <div class="calendar-toolbar">
         <div class="calendar-nav">
           <strong class="calendar-label">{{ calendarLabel }}</strong>
           <div class="nav-buttons">
@@ -253,7 +248,6 @@ onMounted(() => {
           </button>
         </div>
       </div>
-    </div>
 
     <p v-if="error" class="text-danger">{{ error }}</p>
     <div v-if="loading" class="empty">正在加载日历数据...</div>
@@ -404,10 +398,16 @@ onMounted(() => {
         </div>
       </template>
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
+.calendar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .calendar-card {
   width: 100%;
   max-width: 880px;

@@ -49,17 +49,7 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="page">
-    <div class="page-head">
-      <div>
-        <h1 class="page-title">待办事项</h1>
-        <p class="page-subtitle">记录每天要完成的学习任务</p>
-      </div>
-      <router-link to="/calendar" class="btn btn-outline">
-        打开日历
-      </router-link>
-    </div>
-
+  <div class="todo-panel">
     <p v-if="error" class="text-danger">{{ error }}</p>
     <p v-if="success" style="color: #15803d">{{ success }}</p>
 
@@ -93,5 +83,13 @@ onMounted(load)
         </div>
       </div>
     </div>
-  </section>
+  </div>
 </template>
+
+<style scoped>
+.todo-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+</style>

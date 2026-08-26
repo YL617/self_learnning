@@ -37,7 +37,6 @@ const navItems = [
   { label: '我的宠物', to: '/pet', icon: PawPrint },
   { label: 'AI 数字人', to: '/digital-human', icon: Bot },
   { label: '待办与日历', to: '/todos', icon: Calendar },
-  { label: '学习日历', to: '/calendar', icon: CalendarDays },
   { label: '提醒通知', to: '/reminders', icon: Bell },
   { label: '公开课程', to: '/courses', icon: GraduationCap },
   { label: '学习周报', to: '/reports', icon: BarChart3 },

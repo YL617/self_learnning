@@ -77,12 +77,11 @@ const router = createRouter({
         {
           path: 'todos',
           name: 'todos',
-          component: () => import('@/views/TodosView.vue'),
+          component: () => import('@/views/ScheduleView.vue'),
         },
         {
           path: 'calendar',
-          name: 'calendar',
-          component: () => import('@/views/CalendarView.vue'),
+          redirect: { path: '/todos', query: { tab: 'calendar' } },
         },
         {
           path: 'reminders',
