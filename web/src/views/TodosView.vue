@@ -55,6 +55,9 @@ onMounted(load)
         <h1 class="page-title">待办事项</h1>
         <p class="page-subtitle">记录每天要完成的学习任务</p>
       </div>
+      <router-link to="/calendar" class="btn btn-outline">
+        打开日历
+      </router-link>
     </div>
 
     <p v-if="error" class="text-danger">{{ error }}</p>
