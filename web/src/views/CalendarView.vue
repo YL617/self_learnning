@@ -2,8 +2,7 @@
 import { CheckCircle2, ChevronLeft, ChevronRight, Circle } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 
-import { calendarApi, todosApi } from '@/api/ops'
-import { plansApi } from '@/api/plans'
+import { calendarApi } from '@/api/ops'
 import type { CalendarEvent } from '@/types'
 import {
   addDays,
@@ -155,12 +154,8 @@ function eventsForDay(day: number): CalendarEvent[] {
   )
 }
 
-function visibleEvents(day: number): CalendarEvent[] {
-  return eventsForDay(day).slice(0, 3)
-}
-
 function extraEventCount(day: number): number {
-  return Math.max(0, eventsForDay(day).length - 3)
+  return Math.max(0, eventsForDay(day).length - 6)
 }
 
 function dayEvents(): CalendarEvent[] {
@@ -187,23 +182,24 @@ function isWeekend(day: number): boolean {
   return (gridOffset.value + day - 1) % 7 >= 5
 }
 
-function eventKindClass(event: CalendarEvent): string {
-  return event.kind === 'todo' ? 'todo' : 'plan'
+function isNearBottom(day: number): boolean {
+  const dayRow = Math.floor((gridOffset.value + day - 1) / 7)
+  const totalRows = Math.ceil(
+    (gridOffset.value + daysInMonth(year.value, month.value)) / 7,
+  )
+  return dayRow >= totalRows - 2
 }
 
-async function toggleEvent(event: CalendarEvent) {
-  try {
-    if (event.kind === 'todo') {
-      await todosApi.update(event.id, !event.completed)
-    } else {
-      await plansApi.completeItem(event.id, !event.completed)
-    }
-    const key = event.date.slice(0, 7)
-    eventsByMonth.value[key] = []
-    await ensureMonth(key)
-  } catch (err: any) {
-    error.value = err?.response?.data?.detail || '更新失败'
-  }
+function isFirstColumn(day: number): boolean {
+  return (gridOffset.value + day - 1) % 7 === 0
+}
+
+function isLastColumn(day: number): boolean {
+  return (gridOffset.value + day - 1) % 7 === 6
+}
+
+function eventKindClass(event: CalendarEvent): string {
+  return event.kind === 'todo' ? 'todo' : 'plan'
 }
 
 onMounted(() => {
@@ -216,7 +212,7 @@ onMounted(() => {
     <div class="page-head">
       <div>
         <h1 class="page-title">学习日历</h1>
-        <p class="page-subtitle">年 / 月 / 日视图查看计划与待办，点击可标记完成</p>
+        <p class="page-subtitle">年 / 月 / 日视图查看计划与待办</p>
       </div>
       <div class="calendar-toolbar">
         <div class="calendar-nav">
@@ -262,7 +258,7 @@ onMounted(() => {
     <p v-if="error" class="text-danger">{{ error }}</p>
     <div v-if="loading" class="empty">正在加载日历数据...</div>
 
-    <div class="card">
+    <div class="card calendar-card">
       <template v-if="view === 'year'">
         <div class="year-grid">
           <button
@@ -340,27 +336,44 @@ onMounted(() => {
                 +{{ extraEventCount(day) }}
               </span>
             </div>
-            <div class="calendar-day-events">
-              <button
-                v-for="event in visibleEvents(day)"
-                :key="`${event.kind}-${event.id}`"
-                class="calendar-event"
-                :class="[eventKindClass(event), { done: event.completed }]"
-                type="button"
-                @click.stop="toggleEvent(event)"
-              >
-                <span class="event-dot" />
-                <span class="event-title">{{ event.title }}</span>
-              </button>
-            </div>
-            <span v-if="eventsForDay(day).length" class="mobile-event-dots">
+            <span v-if="eventsForDay(day).length" class="day-dots">
               <span
-                v-for="event in eventsForDay(day).slice(0, 4)"
-                :key="`m-${event.kind}-${event.id}`"
-                class="event-dot"
-                :class="eventKindClass(event)"
+                v-for="(event, index) in eventsForDay(day).slice(0, 6)"
+                :key="`${event.kind}-${event.id}`"
+                class="day-dot"
+                :class="[
+                  eventKindClass(event),
+                  { done: event.completed, 'dot-hide-mobile': index >= 4 },
+                ]"
               />
             </span>
+            <div
+              v-if="eventsForDay(day).length"
+              class="day-popover"
+              :class="{
+                'popover-top': isNearBottom(day),
+                'popover-start': isFirstColumn(day),
+                'popover-end': isLastColumn(day),
+              }"
+            >
+              <div class="day-popover-head">
+                {{ month }}月{{ day }}日 · {{ eventsForDay(day).length }} 项
+              </div>
+              <div
+                v-for="event in eventsForDay(day)"
+                :key="`pop-${event.kind}-${event.id}`"
+                class="day-popover-item"
+              >
+                <span
+                  class="day-dot"
+                  :class="[eventKindClass(event), { done: event.completed }]"
+                />
+                <span class="day-popover-title">{{ event.title }}</span>
+                <span class="day-popover-status">
+                  {{ event.completed ? '已完成' : '未完成' }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -372,21 +385,22 @@ onMounted(() => {
             <span>{{ dayEvents().length }} 项</span>
           </div>
           <div v-if="!dayEvents().length" class="empty">这一天没有安排</div>
-          <button
+          <div
             v-for="event in dayEvents()"
             :key="`${event.kind}-${event.id}`"
             class="day-event"
             :class="[eventKindClass(event), { done: event.completed }]"
-            type="button"
-            @click="toggleEvent(event)"
           >
             <CheckCircle2 v-if="event.completed" :size="20" class="check-done" />
             <Circle v-else :size="20" class="check-pending" />
             <span class="day-event-main">
               <strong>{{ event.title }}</strong>
-              <small>{{ event.kind === 'todo' ? '待办' : '计划' }} · 点击切换完成状态</small>
+              <small>
+                {{ event.kind === 'todo' ? '待办' : '计划' }} ·
+                {{ event.completed ? '已完成' : '未完成' }}
+              </small>
             </span>
-          </button>
+          </div>
         </div>
       </template>
     </div>
@@ -394,13 +408,19 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.calendar-card {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
 .calendar-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  min-width: 320px;
+  min-width: 300px;
 }
 
 .calendar-nav {
@@ -411,7 +431,7 @@ onMounted(() => {
 }
 
 .calendar-label {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -429,7 +449,7 @@ onMounted(() => {
 .segmented button {
   border: none;
   background: transparent;
-  padding: 6px 14px;
+  padding: 5px 12px;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -456,8 +476,8 @@ onMounted(() => {
 }
 
 .icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
@@ -475,7 +495,7 @@ onMounted(() => {
 }
 
 .today-btn {
-  padding: 6px 12px;
+  padding: 5px 11px;
   font-size: 13px;
 }
 
@@ -493,7 +513,7 @@ onMounted(() => {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
-  padding: 12px 14px 14px;
+  padding: 10px 12px 12px;
   cursor: pointer;
   font: inherit;
   color: var(--text);
@@ -518,7 +538,7 @@ onMounted(() => {
 }
 
 .year-month-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -530,9 +550,9 @@ onMounted(() => {
 .mini-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 2px;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .mini-weekday {
@@ -542,12 +562,12 @@ onMounted(() => {
 }
 
 .mini-day {
-  height: 22px;
+  height: 19px;
   display: grid;
   place-items: center;
   border-radius: 5px;
   color: #7b8a99;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .mini-day.has-event {
@@ -559,15 +579,15 @@ onMounted(() => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .calendar-weekday {
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #6b7a8a;
-  padding: 6px 0 10px;
+  padding: 4px 0 8px;
 }
 
 .calendar-weekday.weekend {
@@ -575,15 +595,16 @@ onMounted(() => {
 }
 
 .calendar-day {
-  min-height: 104px;
+  position: relative;
+  min-height: 68px;
   background: #fbfcfd;
   border: 1px solid #edf1f5;
   border-radius: var(--radius);
-  padding: 8px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  overflow: hidden;
+  gap: 4px;
+  overflow: visible;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
@@ -592,6 +613,7 @@ onMounted(() => {
   border-color: #b9ccf5;
   background: #f7faff;
   box-shadow: 0 2px 10px rgba(16, 24, 40, 0.05);
+  z-index: 5;
 }
 
 .calendar-day.weekend {
@@ -614,16 +636,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 26px;
+  min-height: 24px;
 }
 
 .calendar-day-number {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #5b6b7a;
   border-radius: 50%;
@@ -648,74 +670,113 @@ onMounted(() => {
 }
 
 .day-more {
-  padding: 1px 7px;
+  padding: 0 6px;
   border-radius: 999px;
   background: #edf1f5;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 
-.calendar-day-events {
+.day-dots {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 3px;
-  min-height: 0;
+  margin-top: auto;
+  min-height: 6px;
 }
 
-.calendar-event {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  padding: 3px 6px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
-  transition: background 0.15s ease;
-}
-
-.calendar-event:hover {
-  background: rgba(37, 99, 235, 0.08);
-}
-
-.event-dot {
-  width: 7px;
-  height: 7px;
+.day-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--primary);
   flex-shrink: 0;
 }
 
-.event-title {
+.day-dot.todo {
+  background: var(--teal);
+}
+
+.day-dot.done {
+  opacity: 0.45;
+}
+
+.day-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: 190px;
+  max-width: 280px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
+  padding: 10px 12px;
+  z-index: 30;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.day-popover.popover-top {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.day-popover.popover-start {
+  left: 0;
+  transform: none;
+}
+
+.day-popover.popover-end {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.day-popover-head {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.day-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.day-popover-item + .day-popover-item {
+  border-top: 1px solid #eef1f5;
+}
+
+.day-popover-title {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.calendar-event.todo .event-dot {
-  background: var(--teal);
+.day-popover-status {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-2);
+  font-size: 11px;
 }
 
-.calendar-event.todo:hover {
-  background: rgba(15, 118, 110, 0.08);
-}
-
-.calendar-event.done {
-  opacity: 0.55;
-}
-
-.calendar-event.done .event-title {
-  text-decoration: line-through;
-}
-
-.mobile-event-dots {
-  display: none;
+@media (hover: hover) and (pointer: fine) {
+  .calendar-day:hover .day-popover {
+    visibility: visible;
+    opacity: 1;
+  }
 }
 
 .day-list {
@@ -747,17 +808,9 @@ onMounted(() => {
   border-left: 3px solid var(--primary);
   border-radius: var(--radius);
   background: #fff;
-  padding: 12px 14px;
-  text-align: left;
-  cursor: pointer;
+  padding: 10px 12px;
   font: inherit;
   color: var(--text);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-}
-
-.day-event:hover {
-  border-color: #b9ccf5;
-  box-shadow: 0 2px 10px rgba(16, 24, 40, 0.05);
 }
 
 .day-event.todo {
@@ -814,18 +867,9 @@ onMounted(() => {
   }
 
   .calendar-day {
-    min-height: 76px;
-    padding: 6px;
+    min-height: 60px;
+    padding: 4px;
     gap: 4px;
-  }
-
-  .calendar-day-events {
-    gap: 2px;
-  }
-
-  .calendar-event {
-    padding: 2px 4px;
-    font-size: 11px;
   }
 
   .year-grid {
@@ -843,41 +887,40 @@ onMounted(() => {
   }
 
   .calendar-day {
-    min-height: 64px;
+    min-height: 56px;
     padding: 4px;
     border-radius: 6px;
+    gap: 3px;
   }
 
   .calendar-day-number {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
   }
 
-  .calendar-day-events {
-    display: none;
+  .calendar-day-top {
+    min-height: 22px;
   }
 
-  .mobile-event-dots {
-    display: flex;
-    gap: 3px;
-    margin-top: auto;
+  .day-dots {
+    gap: 2px;
   }
 
-  .mobile-event-dots .event-dot {
+  .day-dot {
     width: 5px;
     height: 5px;
   }
 
-  .mobile-event-dots .event-dot.todo {
-    background: var(--teal);
-  }
-
-  .mobile-event-dots .event-dot.plan {
-    background: var(--primary);
+  .dot-hide-mobile {
+    display: none;
   }
 
   .day-more {
+    display: none;
+  }
+
+  .day-popover {
     display: none;
   }
 
@@ -886,8 +929,8 @@ onMounted(() => {
   }
 
   .mini-day {
-    height: 18px;
-    font-size: 10px;
+    height: 16px;
+    font-size: 9px;
   }
 }
 </style>
