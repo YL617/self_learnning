@@ -194,19 +194,3 @@ def test_content_filter_blocks_sensitive_input(client):
     assert response.status_code == 400
     assert "敏感词" in response.json()["detail"]
 
-
-def test_digital_human_access_gated_by_full_membership(client):
-    auth = _register(client, "digital@example.com", "digital")
-    headers = _headers(auth)
-
-    trial = client.get("/api/v1/users/me/digital-human", headers=headers)
-    assert trial.status_code == 200
-    assert trial.json()["access"] is True
-
-    _expire_trial(auth)
-    blocked = client.get("/api/v1/users/me/digital-human", headers=headers)
-    assert blocked.json()["access"] is False
-
-    _set_membership(auth, "full")
-    allowed = client.get("/api/v1/users/me/digital-human", headers=headers)
-    assert allowed.json()["access"] is True

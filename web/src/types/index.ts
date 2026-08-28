@@ -36,11 +36,6 @@ export interface MembershipInfo {
   ai_quota_total: number
 }
 
-export interface DigitalHumanAccess {
-  access: boolean
-  reason?: string
-}
-
 export interface ActivationCode {
   id: number
   code: string

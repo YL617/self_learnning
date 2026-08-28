@@ -1,5 +1,5 @@
 import { http } from './http'
-import type { DigitalHumanAccess, MembershipInfo, User } from '@/types'
+import type { MembershipInfo, User } from '@/types'
 
 export const usersApi = {
   me: () => http.get<User>('/users/me'),
@@ -17,8 +17,6 @@ export const usersApi = {
     })
   },
   membership: () => http.get<MembershipInfo>('/users/me/membership'),
-  digitalHumanAccess: () =>
-    http.get<DigitalHumanAccess>('/users/me/digital-human'),
   activateCode: (code: string) =>
     http.post<User>('/users/me/activate', { code }),
   exportData: () => http.get<Record<string, unknown>>('/users/me/export'),

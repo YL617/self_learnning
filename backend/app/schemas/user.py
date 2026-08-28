@@ -80,8 +80,3 @@ class MembershipOut(BaseModel):
     trial_days_left: int = 0
     ai_quota_used: int = 0
     ai_quota_total: int = 0
-
-
-class DigitalHumanAccessOut(BaseModel):
-    access: bool = False
-    reason: str = ""

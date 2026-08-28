@@ -2,7 +2,6 @@
 import {
   BarChart3,
   Bell,
-  Bot,
   BookOpenCheck,
   Calendar,
   CalendarDays,
@@ -35,7 +34,6 @@ const navItems = [
   { label: '文件出题', to: '/files', icon: Files },
   { label: '专注模式', to: '/focus', icon: Timer },
   { label: '我的宠物', to: '/pet', icon: PawPrint },
-  { label: 'AI 数字人', to: '/digital-human', icon: Bot },
   { label: '待办与日历', to: '/todos', icon: Calendar },
   { label: '提醒通知', to: '/reminders', icon: Bell },
   { label: '公开课程', to: '/courses', icon: GraduationCap },
