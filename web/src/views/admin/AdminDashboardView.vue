@@ -11,6 +11,9 @@ const loading = ref(false)
 
 const snapshot = computed(() => stats.value?.ai_monitor?.snapshot || null)
 const usage = computed(() => stats.value?.ai_monitor?.usage || [])
+const monitorOk = computed(
+  () => snapshot.value?.status === 'ok' && snapshot.value?.is_available !== false,
+)
 const maxTokens = computed(() =>
   Math.max(1, ...usage.value.map((row) => row.tokens)),
 )
@@ -99,18 +102,23 @@ onMounted(load)
         <div v-if="snapshot" class="ai-monitor">
           <div class="ai-balance">
             <span>总余额</span>
-            <strong>¥{{ snapshot.total_balance }}</strong>
-            <small>
+            <strong v-if="monitorOk">¥{{ snapshot.total_balance }}</strong>
+            <strong v-else>查询失败</strong>
+            <small v-if="monitorOk">
               赠金 ¥{{ snapshot.granted_balance }} · 充值 ¥{{ snapshot.topped_up_balance }}
+            </small>
+            <small v-else>
+              {{ snapshot.status === 'ok' ? '服务暂不可用' : '请查看下方错误信息' }}
             </small>
           </div>
           <div class="ai-status">
-            <span class="badge" :class="snapshot.status === 'ok' ? 'badge-green' : 'badge-amber'">
-              {{ snapshot.status === 'ok' ? '可用' : '异常' }}
+            <span class="badge" :class="monitorOk ? 'badge-green' : 'badge-amber'">
+              {{ monitorOk ? '可用' : '异常' }}
             </span>
             <span class="muted">最后检查 {{ snapshot.checked_at }}</span>
           </div>
         </div>
+        <div v-else class="empty">尚未查询余额，请点击“立即刷新”</div>
         <div v-if="stats?.ai_monitor?.is_low_balance" class="low-balance">
           DeepSeek 余额低于 ¥{{ stats.ai_monitor.low_balance_threshold }}，建议尽快充值
         </div>

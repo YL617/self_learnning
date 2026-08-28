@@ -131,11 +131,23 @@ def refresh_deepseek_monitor(db: Session) -> AiProviderSnapshot:
 
     try:
         raw = _fetch_json(DEEPSEEK_BALANCE_URL, api_key)
+        if not bool(raw.get("is_available")):
+            snapshot = AiProviderSnapshot(
+                provider="deepseek",
+                status="error",
+                is_available=False,
+                error_message="DeepSeek 服务当前不可用",
+                checked_at=now.replace(tzinfo=None),
+            )
+            db.add(snapshot)
+            db.commit()
+            db.refresh(snapshot)
+            return snapshot
         info = (raw.get("balance_infos") or [{}])[0]
         snapshot = AiProviderSnapshot(
             provider="deepseek",
             status="ok",
-            is_available=bool(raw.get("is_available")),
+            is_available=True,
             total_balance=str(info.get("total_balance") or "0"),
             granted_balance=str(info.get("granted_balance") or "0"),
             topped_up_balance=str(info.get("topped_up_balance") or "0"),
@@ -184,11 +196,25 @@ def refresh_deepseek_monitor(db: Session) -> AiProviderSnapshot:
         return snapshot
     except Exception as exc:
         logger.exception("DeepSeek monitor refresh failed")
+        if isinstance(exc, httpx.HTTPStatusError):
+            code = exc.response.status_code
+            if code == 401:
+                message = "DeepSeek API Key 无效或未授权"
+            elif code == 402:
+                message = "DeepSeek 余额不足，无法调用"
+            elif code == 429:
+                message = "DeepSeek 请求过于频繁，请稍后刷新"
+            else:
+                message = f"DeepSeek API 返回错误（HTTP {code}）"
+        elif isinstance(exc, httpx.ConnectError):
+            message = "无法连接 DeepSeek API，请检查服务器网络"
+        else:
+            message = str(exc)[:500]
         snapshot = AiProviderSnapshot(
             provider="deepseek",
             status="error",
             is_available=False,
-            error_message=str(exc)[:500],
+            error_message=message,
             checked_at=now.replace(tzinfo=None),
         )
         db.add(snapshot)
