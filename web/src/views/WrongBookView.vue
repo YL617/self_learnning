@@ -13,6 +13,16 @@ const error = ref('')
 const success = ref('')
 const generating = ref(false)
 
+function optionList(question: Question | null | undefined): string[] {
+  if (!question?.options_json) return []
+  try {
+    const parsed = JSON.parse(question.options_json)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 async function load() {
   try {
     const { data } = await questionsApi.wrongBook()
@@ -95,6 +105,15 @@ onMounted(load)
           <span v-if="item.mastered" class="badge badge-green">已掌握</span>
         </div>
         <h3 class="question-stem">{{ item.question?.stem }}</h3>
+        <div v-if="optionList(item.question).length" class="option-list" style="margin-top: 10px">
+          <div
+            v-for="option in optionList(item.question)"
+            :key="option"
+            class="option-item option-item-static"
+          >
+            <span>{{ option }}</span>
+          </div>
+        </div>
         <p v-if="!item.mastered && item.next_review_date" class="muted" style="margin: 8px 0">
           下次复习：{{ item.next_review_date }}
         </p>
@@ -124,3 +143,9 @@ onMounted(load)
     </div>
   </section>
 </template>
+
+<style scoped>
+.option-item-static {
+  cursor: default;
+}
+</style>
