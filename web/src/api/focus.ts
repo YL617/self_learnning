@@ -3,6 +3,7 @@ import type {
   CoinTransaction,
   FocusSession,
   FocusStats,
+  FocusTag,
   Pet,
   PetChatReply,
   PetInteraction,
@@ -11,14 +12,28 @@ import type {
 } from '@/types'
 
 export const focusApi = {
-  startSession: (taskLabel: string, durationMinutes: number) =>
+  startSession: (
+    taskLabel: string,
+    durationMinutes: number,
+    tagColor?: string | null,
+  ) =>
     http.post<FocusSession>('/focus/sessions', {
       task_label: taskLabel,
       duration_minutes: durationMinutes,
+      tag_color: tagColor,
     }),
   completeSession: (sessionId: number, verified = true) =>
     http.patch<FocusSession>(`/focus/sessions/${sessionId}/complete`, { verified }),
   stats: () => http.get<FocusStats>('/focus/stats'),
+  sessions: (days = 30) =>
+    http.get<FocusSession[]>('/focus/sessions', { params: { days } }),
+  tags: () => http.get<FocusTag[]>('/focus/tags'),
+  createTag: (name: string, color: string) =>
+    http.post<FocusTag>('/focus/tags', { name, color }),
+  updateTag: (tagId: number, payload: { name?: string; color?: string }) =>
+    http.patch<FocusTag>(`/focus/tags/${tagId}`, payload),
+  removeTag: (tagId: number) =>
+    http.delete<void>(`/focus/tags/${tagId}`),
   pet: () => http.get<Pet>('/pets'),
   renamePet: (petId: number, name: string) =>
     http.patch<Pet>(`/pets/${petId}`, { name }),

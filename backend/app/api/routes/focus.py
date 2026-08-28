@@ -1,13 +1,13 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_ai_access
 from app.core.database import get_db
-from app.models import CoinTransaction, FocusSession, Pet, ShopItem, User
+from app.models import CoinTransaction, FocusSession, FocusTag, Pet, ShopItem, User
 from app.schemas.focus import (
     CoinTransactionOut,
     FeedPetRequest,
@@ -15,6 +15,9 @@ from app.schemas.focus import (
     FocusSessionOut,
     FocusSessionStart,
     FocusStatsOut,
+    FocusTagCreate,
+    FocusTagOut,
+    FocusTagUpdate,
     PetChatIn,
     PetChatOut,
     PetInteractionOut,
@@ -69,6 +72,7 @@ def start_focus_session(
         task_label=data.task_label,
         duration_minutes=data.duration_minutes,
         started_at=datetime.now(timezone.utc),
+        tag_color=data.tag_color,
     )
     db.add(session)
     db.commit()
@@ -118,6 +122,24 @@ def complete_focus_session(
     return session
 
 
+@router.get("/sessions", response_model=list[FocusSessionOut])
+def list_focus_sessions(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    days: int = Query(default=30, ge=1, le=90),
+) -> list[FocusSession]:
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    sessions = db.scalars(
+        select(FocusSession)
+        .where(
+            FocusSession.user_id == current_user.id,
+            FocusSession.started_at >= since,
+        )
+        .order_by(FocusSession.started_at)
+    ).all()
+    return list(sessions)
+
+
 @router.get("/stats", response_model=FocusStatsOut)
 def focus_stats(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -139,6 +161,105 @@ def focus_stats(
             if s.ended_at is not None and s.ended_at.date() == today
         ),
     )
+
+
+@router.get("/tags", response_model=list[FocusTagOut])
+def list_focus_tags(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[FocusTag]:
+    tags = db.scalars(
+        select(FocusTag)
+        .where(FocusTag.user_id == current_user.id)
+        .order_by(FocusTag.created_at, FocusTag.id)
+    ).all()
+    return list(tags)
+
+
+@router.post(
+    "/tags",
+    response_model=FocusTagOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_focus_tag(
+    data: FocusTagCreate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> FocusTag:
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="标签名称不能为空")
+    exists = db.scalar(
+        select(FocusTag).where(
+            FocusTag.user_id == current_user.id,
+            FocusTag.name == name,
+        )
+    )
+    if exists is not None:
+        raise HTTPException(status_code=409, detail="标签已存在")
+    tag = FocusTag(
+        user_id=current_user.id,
+        name=name,
+        color=data.color.strip() or "#0f766e",
+    )
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.patch("/tags/{tag_id}", response_model=FocusTagOut)
+def update_focus_tag(
+    tag_id: int,
+    data: FocusTagUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> FocusTag:
+    tag = db.scalar(
+        select(FocusTag).where(
+            FocusTag.id == tag_id,
+            FocusTag.user_id == current_user.id,
+        )
+    )
+    if tag is None:
+        raise HTTPException(status_code=404, detail="标签不存在")
+    if data.name is not None:
+        name = data.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="标签名称不能为空")
+        exists = db.scalar(
+            select(FocusTag).where(
+                FocusTag.user_id == current_user.id,
+                FocusTag.name == name,
+                FocusTag.id != tag_id,
+            )
+        )
+        if exists is not None:
+            raise HTTPException(status_code=409, detail="标签已存在")
+        tag.name = name
+    if data.color is not None:
+        tag.color = data.color.strip() or "#0f766e"
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_focus_tag(
+    tag_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    tag = db.scalar(
+        select(FocusTag).where(
+            FocusTag.id == tag_id,
+            FocusTag.user_id == current_user.id,
+        )
+    )
+    if tag is None:
+        raise HTTPException(status_code=404, detail="标签不存在")
+    db.delete(tag)
+    db.commit()
 
 
 @pet_router.get("", response_model=PetOut)

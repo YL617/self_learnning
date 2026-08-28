@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import (
     DailyStat,
     Pet,
+    PetMemory,
     PetMessage,
     PlanItem,
     StudyPlan,
@@ -20,6 +21,10 @@ from app.services.engagement import add_pet_exp, award_coins, refresh_pet_state
 
 REVIVE_COST = 200
 OFFLINE_MARKERS = ("离线降级响应",)
+RECENT_WINDOW = 20
+COMPRESS_THRESHOLD = 40
+COMPRESS_CHUNK = 20
+MAX_SUMMARIES = 3
 
 
 class PetAIServiceError(RuntimeError):
@@ -128,6 +133,79 @@ def _recent_messages(db: Session, pet: Pet, limit: int = 10) -> list[dict[str, s
     ]
 
 
+def _latest_memory_end(db: Session, pet: Pet) -> int:
+    row = db.scalar(
+        select(PetMemory)
+        .where(PetMemory.pet_id == pet.id)
+        .order_by(PetMemory.end_message_id.desc())
+        .limit(1)
+    )
+    return row.end_message_id if row is not None else 0
+
+
+def _summarize_messages(pet: Pet, rows: list[PetMessage]) -> str | None:
+    transcript = "\n".join(
+        f"{'用户' if row.role == 'user' else pet.name}: {row.content}"
+        for row in rows
+    )
+    prompt = (
+        "你是 AI 智学管家宠物「小乐」的长期记忆整理器。"
+        "请把下面这段对话压缩成一份简洁的长期记忆摘要，"
+        "保留用户的偏好、目标、学习状态、约定、情绪和重要事件，"
+        "去掉寒暄和无关内容，用中文输出，控制在 300 字以内。\n\n"
+        f"{transcript}"
+    )
+    summary = (
+        AIModelGateway().chat(
+            [
+                {"role": "system", "content": "你负责把对话压缩成长期记忆摘要。"},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+        )
+        or ""
+    ).strip()
+    if not summary or any(marker in summary for marker in OFFLINE_MARKERS):
+        return None
+    return summary
+
+
+def _maybe_compress_history(db: Session, pet: Pet) -> None:
+    latest_id = _latest_memory_end(db, pet)
+    rows = db.scalars(
+        select(PetMessage)
+        .where(PetMessage.pet_id == pet.id, PetMessage.id > latest_id)
+        .order_by(PetMessage.id)
+    ).all()
+    if len(rows) <= COMPRESS_THRESHOLD:
+        return
+    old_rows = rows[:-RECENT_WINDOW]
+    chunk = old_rows[:COMPRESS_CHUNK]
+    if not chunk:
+        return
+    summary = _summarize_messages(pet, chunk)
+    if not summary:
+        return
+    db.add(
+        PetMemory(
+            pet_id=pet.id,
+            content=summary,
+            end_message_id=chunk[-1].id,
+        )
+    )
+    db.commit()
+
+
+def _memory_summaries(db: Session, pet: Pet, limit: int = MAX_SUMMARIES) -> list[str]:
+    rows = db.scalars(
+        select(PetMemory)
+        .where(PetMemory.pet_id == pet.id)
+        .order_by(PetMemory.id.desc())
+        .limit(limit)
+    ).all()
+    return [row.content for row in reversed(rows)]
+
+
 def _call_ai(messages: list[dict[str, str]]) -> str:
     text = (AIModelGateway().chat(messages, temperature=0.8) or "").strip()
     if not text or any(marker in text for marker in OFFLINE_MARKERS):
@@ -174,10 +252,22 @@ def greet_pet(db: Session, pet: Pet) -> str:
 
 
 def chat_with_pet(db: Session, pet: Pet, message: str) -> str:
-    history = _recent_messages(db, pet, limit=10)
+    _maybe_compress_history(db, pet)
+    summaries = _memory_summaries(db, pet)
+    history = _recent_messages(db, pet, limit=RECENT_WINDOW)
     context = build_pet_context(db, pet)
     messages = [
         {"role": "system", "content": _system_prompt(pet, context)},
+        *(
+            [
+                {
+                    "role": "system",
+                    "content": f"以下是你们之前对话的长期记忆摘要：\n{chr(10).join(summaries)}",
+                }
+            ]
+            if summaries
+            else []
+        ),
         *history,
         {"role": "user", "content": message.strip()},
     ]

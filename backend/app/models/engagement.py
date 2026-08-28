@@ -28,6 +28,25 @@ class FocusSession(Base):
     ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=25)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    tag_color: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+
+class FocusTag(Base):
+    __tablename__ = "focus_tags"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(40))
+    color: Mapped[str] = mapped_column(String(16), default="#0f766e")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_focus_tags_user_name"),
+    )
 
 
 class Pet(Base):
@@ -84,6 +103,20 @@ class PetMessage(Base):
     kind: Mapped[str] = mapped_column(String(32), default="chat")
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class PetMemory(Base):
+    __tablename__ = "pet_memories"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    pet_id: Mapped[int] = mapped_column(
+        ForeignKey("pets.id", ondelete="CASCADE"), index=True
+    )
+    content: Mapped[str] = mapped_column(Text)
+    end_message_id: Mapped[int] = mapped_column(Integer, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
 
 class CoinTransaction(Base):

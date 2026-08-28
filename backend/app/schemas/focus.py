@@ -8,6 +8,7 @@ from app.schemas.common import ORMModel
 class FocusSessionStart(BaseModel):
     task_label: str = Field(default="专注学习", max_length=200)
     duration_minutes: int = Field(default=25, ge=1, le=180)
+    tag_color: str | None = Field(default=None, max_length=16)
 
 
 class FocusSessionOut(ORMModel):
@@ -17,6 +18,24 @@ class FocusSessionOut(ORMModel):
     ended_at: datetime | None = None
     duration_minutes: int
     completed: bool
+    tag_color: str | None = None
+
+
+class FocusTagCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=40)
+    color: str = Field(default="#0f766e", max_length=16)
+
+
+class FocusTagUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=40)
+    color: str | None = Field(default=None, max_length=16)
+
+
+class FocusTagOut(ORMModel):
+    id: int
+    name: str
+    color: str
+    created_at: datetime
 
 
 class FocusStatsOut(BaseModel):

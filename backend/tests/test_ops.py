@@ -52,28 +52,40 @@ def test_reminder_notification_flow(client):
     headers = {"Authorization": f"Bearer {auth['access_token']}"}
     now = datetime.now(timezone.utc)
 
-    client.post(
+    past = client.post(
         "/api/v1/reminders",
         headers=headers,
         json={"title": "Due now", "remind_at": (now - timedelta(hours=1)).isoformat()},
     )
+    assert past.status_code == 400
     future = client.post(
         "/api/v1/reminders",
         headers=headers,
         json={"title": "Later", "remind_at": (now + timedelta(days=1)).isoformat()},
     ).json()
+    assert "+00:00" in future["remind_at"] or future["remind_at"].endswith("Z")
+
+    from app.core.database import SessionLocal
+    from app.models import Reminder
+
+    with SessionLocal() as db:
+        row = db.get(Reminder, future["id"])
+        row.remind_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
+        db.commit()
 
     notifications = client.get("/api/v1/notifications", headers=headers).json()
     due = [item for item in notifications if item["title"] == "Due now"]
-    assert len(due) == 1
+    assert len(due) == 0
+    due_later = [item for item in notifications if item["title"] == "Later"]
+    assert len(due_later) == 1
 
     dismissed = client.patch(
-        f"/api/v1/notifications/{due[0]['id']}/dismiss",
+        f"/api/v1/notifications/{due_later[0]['id']}/dismiss",
         headers=headers,
     )
     assert dismissed.status_code == 204
     after = client.get("/api/v1/notifications", headers=headers).json()
-    assert "Due now" not in [item["title"] for item in after]
+    assert "Later" not in [item["title"] for item in after]
     assert future["id"] in [item["id"] for item in client.get(
         "/api/v1/reminders", headers=headers
     ).json()]

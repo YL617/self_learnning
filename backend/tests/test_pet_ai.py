@@ -1,3 +1,6 @@
+from sqlalchemy import select
+
+
 def _register(client, email: str, username: str) -> dict:
     response = client.post(
         "/api/v1/auth/register",
@@ -114,3 +117,48 @@ def test_pet_chat_fails_explicitly_without_ai(client, monkeypatch):
     )
     assert response.status_code == 502
     assert "AI 服务暂不可用" in response.json()["detail"]
+
+
+def test_pet_chat_compresses_long_history(client):
+    auth = _register(client, "petmemory@example.com", "petmemory")
+    headers = _headers(auth)
+    pet = client.get("/api/v1/pets", headers=headers).json()
+
+    from app.core.database import SessionLocal
+    from app.models import PetMemory, PetMessage
+
+    with SessionLocal() as db:
+        for index in range(42):
+            db.add(
+                PetMessage(
+                    pet_id=pet["id"],
+                    role="user" if index % 2 == 0 else "assistant",
+                    kind="chat",
+                    content=f"测试对话第 {index + 1} 条",
+                )
+            )
+        db.commit()
+
+    with SessionLocal() as db:
+        inserted = db.scalars(
+            select(PetMessage)
+            .where(PetMessage.pet_id == pet["id"])
+            .order_by(PetMessage.id)
+        ).all()
+    assert len(inserted) == 42
+
+    response = client.post(
+        f"/api/v1/pets/{pet['id']}/chat",
+        headers=headers,
+        json={"message": "你还记得我们聊过什么吗？"},
+    )
+    assert response.status_code == 200
+    assert response.json()["reply"]
+
+    with SessionLocal() as db:
+        memories = db.scalars(
+            select(PetMemory).where(PetMemory.pet_id == pet["id"])
+        ).all()
+    assert len(memories) == 1
+    assert memories[0].end_message_id == inserted[19].id
+    assert memories[0].content

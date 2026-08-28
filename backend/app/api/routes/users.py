@@ -47,7 +47,6 @@ from app.services.membership import (
     daily_ai_quota,
     get_ai_usage_today,
     get_effective_membership,
-    has_membership,
     is_trial_active,
 )
 

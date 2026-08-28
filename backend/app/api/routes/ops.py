@@ -216,7 +216,16 @@ def create_reminder(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> Reminder:
-    reminder = Reminder(user_id=current_user.id, **data.model_dump())
+    remind_at = data.remind_at
+    if remind_at.tzinfo is not None:
+        remind_at = remind_at.astimezone(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if remind_at <= now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="提醒时间必须晚于当前时间",
+        )
+    reminder = Reminder(user_id=current_user.id, title=data.title, remind_at=remind_at)
     db.add(reminder)
     db.commit()
     db.refresh(reminder)
@@ -246,7 +255,7 @@ def list_notifications(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> list[NotificationOut]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     reminders = db.scalars(
         select(Reminder).where(
             Reminder.user_id == current_user.id,
@@ -366,12 +375,12 @@ def seed_demo_data(
         Reminder(
             user_id=current_user.id,
             title="晚上八点复习计划",
-            remind_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            remind_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1),
         ),
         Reminder(
             user_id=current_user.id,
             title="明天完成待办",
-            remind_at=datetime.now(timezone.utc) + timedelta(days=1),
+            remind_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=1),
         ),
     ]
     sessions = [

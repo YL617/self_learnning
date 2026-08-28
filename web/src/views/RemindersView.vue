@@ -12,6 +12,14 @@ const remindAt = ref('')
 const error = ref('')
 const success = ref('')
 
+function formatRemindTime(value?: string | null): string {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const pad = (num: number) => String(num).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 async function load() {
   error.value = ''
   try {
@@ -63,16 +71,18 @@ onMounted(load)
     </div>
 
     <p v-if="error" class="text-danger">{{ error }}</p>
-    <p v-if="success" style="color: #15803d">{{ success }}</p>
+    <p v-if="success" class="text-success">{{ success }}</p>
 
     <div class="card">
       <h2><Bell :size="16" style="vertical-align: -2px" /> 通知中心</h2>
       <div v-if="!notifications.length" class="empty">暂无通知</div>
       <div v-else class="list">
         <div v-for="item in notifications" :key="`${item.kind}-${item.id}`" class="list-item">
-          <div class="list-item-main">
-            <div class="list-item-title">{{ item.title }}</div>
-            <div class="list-item-sub">{{ item.kind === 'reminder' ? '定时提醒' : '未完成任务' }}</div>
+            <div class="list-item-main">
+              <div class="list-item-title">{{ item.title }}</div>
+              <div class="list-item-sub">
+                {{ item.kind === 'reminder' ? '定时提醒 · ' + formatRemindTime(item.remind_at) : '未完成任务' }}
+              </div>
           </div>
           <button v-if="item.kind === 'reminder'" class="btn btn-ghost" type="button" @click="dismiss(item)">
             已读
@@ -100,7 +110,7 @@ onMounted(load)
         <div v-for="reminder in reminders" :key="reminder.id" class="list-item">
           <div class="list-item-main">
             <div class="list-item-title">{{ reminder.title }}</div>
-            <div class="list-item-sub">{{ reminder.remind_at }}</div>
+            <div class="list-item-sub">{{ formatRemindTime(reminder.remind_at) }}</div>
           </div>
           <button class="btn btn-ghost" style="padding: 6px" type="button" @click="remove(reminder)">
             <Trash2 :size="16" color="#dc2626" />

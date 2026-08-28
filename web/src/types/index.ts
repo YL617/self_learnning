@@ -261,6 +261,14 @@ export interface FocusSession {
   ended_at?: string | null
   duration_minutes: number
   completed: boolean
+  tag_color?: string | null
+}
+
+export interface FocusTag {
+  id: number
+  name: string
+  color: string
+  created_at: string
 }
 
 export interface FocusStats {

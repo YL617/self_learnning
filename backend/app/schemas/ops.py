@@ -1,6 +1,6 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from app.schemas.common import ORMModel
 
@@ -33,12 +33,26 @@ class ReminderOut(ORMModel):
     triggered: bool
     dismissed: bool
 
+    @field_serializer("remind_at")
+    def _serialize_remind_at(self, value: datetime) -> str:
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.isoformat()
+
 
 class NotificationOut(BaseModel):
     id: int
     kind: str
     title: str
     remind_at: datetime | None = None
+
+    @field_serializer("remind_at")
+    def _serialize_remind_at(self, value: datetime | None) -> str | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.isoformat()
 
 
 class CalendarEventOut(BaseModel):
