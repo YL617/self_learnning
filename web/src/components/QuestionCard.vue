@@ -64,7 +64,7 @@ function reset() {
           <Heart
             :size="16"
             :fill="question.is_favorite ? 'currentColor' : 'none'"
-            :color="question.is_favorite ? '#dc2626' : '#94a3b8'"
+            :color="question.is_favorite ? '#c2412b' : '#a09f97'"
           />
           {{ question.is_favorite ? '已收藏' : '收藏' }}
         </button>

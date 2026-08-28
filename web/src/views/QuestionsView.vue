@@ -79,7 +79,10 @@ onMounted(load)
     </div>
 
     <div class="card">
-      <h2><Sparkles :size="16" style="vertical-align: -2px" /> 生成题目</h2>
+      <div class="card-head">
+        <h2><Sparkles :size="16" /> 生成题目</h2>
+        <span class="badge badge-teal">AI 出题</span>
+      </div>
       <div class="form-grid">
         <div class="field">
           <span>学科</span>
@@ -102,17 +105,20 @@ onMounted(load)
           </select>
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top: 12px" type="button" :disabled="loading" @click="generate">
-        <Sparkles :size="16" />
-        {{ loading ? '生成中...' : '生成题目' }}
-      </button>
-      <p v-if="error" class="text-danger" style="margin: 10px 0 0">{{ error }}</p>
-      <p v-if="success" style="margin: 10px 0 0; color: #15803d">{{ success }}</p>
+      <div class="generate-actions">
+        <button class="btn btn-primary" type="button" :disabled="loading" @click="generate">
+          <Sparkles :size="16" />
+          {{ loading ? '生成中...' : '生成题目' }}
+        </button>
+        <p v-if="error" class="text-danger">{{ error }}</p>
+        <p v-if="success" class="text-success">{{ success }}</p>
+      </div>
     </div>
 
     <div v-if="questions.length">
-      <div class="row space-between" style="margin-bottom: 10px">
-        <h2 style="margin: 0"><FileQuestion :size="16" style="vertical-align: -2px" /> 题目列表</h2>
+      <div class="row space-between list-head">
+        <h2><FileQuestion :size="16" /> 题目列表</h2>
+        <span class="badge">{{ questions.length }} 道</span>
       </div>
       <div class="list">
         <QuestionCard
@@ -128,3 +134,42 @@ onMounted(load)
     <div v-else class="empty">还没有题目，先在上面生成一组吧</div>
   </section>
 </template>
+
+<style scoped>
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.card-head h2 {
+  margin: 0;
+}
+
+.generate-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.generate-actions p {
+  margin: 0;
+}
+
+.list-head {
+  margin-bottom: 2px;
+}
+
+.list-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+</style>

@@ -69,13 +69,13 @@ async function seedDemoData() {
       </div>
       <div class="row gap">
         <router-link to="/onboarding" class="btn btn-outline">完善学情</router-link>
-      <router-link to="/plans" class="btn btn-primary">
-        <CalendarDays :size="16" />
-        制定学习计划
-      </router-link>
-      <button class="btn btn-outline" type="button" :disabled="demoLoading" @click="seedDemoData">
-        {{ demoLoading ? '填充中...' : '填充演示数据' }}
-      </button>
+        <router-link to="/plans" class="btn btn-primary">
+          <CalendarDays :size="16" />
+          制定学习计划
+        </router-link>
+        <button class="btn btn-ghost" type="button" :disabled="demoLoading" @click="seedDemoData">
+          {{ demoLoading ? '填充中...' : '填充演示数据' }}
+        </button>
       </div>
     </div>
 
@@ -83,28 +83,28 @@ async function seedDemoData() {
     <template v-else>
       <div class="grid grid-4">
         <div class="card stat-card">
-          <div class="stat-icon"><Timer :size="22" /></div>
+          <div class="stat-icon stat-icon-timer"><Timer :size="22" /></div>
           <div>
             <div class="stat-value">{{ stats.total_minutes }}</div>
             <div class="stat-label">累计专注分钟</div>
           </div>
         </div>
         <div class="card stat-card">
-          <div class="stat-icon"><CalendarDays :size="22" /></div>
+          <div class="stat-icon stat-icon-plan"><CalendarDays :size="22" /></div>
           <div>
             <div class="stat-value">{{ plans.length }}</div>
             <div class="stat-label">学习计划</div>
           </div>
         </div>
         <div class="card stat-card">
-          <div class="stat-icon"><FileQuestion :size="22" /></div>
+          <div class="stat-icon stat-icon-question"><FileQuestion :size="22" /></div>
           <div>
             <div class="stat-value">{{ questionCount }}</div>
             <div class="stat-label">练习题目</div>
           </div>
         </div>
         <div class="card stat-card">
-          <div class="stat-icon"><Coins :size="22" /></div>
+          <div class="stat-icon stat-icon-coin"><Coins :size="22" /></div>
           <div>
             <div class="stat-value">{{ coinBalance }}</div>
             <div class="stat-label">智学币余额</div>
@@ -121,13 +121,16 @@ async function seedDemoData() {
               v-for="plan in plans.slice(0, 4)"
               :key="plan.id"
               :to="`/plans/${plan.id}`"
-              class="list-item"
+              class="list-item plan-row"
               style="text-decoration: none; color: inherit"
             >
               <div class="list-item-main">
                 <div class="list-item-title">{{ plan.title }}</div>
                 <div class="list-item-sub">
                   {{ plan.start_date }} 至 {{ plan.end_date }} · {{ plan.items.length }} 个任务
+                </div>
+                <div class="progress-track plan-progress">
+                  <div class="progress-bar" :style="{ width: planProgress(plan) + '%' }" />
                 </div>
               </div>
               <span class="badge badge-green">{{ planProgress(plan) }}%</span>
@@ -139,14 +142,14 @@ async function seedDemoData() {
           <h2>今日学习</h2>
           <div class="grid grid-2">
             <div class="stat-card">
-              <div class="stat-icon"><Timer :size="20" /></div>
+              <div class="stat-icon stat-icon-timer"><Timer :size="20" /></div>
               <div>
                 <div class="stat-value">{{ stats.today_minutes }}</div>
                 <div class="stat-label">今日专注</div>
               </div>
             </div>
             <div class="stat-card">
-              <div class="stat-icon"><BookOpenCheck :size="20" /></div>
+              <div class="stat-icon stat-icon-plan"><BookOpenCheck :size="20" /></div>
               <div>
                 <div class="stat-value">{{ stats.session_count }}</div>
                 <div class="stat-label">完成番茄钟</div>
@@ -154,7 +157,7 @@ async function seedDemoData() {
             </div>
           </div>
           <div class="row gap wrap" style="margin-top: 16px">
-            <router-link to="/focus" class="btn btn-teal"><Timer :size="16" />开始专注</router-link>
+            <router-link to="/focus" class="btn btn-primary"><Timer :size="16" />开始专注</router-link>
             <router-link to="/questions" class="btn btn-outline"><FileQuestion :size="16" />开始练习</router-link>
           </div>
         </div>
@@ -162,3 +165,35 @@ async function seedDemoData() {
     </template>
   </section>
 </template>
+
+<style scoped>
+.plan-row {
+  text-decoration: none;
+  color: inherit;
+}
+
+.plan-progress {
+  margin-top: 8px;
+  max-width: 320px;
+}
+
+.stat-icon-timer {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.stat-icon-plan {
+  background: #e8edf7;
+  color: #415f91;
+}
+
+.stat-icon-question {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.stat-icon-coin {
+  background: var(--success-soft);
+  color: var(--success);
+}
+</style>

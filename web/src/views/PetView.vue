@@ -645,7 +645,7 @@ onBeforeUnmount(stopAnimation)
   color: var(--text);
   font-size: 13px;
   line-height: 1.5;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
 }
 
 .pop-enter-active,

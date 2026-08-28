@@ -443,7 +443,7 @@ onMounted(() => {
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #f1f4f7;
+  background: var(--bg-deep);
 }
 
 .segmented button {
@@ -464,9 +464,9 @@ onMounted(() => {
 }
 
 .segmented button.active {
-  background: #fff;
+  background: var(--surface);
   color: var(--primary);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .nav-buttons {
@@ -491,7 +491,7 @@ onMounted(() => {
 .icon-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: #f5f9ff;
+  background: var(--primary-soft);
 }
 
 .today-btn {
@@ -528,13 +528,13 @@ onMounted(() => {
 }
 
 .year-tile.has-events {
-  background: #f4f8ff;
-  border-color: #d3e3ff;
+  background: var(--primary-soft);
+  border-color: #b7d8cf;
 }
 
 .year-tile.busy {
-  background: #eef8f6;
-  border-color: #bfe4dc;
+  background: var(--teal-soft);
+  border-color: #b7d8cf;
 }
 
 .year-month-name {
@@ -556,7 +556,7 @@ onMounted(() => {
 }
 
 .mini-weekday {
-  color: #9aa7b5;
+  color: var(--text-3);
   font-size: 10px;
   text-align: center;
 }
@@ -566,13 +566,13 @@ onMounted(() => {
   display: grid;
   place-items: center;
   border-radius: 5px;
-  color: #7b8a99;
+  color: var(--text-2);
   font-size: 10px;
 }
 
 .mini-day.has-event {
-  background: #dfeaff;
-  color: #1d4ed8;
+  background: var(--teal-soft);
+  color: var(--primary-dark);
   font-weight: 700;
 }
 
@@ -586,12 +586,12 @@ onMounted(() => {
   text-align: center;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7a8a;
+  color: var(--text-2);
   padding: 4px 0 8px;
 }
 
 .calendar-weekday.weekend {
-  color: #9aa7b5;
+  color: var(--text-3);
 }
 
 .calendar-day {
@@ -610,19 +610,19 @@ onMounted(() => {
 }
 
 .calendar-day:hover {
-  border-color: #b9ccf5;
-  background: #f7faff;
+  border-color: #a8d5cc;
+  background: #f4faf8;
   box-shadow: 0 2px 10px rgba(16, 24, 40, 0.05);
   z-index: 5;
 }
 
 .calendar-day.weekend {
-  background: #f6f8fb;
+  background: #f2f3ef;
 }
 
 .calendar-day.today {
-  border-color: #93b4f2;
-  background: #f2f7ff;
+  border-color: #7fc4ba;
+  background: var(--primary-soft);
 }
 
 .empty-day {
@@ -656,7 +656,7 @@ onMounted(() => {
 }
 
 .calendar-day-number:hover {
-  background: #e8eef5;
+  background: #ecebe5;
   color: var(--text);
 }
 
@@ -672,7 +672,7 @@ onMounted(() => {
 .day-more {
   padding: 0 6px;
   border-radius: 999px;
-  background: #edf1f5;
+  background: var(--bg-deep);
   color: var(--text-2);
   font-size: 10px;
   font-weight: 600;
@@ -755,7 +755,7 @@ onMounted(() => {
 }
 
 .day-popover-item + .day-popover-item {
-  border-top: 1px solid #eef1f5;
+  border-top: 1px solid var(--border);
 }
 
 .day-popover-title {
@@ -822,7 +822,7 @@ onMounted(() => {
 }
 
 .day-event.done {
-  background: #fafbfc;
+  background: var(--surface-2);
   opacity: 0.72;
 }
 
@@ -836,7 +836,7 @@ onMounted(() => {
 }
 
 .check-pending {
-  color: #9aa7b5;
+  color: var(--text-3);
 }
 
 .day-event-main {

@@ -666,7 +666,7 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   cursor: pointer;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
 }
 
 .bubble {

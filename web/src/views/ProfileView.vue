@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { Camera, KeyRound, Sparkles, UserRound } from 'lucide-vue-next'
+import {
+  BookOpenCheck,
+  Camera,
+  CalendarDays,
+  FileQuestion,
+  KeyRound,
+  Sparkles,
+  Timer,
+  UserRound,
+} from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 
 import { focusApi } from '@/api/focus'
@@ -222,48 +231,48 @@ onMounted(load)
       </div>
 
       <div class="card">
-        <h2>学习数据</h2>
-        <div class="grid grid-2">
-          <div class="stat-card">
-            <div class="stat-icon"><UserRound :size="20" /></div>
-            <div>
-              <div class="stat-value">{{ stats.total_minutes }}</div>
-              <div class="stat-label">累计专注分钟</div>
-            </div>
+      <h2>学习数据</h2>
+      <div class="grid grid-2">
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-timer"><Timer :size="20" /></div>
+          <div>
+            <div class="stat-value">{{ stats.total_minutes }}</div>
+            <div class="stat-label">累计专注分钟</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon"><UserRound :size="20" /></div>
-            <div>
-              <div class="stat-value">{{ stats.session_count }}</div>
-              <div class="stat-label">完成番茄钟</div>
-            </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-plan"><CalendarDays :size="20" /></div>
+          <div>
+            <div class="stat-value">{{ stats.session_count }}</div>
+            <div class="stat-label">完成番茄钟</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon"><UserRound :size="20" /></div>
-            <div>
-              <div class="stat-value">{{ plans.length }}</div>
-              <div class="stat-label">学习计划</div>
-            </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-plan"><CalendarDays :size="20" /></div>
+          <div>
+            <div class="stat-value">{{ plans.length }}</div>
+            <div class="stat-label">学习计划</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon"><UserRound :size="20" /></div>
-            <div>
-              <div class="stat-value">{{ completedPlanCount }}</div>
-              <div class="stat-label">完成任务</div>
-            </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-question"><FileQuestion :size="20" /></div>
+          <div>
+            <div class="stat-value">{{ completedPlanCount }}</div>
+            <div class="stat-label">完成任务</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon"><UserRound :size="20" /></div>
-            <div>
-              <div class="stat-value">{{ questionCount }}</div>
-              <div class="stat-label">练习题目</div>
-            </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-question"><FileQuestion :size="20" /></div>
+          <div>
+            <div class="stat-value">{{ questionCount }}</div>
+            <div class="stat-label">练习题目</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon"><UserRound :size="20" /></div>
-            <div>
-              <div class="stat-value">{{ wrongCount }}</div>
-              <div class="stat-label">错题</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-wrong"><BookOpenCheck :size="20" /></div>
+          <div>
+            <div class="stat-value">{{ wrongCount }}</div>
+            <div class="stat-label">错题</div>
             </div>
           </div>
         </div>
@@ -316,7 +325,7 @@ onMounted(load)
 
 <style scoped>
 .text-success {
-  color: #15803d;
+  color: var(--success);
 }
 
 .membership-summary {
@@ -339,7 +348,7 @@ onMounted(load)
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--border);
-  background: #e8f0fe;
+  background: var(--primary-soft);
   color: var(--primary);
   display: grid;
   place-items: center;
@@ -359,7 +368,7 @@ onMounted(load)
   display: grid;
   place-items: center;
   cursor: pointer;
-  border: 2px solid #fff;
+  border: 2px solid var(--surface);
 }
 
 .avatar-edit input {
@@ -385,5 +394,25 @@ onMounted(load)
 .profile-item strong {
   font-size: 14px;
   word-break: break-word;
+}
+
+.stat-icon-timer {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.stat-icon-plan {
+  background: #e8edf7;
+  color: #415f91;
+}
+
+.stat-icon-question {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.stat-icon-wrong {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 </style>
