@@ -16,6 +16,7 @@ const isVip = computed(() =>
 const messages = ref<Array<{ role: string; content: string }>>([])
 const draft = ref<PlanDraft | null>(null)
 const sessionId = ref<number | null>(null)
+const knownFields = ref<string[]>([])
 const input = ref('')
 const loading = ref(false)
 const error = ref('')
@@ -35,9 +36,11 @@ async function startNew() {
   messages.value = []
   draft.value = null
   sessionId.value = null
+  knownFields.value = []
   try {
     const { data } = await planChatApi.start()
     sessionId.value = data.session_id
+    knownFields.value = data.known || []
     messages.value.push({ role: 'assistant', content: data.reply })
     scrollDown()
   } catch (err: any) {
@@ -57,6 +60,7 @@ async function send() {
   try {
     const { data } = await planChatApi.send(sessionId.value, content)
     messages.value.push({ role: 'assistant', content: data.reply })
+    knownFields.value = data.known || []
     if (data.draft) {
       draft.value = data.draft
     }
@@ -113,6 +117,17 @@ onMounted(() => {
     </div>
 
     <p v-if="error" class="text-danger">{{ error }}</p>
+
+    <div v-if="isVip && knownFields.length" class="known-panel">
+      <span class="known-label">AI 已了解</span>
+      <span
+        v-for="label in knownFields"
+        :key="label"
+        class="badge badge-teal"
+      >
+        {{ label }}
+      </span>
+    </div>
 
     <div v-if="!isVip" class="card vip-lock">
       <Crown :size="40" />
@@ -205,6 +220,23 @@ onMounted(() => {
 .vip-lock p {
   max-width: 480px;
   margin: 0 0 8px;
+}
+
+.known-panel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.known-label {
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .chat-card {

@@ -39,8 +39,13 @@ def create_chat(
     current_user: Annotated[User, Depends(require_membership("advanced"))],
     db: Annotated[Session, Depends(get_db)],
 ) -> PlanChatStartOut:
-    session, reply = start_chat(db, current_user.id)
-    return PlanChatStartOut(session_id=session.id, reply=reply, status=session.status)
+    session, reply, known = start_chat(db, current_user.id)
+    return PlanChatStartOut(
+        session_id=session.id,
+        reply=reply,
+        status=session.status,
+        known=known,
+    )
 
 
 @router.get("/{session_id}/messages", response_model=list[PlanChatMessageOut])
@@ -73,6 +78,7 @@ def send_message(
         reply=result["reply"],
         status=result["status"],
         draft=result.get("draft"),
+        known=result.get("known", []),
     )
 
 

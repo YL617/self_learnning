@@ -17,6 +17,7 @@ class PlanChatStartOut(BaseModel):
     session_id: int
     reply: str
     status: str
+    known: list[str] = Field(default_factory=list)
 
 
 class PlanChatSendIn(BaseModel):
@@ -28,6 +29,7 @@ class PlanChatReply(BaseModel):
     reply: str
     status: str
     draft: dict[str, Any] | None = None
+    known: list[str] = Field(default_factory=list)
 
 
 class PlanChatConfirmOut(BaseModel):
