@@ -247,6 +247,7 @@ _HOME_HOSTS = {
 }
 
 _LEVEL_ORDER = {"入门": 0, "进阶": 1, "考研": 2}
+_ANTI_BOT_CODES = {401, 403, 405, 412, 418, 429}
 _GOAL_TERMS = [
     "考研",
     "考硏",
@@ -559,8 +560,20 @@ def _probe_url(url: str, timeout: int = 8) -> dict[str, Any]:
             code = getattr(resp, "status", 200)
             if 200 <= code < 400:
                 return {"status": "ok", "http_status": code, "error": None}
+            if code in _ANTI_BOT_CODES:
+                return {
+                    "status": "unknown",
+                    "http_status": code,
+                    "error": "平台风控，需浏览器确认",
+                }
             return {"status": "bad", "http_status": code, "error": f"HTTP {code}"}
     except urllib.error.HTTPError as exc:
+        if exc.code in _ANTI_BOT_CODES:
+            return {
+                "status": "unknown",
+                "http_status": exc.code,
+                "error": "平台风控，需浏览器确认",
+            }
         return {"status": "bad", "http_status": exc.code, "error": f"HTTP {exc.code}"}
     except Exception as exc:  # noqa: BLE001
         return {"status": "bad", "http_status": None, "error": str(exc)[:200]}
@@ -577,7 +590,7 @@ def check_catalog_health(
     """
     ensure_catalog_courses(db)
     tasks = [(catalog["title"], catalog["url"]) for catalog in COURSE_CATALOG]
-    ok = bad = 0
+    ok = unknown = bad = 0
     checked_at = datetime.now(timezone.utc)
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         results = pool.map(
@@ -594,7 +607,9 @@ def check_catalog_health(
             course.health_error = result["error"]
             if result["status"] == "ok":
                 ok += 1
+            elif result["status"] == "unknown":
+                unknown += 1
             else:
                 bad += 1
     db.commit()
-    return {"ok": ok, "bad": bad, "checked": len(tasks)}
+    return {"ok": ok, "unknown": unknown, "bad": bad, "checked": len(tasks)}

@@ -208,3 +208,26 @@ def test_save_increments_course_save_count(client, monkeypatch):
         course = db.scalar(select(Course).where(Course.title == rec["title"]))
         assert course is not None
         assert course.save_count == baseline + 1
+
+
+def test_probe_url_classifies_anti_bot_as_unknown(monkeypatch):
+    import urllib.error
+
+    from app.services.course_recommender import _probe_url
+
+    def fake_urlopen(req, timeout=None):
+        raise urllib.error.HTTPError(
+            req.full_url,
+            412,
+            "Precondition Failed",
+            {},
+            None,
+        )
+
+    monkeypatch.setattr(
+        "app.services.course_recommender.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    result = _probe_url("https://www.bilibili.com/video/BV1b7411N798")
+    assert result["status"] == "unknown"
+    assert result["http_status"] == 412

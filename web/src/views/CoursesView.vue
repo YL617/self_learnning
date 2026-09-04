@@ -42,7 +42,7 @@ onMounted(async () => {
             链接正常
           </span>
           <span
-            v-else-if="course.health_status === 'bad'"
+            v-else-if="course.health_status === 'bad' || course.health_status === 'unknown'"
             class="badge badge-amber"
           >
             链接待核验

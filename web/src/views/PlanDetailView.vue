@@ -222,7 +222,11 @@ onMounted(load)
                 <span v-if="rec.level"> · {{ rec.level }}</span>
                 <span v-if="rec.language === 'en'"> · 英文</span>
                 <span v-if="rec.health_status === 'ok'"> · 链接正常</span>
-                <span v-else-if="rec.health_status === 'bad'"> · 链接待核验</span>
+                <span
+                  v-else-if="rec.health_status === 'bad' || rec.health_status === 'unknown'"
+                >
+                  · 链接待核验
+                </span>
                 <span v-if="rec.status === 'saved'"> · 已加入公开课</span>
               </div>
             </div>

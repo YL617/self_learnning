@@ -83,7 +83,7 @@ async function checkHealth() {
   success.value = ''
   try {
     const { data } = await adminApi.checkCourseHealth()
-    success.value = `链接校验完成：正常 ${data.ok} 个，待核验 ${data.bad} 个`
+    success.value = `链接校验完成：正常 ${data.ok} 个，待核验 ${data.bad + (data.unknown || 0)} 个`
     await load()
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '校验失败'
@@ -155,7 +155,11 @@ onMounted(load)
               {{ course.platform }} · {{ course.chapters.length }} 章
               <template v-if="course.level"> · {{ course.level }}</template>
               <template v-if="course.health_status === 'ok'"> · 链接正常</template>
-              <template v-else-if="course.health_status === 'bad'"> · 链接待核验</template>
+              <template
+                v-else-if="course.health_status === 'bad' || course.health_status === 'unknown'"
+              >
+                · 链接待核验
+              </template>
             </div>
           </div>
           <div class="row gap">
