@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import (
     Course,
-    CourseChapter,
+    CourseRecommendation,
     DailyStat,
     FocusSession,
     PlanItem,
@@ -23,6 +23,7 @@ from app.models import (
 from app.schemas.ops import (
     CalendarEventOut,
     CourseOut,
+    CourseRecommendationOut,
     DemoSeedOut,
     NotificationOut,
     ReminderCreate,
@@ -31,6 +32,12 @@ from app.schemas.ops import (
     TodoOut,
     TodoUpdate,
     WeeklyReportOut,
+)
+from app.services.course_recommender import (
+    dismiss_course_recommendation,
+    ensure_catalog_courses,
+    is_platform_home,
+    save_course_recommendation,
 )
 
 settings = get_settings()
@@ -45,44 +52,8 @@ demo_router = APIRouter(prefix="/demo", tags=["demo"])
 
 
 def _seed_courses(db: Session) -> None:
-    if db.scalar(select(Course).limit(1)) is not None:
-        return
-    data = [
-        (
-            "数据结构与算法",
-            "B站",
-            "https://www.bilibili.com/",
-            "从数组、链表到树与图的系统讲解，适合复习数据结构。",
-            ["线性表", "栈与队列", "树与二叉树", "图与搜索"],
-        ),
-        (
-            "计算机网络",
-            "中国大学MOOC",
-            "https://www.icourse163.org/",
-            "覆盖 OSI 七层模型、TCP/IP 协议栈与常见网络问题。",
-            ["网络体系结构", "传输层", "网络层", "应用层"],
-        ),
-        (
-            "C语言程序设计",
-            "B站",
-            "https://www.bilibili.com/",
-            "从语法到指针和内存管理的入门与进阶课程。",
-            ["基础语法", "函数", "指针", "结构体"],
-        ),
-    ]
-    for title, platform, url, description, chapters in data:
-        course = Course(
-            title=title,
-            platform=platform,
-            url=url,
-            description=description,
-        )
-        for index, chapter in enumerate(chapters, start=1):
-            course.chapters.append(
-                CourseChapter(title=chapter, order_index=index)
-            )
-        db.add(course)
-    db.commit()
+    """把内置真实课程目录写进公开课表，按标题去重、不覆盖已有内容。"""
+    ensure_catalog_courses(db)
 
 
 @todos_router.get("", response_model=list[TodoOut])
@@ -316,6 +287,52 @@ def list_courses(
             select(Course).options(selectinload(Course.chapters))
         ).all()
     )
+
+
+@courses_router.get("/recommendations", response_model=list[CourseRecommendationOut])
+def list_course_recommendations(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[CourseRecommendation]:
+    recs = db.scalars(
+        select(CourseRecommendation)
+        .where(
+            CourseRecommendation.user_id == current_user.id,
+            CourseRecommendation.status.in_(("pending", "saved")),
+        )
+        .order_by(CourseRecommendation.created_at.desc())
+    ).all()
+    return [rec for rec in recs if not is_platform_home(rec.url)]
+
+
+@courses_router.post(
+    "/recommendations/{recommendation_id}/save",
+    response_model=CourseRecommendationOut,
+)
+def save_course_recommendation_endpoint(
+    recommendation_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CourseRecommendation:
+    try:
+        return save_course_recommendation(db, current_user.id, recommendation_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@courses_router.post(
+    "/recommendations/{recommendation_id}/dismiss",
+    response_model=CourseRecommendationOut,
+)
+def dismiss_course_recommendation_endpoint(
+    recommendation_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CourseRecommendation:
+    try:
+        return dismiss_course_recommendation(db, current_user.id, recommendation_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @reports_router.get("/weekly", response_model=WeeklyReportOut)

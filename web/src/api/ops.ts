@@ -2,6 +2,7 @@ import { http } from './http'
 import type {
   CalendarEvent,
   Course,
+  CourseRecommendation,
   NotificationItem,
   Reminder,
   Todo,
@@ -36,6 +37,12 @@ export const calendarApi = {
 
 export const coursesApi = {
   list: () => http.get<Course[]>('/courses'),
+  recommendations: () =>
+    http.get<CourseRecommendation[]>('/courses/recommendations'),
+  saveRecommendation: (id: number) =>
+    http.post<CourseRecommendation>(`/courses/recommendations/${id}/save`),
+  dismissRecommendation: (id: number) =>
+    http.post<CourseRecommendation>(`/courses/recommendations/${id}/dismiss`),
 }
 
 export const reportsApi = {

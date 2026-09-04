@@ -75,7 +75,31 @@ class CourseOut(ORMModel):
     platform: str
     url: str
     description: str | None = None
+    level: str | None = None
+    language: str | None = "zh"
+    health_status: str | None = None
+    http_status: int | None = None
+    health_checked_at: datetime | None = None
+    health_error: str | None = None
+    dismiss_count: int = 0
+    save_count: int = 0
     chapters: list[CourseChapterOut] = Field(default_factory=list)
+
+
+class CourseRecommendationOut(ORMModel):
+    id: int
+    plan_id: int | None = None
+    course_id: int | None = None
+    title: str
+    platform: str
+    url: str
+    description: str | None = None
+    subject: str | None = None
+    level: str | None = None
+    language: str | None = None
+    health_status: str | None = None
+    status: str
+    created_at: datetime
 
 
 class WeeklyReportOut(BaseModel):

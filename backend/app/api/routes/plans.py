@@ -9,7 +9,14 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, require_ai_access
 from app.core.database import get_db
-from app.models import PlanAdjustmentLog, PlanItem, StudyPlan, User
+from app.models import (
+    CourseRecommendation,
+    PlanAdjustmentLog,
+    PlanItem,
+    StudyPlan,
+    User,
+)
+from app.schemas.ops import CourseRecommendationOut
 from app.schemas.plan import (
     PlanGenerateRequest,
     PlanItemCreate,
@@ -19,6 +26,7 @@ from app.schemas.plan import (
     StudyPlanOut,
 )
 from app.services.content_filter import validate_text
+from app.services.course_recommender import is_platform_home, recommend_courses_for_plan
 from app.services.engagement import award_coins, award_pet_exp, record_checkin
 from app.services.study_planner import adjust_study_plan, generate_study_plan
 
@@ -61,6 +69,46 @@ def create_plan(
     db.add(plan)
     db.commit()
     return _get_own_plan(db, current_user.id, plan.id)
+
+
+@router.get("/{plan_id}/courses", response_model=list[CourseRecommendationOut])
+def list_plan_courses(
+    plan_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[CourseRecommendation]:
+    plan = _get_own_plan(db, current_user.id, plan_id)
+    recs = db.scalars(
+        select(CourseRecommendation)
+        .where(
+            CourseRecommendation.plan_id == plan.id,
+            CourseRecommendation.status.in_(("pending", "saved")),
+        )
+        .order_by(CourseRecommendation.created_at.desc())
+    ).all()
+    return [rec for rec in recs if not is_platform_home(rec.url)]
+
+
+@router.post(
+    "/{plan_id}/courses/recommend",
+    response_model=list[CourseRecommendationOut],
+)
+def recommend_plan_courses(
+    plan_id: int,
+    current_user: Annotated[User, Depends(require_ai_access("advanced"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[CourseRecommendation]:
+    plan = _get_own_plan(db, current_user.id, plan_id)
+    recommend_courses_for_plan(db, current_user.id, plan)
+    recs = db.scalars(
+        select(CourseRecommendation)
+        .where(
+            CourseRecommendation.plan_id == plan.id,
+            CourseRecommendation.status.in_(("pending", "saved")),
+        )
+        .order_by(CourseRecommendation.created_at.desc())
+    ).all()
+    return [rec for rec in recs if not is_platform_home(rec.url)]
 
 
 @router.post("/generate", response_model=StudyPlanOut, status_code=status.HTTP_201_CREATED)
@@ -111,6 +159,7 @@ def generate_plan(
         )
     db.add(plan)
     db.commit()
+    recommend_courses_for_plan(db, current_user.id, plan)
     return _get_own_plan(db, current_user.id, plan.id)
 
 

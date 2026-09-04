@@ -15,6 +15,7 @@ const form = ref<CoursePayload>({
 })
 const error = ref('')
 const success = ref('')
+const checking = ref(false)
 
 async function load() {
   try {
@@ -75,6 +76,22 @@ function addChapter() {
   form.value.chapters.push({ title: '', order_index: form.value.chapters.length + 1 })
 }
 
+async function checkHealth() {
+  if (checking.value) return
+  checking.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const { data } = await adminApi.checkCourseHealth()
+    success.value = `链接校验完成：正常 ${data.ok} 个，待核验 ${data.bad} 个`
+    await load()
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || '校验失败'
+  } finally {
+    checking.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -85,7 +102,12 @@ onMounted(load)
         <h1 class="page-title">课程管理</h1>
         <p class="page-subtitle">维护公开课程与章节</p>
       </div>
-      <button class="btn btn-primary" type="button" @click="startCreate">新增课程</button>
+      <div class="row gap">
+        <button class="btn btn-outline" type="button" :disabled="checking" @click="checkHealth">
+          {{ checking ? '校验中...' : '校验链接' }}
+        </button>
+        <button class="btn btn-primary" type="button" @click="startCreate">新增课程</button>
+      </div>
     </div>
 
     <p v-if="error" class="text-danger">{{ error }}</p>
@@ -129,7 +151,12 @@ onMounted(load)
         <div class="row gap wrap" style="justify-content: space-between">
           <div>
             <strong>{{ course.title }}</strong>
-            <div class="muted">{{ course.platform }} · {{ course.chapters.length }} 章</div>
+            <div class="muted">
+              {{ course.platform }} · {{ course.chapters.length }} 章
+              <template v-if="course.level"> · {{ course.level }}</template>
+              <template v-if="course.health_status === 'ok'"> · 链接正常</template>
+              <template v-else-if="course.health_status === 'bad'"> · 链接待核验</template>
+            </div>
           </div>
           <div class="row gap">
             <button class="btn btn-outline" type="button" @click="startEdit(course)">编辑</button>

@@ -32,6 +32,23 @@ onMounted(async () => {
     <div class="grid grid-3">
       <div v-for="course in courses" :key="course.id" class="card">
         <h2><GraduationCap :size="16" style="vertical-align: -2px" /> {{ course.title }}</h2>
+        <div class="row gap" style="flex-wrap: wrap; margin: 2px 0 10px">
+          <span v-if="course.level" class="badge badge-teal">{{ course.level }}</span>
+          <span v-if="course.language === 'en'" class="badge badge-teal">英文</span>
+          <span
+            v-if="course.health_status === 'ok'"
+            class="badge badge-green"
+          >
+            链接正常
+          </span>
+          <span
+            v-else-if="course.health_status === 'bad'"
+            class="badge badge-amber"
+          >
+            链接待核验
+          </span>
+          <span v-else class="badge">链接未校验</span>
+        </div>
         <p class="muted">{{ course.description }}</p>
         <div class="list">
           <div v-for="chapter in course.chapters" :key="chapter.id" class="list-item">

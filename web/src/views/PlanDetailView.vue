@@ -1,10 +1,21 @@
 <script setup lang="ts">
-import { ArrowLeft, CheckCircle2, Circle, Sparkles, Trash2 } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Circle,
+  ExternalLink,
+  GraduationCap,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { plansApi } from '@/api/plans'
-import type { StudyPlan } from '@/types'
+import { coursesApi } from '@/api/ops'
+import type { CourseRecommendation, StudyPlan } from '@/types'
 import { petEvents } from '@/utils/petEvents'
 
 const route = useRoute()
@@ -12,14 +23,62 @@ const router = useRouter()
 const plan = ref<StudyPlan | null>(null)
 const error = ref('')
 const success = ref('')
+const recs = ref<CourseRecommendation[]>([])
+const recLoading = ref(false)
+const recError = ref('')
 
 async function load() {
   error.value = ''
   try {
     const { data } = await plansApi.get(Number(route.params.id))
     plan.value = data
+    await loadCourses()
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '加载失败'
+  }
+}
+
+async function loadCourses() {
+  if (!plan.value) return
+  try {
+    const { data } = await plansApi.courses(plan.value.id)
+    recs.value = data
+  } catch {
+    recs.value = []
+  }
+}
+
+async function recommendCourses() {
+  if (!plan.value || recLoading.value) return
+  recLoading.value = true
+  recError.value = ''
+  try {
+    const { data } = await plansApi.recommendCourses(plan.value.id)
+    recs.value = data
+  } catch (err: any) {
+    recError.value = err?.response?.data?.detail || '推荐失败'
+  } finally {
+    recLoading.value = false
+  }
+}
+
+async function saveRec(rec: CourseRecommendation) {
+  recError.value = ''
+  try {
+    await coursesApi.saveRecommendation(rec.id)
+    await loadCourses()
+  } catch (err: any) {
+    recError.value = err?.response?.data?.detail || '加入失败'
+  }
+}
+
+async function dismissRec(rec: CourseRecommendation) {
+  recError.value = ''
+  try {
+    await coursesApi.dismissRecommendation(rec.id)
+    await loadCourses()
+  } catch (err: any) {
+    recError.value = err?.response?.data?.detail || '操作失败'
   }
 }
 
@@ -131,6 +190,66 @@ onMounted(load)
             <span v-if="item.completed" class="badge badge-green">已完成</span>
           </div>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="row space-between" style="margin-bottom: 4px">
+          <h2 style="margin: 0">
+            <GraduationCap :size="16" />
+            为你推荐课程
+          </h2>
+          <button
+            class="btn btn-outline"
+            type="button"
+            :disabled="recLoading"
+            @click="recommendCourses"
+          >
+            <RefreshCw :size="15" />
+            {{ recLoading ? '推荐中...' : '重新推荐' }}
+          </button>
+        </div>
+        <p class="muted" style="margin: 2px 0 12px">
+          根据计划科目、知识点与你的学习目标推荐，链接可直达课程页
+        </p>
+        <div v-if="!recs.length" class="empty">暂无推荐课程</div>
+        <div v-else class="list">
+          <div v-for="rec in recs" :key="rec.id" class="list-item">
+            <div class="list-item-main">
+              <div class="list-item-title">{{ rec.title }}</div>
+              <div class="list-item-sub">
+                {{ rec.platform }}
+                <span v-if="rec.subject"> · {{ rec.subject }}</span>
+                <span v-if="rec.level"> · {{ rec.level }}</span>
+                <span v-if="rec.language === 'en'"> · 英文</span>
+                <span v-if="rec.health_status === 'ok'"> · 链接正常</span>
+                <span v-else-if="rec.health_status === 'bad'"> · 链接待核验</span>
+                <span v-if="rec.status === 'saved'"> · 已加入公开课</span>
+              </div>
+            </div>
+            <div class="row gap">
+              <a
+                class="btn btn-outline"
+                :href="rec.url"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink :size="15" />
+                前往课程
+              </a>
+              <template v-if="rec.status === 'pending'">
+                <button class="btn btn-primary" type="button" @click="saveRec(rec)">
+                  <CheckCircle2 :size="15" />
+                  加入公开课
+                </button>
+                <button class="btn btn-ghost" type="button" @click="dismissRec(rec)">
+                  <X :size="15" />
+                  忽略
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
+        <p v-if="recError" class="text-danger" style="margin: 10px 0 0">{{ recError }}</p>
       </div>
     </template>
   </section>

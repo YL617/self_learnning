@@ -97,7 +97,7 @@ def test_courses_report_and_demo_seed(client):
 
     courses = client.get("/api/v1/courses", headers=headers).json()
     assert len(courses) >= 3
-    assert courses[0]["chapters"]
+    assert any(course["chapters"] for course in courses)
 
     report = client.get("/api/v1/reports/weekly", headers=headers)
     assert report.status_code == 200

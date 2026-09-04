@@ -45,4 +45,8 @@ export const adminApi = {
   updateCourse: (id: number, data: Partial<CoursePayload>) =>
     http.patch<Course>(`/admin/courses/${id}`, data),
   deleteCourse: (id: number) => http.delete<void>(`/admin/courses/${id}`),
+  checkCourseHealth: () =>
+    http.post<{ ok: number; bad: number; checked: number }>(
+      '/admin/courses/check-health',
+    ),
 }

@@ -22,6 +22,10 @@ celery_app.conf.beat_schedule = {
         "task": "ai_monitor.refresh_deepseek",
         "schedule": 3600.0,
     },
+    "check-course-health-6h": {
+        "task": "courses.check_health",
+        "schedule": 21600.0,
+    },
     "cleanup-expired-documents-daily": {
         "task": "documents.cleanup_expired",
         "schedule": 86400.0,
@@ -128,3 +132,12 @@ def refresh_ai_monitor_snapshot() -> dict:
             "provider": snapshot.provider,
             "status": snapshot.status,
         }
+
+
+@celery_app.task(name="courses.check_health")
+def check_course_health_task() -> dict:
+    from app.core.database import SessionLocal
+    from app.services.course_recommender import check_catalog_health
+
+    with SessionLocal() as db:
+        return check_catalog_health(db)

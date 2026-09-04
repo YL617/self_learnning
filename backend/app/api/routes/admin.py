@@ -43,6 +43,7 @@ from app.services.ai_monitor import (
     get_monitor_state,
     refresh_deepseek_monitor,
 )
+from app.services.course_recommender import check_catalog_health
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 settings = get_settings()
@@ -379,3 +380,12 @@ def delete_admin_course(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="课程不存在")
     db.delete(course)
     db.commit()
+
+
+@router.post("/courses/check-health")
+def check_admin_course_health(
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+    max_workers: int = Query(default=6, ge=1, le=12),
+) -> dict:
+    return check_catalog_health(db, max_workers=max_workers)

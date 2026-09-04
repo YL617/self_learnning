@@ -171,6 +171,7 @@ export interface PlanChatStart {
   session_id: number
   reply: string
   status: string
+  known: string[]
 }
 
 export interface PlanChatReply {
@@ -178,6 +179,7 @@ export interface PlanChatReply {
   reply: string
   status: string
   draft?: PlanDraft | null
+  known: string[]
 }
 
 export interface PlanDraft {
@@ -387,7 +389,30 @@ export interface Course {
   platform: string
   url: string
   description?: string | null
+  level?: string | null
+  language?: string | null
+  health_status?: string | null
+  health_checked_at?: string | null
+  health_error?: string | null
+  dismiss_count?: number
+  save_count?: number
   chapters: CourseChapter[]
+}
+
+export interface CourseRecommendation {
+  id: number
+  plan_id?: number | null
+  course_id?: number | null
+  title: string
+  platform: string
+  url: string
+  description?: string | null
+  subject?: string | null
+  level?: string | null
+  language?: string | null
+  health_status?: string | null
+  status: string
+  created_at: string
 }
 
 export interface WeeklyReport {

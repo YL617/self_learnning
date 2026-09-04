@@ -20,7 +20,7 @@ from app.models.learning import (
     StudyPlan,
     WrongBookItem,
 )
-from app.models.ops import Course, CourseChapter, Reminder, Todo
+from app.models.ops import Course, CourseChapter, CourseRecommendation, Reminder, Todo
 from app.models.plan_chat import PlanChatMessage, PlanChatSession
 from app.models.user import User, UserProfile
 
@@ -33,6 +33,7 @@ __all__ = [
     "CoinTransaction",
     "Course",
     "CourseChapter",
+    "CourseRecommendation",
     "DailyStat",
     "Document",
     "FileAnalyzeResult",
