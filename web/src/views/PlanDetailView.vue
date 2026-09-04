@@ -219,7 +219,7 @@ onMounted(load)
               <div class="list-item-sub">
                 {{ rec.platform }}
                 <span v-if="rec.subject"> · {{ rec.subject }}</span>
-                <span v-if="rec.level"> · {{ rec.level }}</span>
+                <span v-if="rec.category"> · {{ rec.category }}</span>
                 <span v-if="rec.language === 'en'"> · 英文</span>
                 <span v-if="rec.health_status === 'ok'"> · 链接正常</span>
                 <span

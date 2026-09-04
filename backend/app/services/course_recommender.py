@@ -246,8 +246,52 @@ _HOME_HOSTS = {
     "higher.smartedu.cn",
 }
 
-_LEVEL_ORDER = {"入门": 0, "进阶": 1, "考研": 2}
 _ANTI_BOT_CODES = {401, 403, 405, 412, 418, 429}
+
+# 课程分类：覆盖难度进阶与应试/求职用途，是推荐排序与前端筛选的主维度。
+_CATEGORY_MAP = {
+    "数据结构（浙江大学）": "入门",
+    "数据结构（清华大学 · 邓俊辉）": "进阶",
+    "王道考研数据结构（B站）": "考研",
+    "计算机网络系统（电子科技大学）": "进阶",
+    "程序设计入门——C语言（浙江大学 · 翁恺）": "入门",
+    "C语言程序设计（哈尔滨工业大学）": "进阶",
+    "Python程序设计（浙江大学）": "入门",
+    "Java程序设计（北京大学）": "入门",
+    "操作系统（清华大学 · 向勇/陈渝）": "进阶",
+    "数据库系统概论（中国人民大学）": "进阶",
+    "数据库系统概论（中国人民大学 · 学堂在线）": "提升",
+    "机器学习（吴恩达 Andrew Ng · Coursera）": "入门",
+    "机器学习（浙江大学）": "提升",
+    "高等数学（同济大学）": "入门",
+    "线性代数（同济大学）": "入门",
+    "概率论与数理统计（山东大学）": "入门",
+    "大学英语（备战四级）": "语言",
+    "算法设计与分析（哈尔滨工业大学）": "保研",
+    "算法设计与分析（北京大学）": "保研",
+}
+
+
+def _category_for(title: str) -> str:
+    return _CATEGORY_MAP.get(title, "进阶")
+
+
+def _category_bonus(category: str, desired: str) -> float:
+    if category == desired:
+        return 1.5
+    adjacency = {
+        "考研": {"保研", "提升"},
+        "保研": {"考研", "进阶"},
+        "入门": {"进阶"},
+        "进阶": {"入门", "提升", "保研"},
+        "提升": {"进阶", "考研"},
+        "语言": {"入门"},
+    }
+    if category in adjacency.get(desired, set()):
+        return 0.5
+    return 0.0
+
+
 _GOAL_TERMS = [
     "考研",
     "考硏",
@@ -294,19 +338,23 @@ def _profile_context(user: User | None, plan_text: str) -> dict[str, Any]:
     school = (profile.school_level if profile else None) or ""
     combined = f"{plan_text} {major} {goals} {weak} {grade} {school}".lower()
     low = (goals + " " + grade + " " + school).lower()
-    desired_level = "进阶"
-    if any(k in low for k in ["考研", "考硏", "升学", "研究生", "应试"]):
-        desired_level = "考研"
+    desired_category = "进阶"
+    if any(k in low for k in ["考研", "考硏", "升学", "应试", "研究生"]):
+        desired_category = "考研"
+    elif any(k in low for k in ["保研", "竞赛", "拔高", "复试", "奥赛"]):
+        desired_category = "保研"
     elif any(
         k in (grade + " " + goals).lower()
         for k in ["大一", "大二", "大三", "零基础", "入门", "高中", "初三", "初学者"]
     ):
-        desired_level = "入门"
+        desired_category = "入门"
+    elif any(k in low for k in ["提升", "强化", "突破", "冲刺"]):
+        desired_category = "提升"
     return {
         "full_text": combined,
         "weak_lower": weak.lower(),
         "goals_lower": goals.lower(),
-        "desired_level": desired_level,
+        "desired_category": desired_category,
     }
 
 
@@ -336,12 +384,8 @@ def _personal_bonus(
         for term in _GOAL_TERMS:
             if term in ctx["goals_lower"] and term in title_desc:
                 bonus += 1.0
-        desired = ctx["desired_level"]
-        level = str(course.get("level") or "进阶")
-        if level == desired:
-            bonus += 1.5
-        elif _LEVEL_ORDER.get(level, 1) == _LEVEL_ORDER.get(desired, 1):
-            bonus += 0.5
+        desired = ctx["desired_category"]
+        bonus += _category_bonus(_category_for(course["title"]), desired)
         if str(course.get("language") or "zh") == "zh":
             bonus += 0.2
     info = counters.get(course["title"], {})
@@ -396,12 +440,15 @@ def _ensure_course(db: Session, catalog: dict[str, Any]) -> Course | None:
             existing.level = catalog.get("level") or "进阶"
         if not existing.language:
             existing.language = catalog.get("language") or "zh"
+        if not existing.category:
+            existing.category = _category_for(catalog["title"])
         return existing
     course = Course(
         title=catalog["title"],
         platform=catalog["platform"],
         url=catalog["url"],
         description=catalog.get("description"),
+        category=_category_for(catalog["title"]),
         level=catalog.get("level") or "进阶",
         language=catalog.get("language") or "zh",
     )
@@ -472,6 +519,7 @@ def recommend_courses_for_plan(
             url=catalog["url"],
             description=catalog.get("description"),
             subject=catalog.get("subject"),
+            category=_category_for(catalog["title"]),
             level=catalog.get("level"),
             language=catalog.get("language"),
             status="pending",

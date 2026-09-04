@@ -138,7 +138,7 @@ def test_personalization_prefers_kaoyan_level():
         "full_text": "数据结构",
         "weak_lower": "",
         "goals_lower": "考研",
-        "desired_level": "考研",
+        "desired_category": "考研",
     }
     picks = _pick_courses("数据结构", ctx, {})
     assert "王道考研数据结构" in picks[0]["title"]
@@ -151,11 +151,25 @@ def test_feedback_demotes_heavily_dismissed():
         "full_text": "数据结构",
         "weak_lower": "",
         "goals_lower": "考研",
-        "desired_level": "考研",
+        "desired_category": "考研",
     }
     counters = {"王道考研数据结构（B站）": {"dismiss": 5, "save": 0}}
     picks = _pick_courses("数据结构", ctx, counters)
     assert "王道考研数据结构" not in picks[0]["title"]
+
+
+def test_personalization_prefers_baoyan_category():
+    from app.services.course_recommender import _category_for, _pick_courses
+
+    ctx = {
+        "full_text": "算法",
+        "weak_lower": "",
+        "goals_lower": "保研",
+        "desired_category": "保研",
+    }
+    picks = _pick_courses("算法", ctx, {})
+    assert "算法" in picks[0]["title"]
+    assert _category_for(picks[0]["title"]) == "保研"
 
 
 def test_check_catalog_health_updates_status(client, monkeypatch):

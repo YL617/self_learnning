@@ -389,6 +389,7 @@ export interface Course {
   platform: string
   url: string
   description?: string | null
+  category?: string | null
   level?: string | null
   language?: string | null
   health_status?: string | null
@@ -408,6 +409,7 @@ export interface CourseRecommendation {
   url: string
   description?: string | null
   subject?: string | null
+  category?: string | null
   level?: string | null
   language?: string | null
   health_status?: string | null

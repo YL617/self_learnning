@@ -153,7 +153,7 @@ onMounted(load)
             <strong>{{ course.title }}</strong>
             <div class="muted">
               {{ course.platform }} · {{ course.chapters.length }} 章
-              <template v-if="course.level"> · {{ course.level }}</template>
+              <template v-if="course.category"> · {{ course.category }}</template>
               <template v-if="course.health_status === 'ok'"> · 链接正常</template>
               <template
                 v-else-if="course.health_status === 'bad' || course.health_status === 'unknown'"

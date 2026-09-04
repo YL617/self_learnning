@@ -75,6 +75,7 @@ class CourseOut(ORMModel):
     platform: str
     url: str
     description: str | None = None
+    category: str | None = None
     level: str | None = None
     language: str | None = "zh"
     health_status: str | None = None
@@ -95,6 +96,7 @@ class CourseRecommendationOut(ORMModel):
     url: str
     description: str | None = None
     subject: str | None = None
+    category: str | None = None
     level: str | None = None
     language: str | None = None
     health_status: str | None = None

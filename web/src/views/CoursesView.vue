@@ -1,12 +1,27 @@
 <script setup lang="ts">
 import { ExternalLink, GraduationCap } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { coursesApi } from '@/api/ops'
 import type { Course } from '@/types'
 
 const courses = ref<Course[]>([])
 const error = ref('')
+const activeCategory = ref('全部')
+
+const categories = computed(() => {
+  const set = new Set<string>()
+  for (const course of courses.value) {
+    if (course.category) set.add(course.category)
+  }
+  return ['全部', ...Array.from(set)]
+})
+
+const filtered = computed(() =>
+  activeCategory.value === '全部'
+    ? courses.value
+    : courses.value.filter((course) => course.category === activeCategory.value),
+)
 
 onMounted(async () => {
   try {
@@ -29,11 +44,24 @@ onMounted(async () => {
 
     <p v-if="error" class="text-danger">{{ error }}</p>
 
+    <div class="row gap" style="flex-wrap: wrap; margin-bottom: 16px">
+      <button
+        v-for="category in categories"
+        :key="category"
+        class="btn"
+        :class="{ 'btn-primary': activeCategory === category }"
+        type="button"
+        @click="activeCategory = category"
+      >
+        {{ category }}
+      </button>
+    </div>
+
     <div class="grid grid-3">
-      <div v-for="course in courses" :key="course.id" class="card">
+      <div v-for="course in filtered" :key="course.id" class="card">
         <h2><GraduationCap :size="16" style="vertical-align: -2px" /> {{ course.title }}</h2>
         <div class="row gap" style="flex-wrap: wrap; margin: 2px 0 10px">
-          <span v-if="course.level" class="badge badge-teal">{{ course.level }}</span>
+          <span v-if="course.category" class="badge badge-teal">{{ course.category }}</span>
           <span v-if="course.language === 'en'" class="badge badge-teal">英文</span>
           <span
             v-if="course.health_status === 'ok'"
