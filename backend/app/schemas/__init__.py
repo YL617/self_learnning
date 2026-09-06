@@ -35,6 +35,12 @@ from app.schemas.focus import (
     PetPlaySummaryOut,
     PetUpdate,
 )
+from app.schemas.knowledge import (
+    KnowledgePointCreate,
+    KnowledgePointRead,
+    KnowledgePointTreeNode,
+    KnowledgePointUpdate,
+)
 from app.schemas.onboarding import OnboardingIn, OnboardingOut
 from app.schemas.plan import (
     PlanGenerateRequest,
@@ -95,6 +101,10 @@ __all__ = [
     "FocusTagOut",
     "FocusTagUpdate",
     "GenerateFileQuestionsRequest",
+    "KnowledgePointCreate",
+    "KnowledgePointRead",
+    "KnowledgePointTreeNode",
+    "KnowledgePointUpdate",
     "MembershipOut",
     "Message",
     "ORMModel",

@@ -11,7 +11,12 @@ from app.models.engagement import (
     PetPlaySession,
     ShopItem,
 )
-from app.models.knowledge import Document, FileAnalyzeResult, KnowledgeChunk
+from app.models.knowledge import (
+    Document,
+    FileAnalyzeResult,
+    KnowledgeChunk,
+    KnowledgePoint,
+)
 from app.models.learning import (
     AnswerRecord,
     PlanAdjustmentLog,
@@ -40,6 +45,7 @@ __all__ = [
     "FocusSession",
     "FocusTag",
     "KnowledgeChunk",
+    "KnowledgePoint",
     "Pet",
     "PetMemory",
     "PetMessage",
