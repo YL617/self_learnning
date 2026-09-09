@@ -82,7 +82,7 @@ class CourseChapter(Base):
 class CourseRecommendation(Base):
     __tablename__ = "course_recommendations"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )

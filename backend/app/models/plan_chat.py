@@ -9,7 +9,7 @@ from app.core.database import Base
 class PlanChatSession(Base):
     __tablename__ = "plan_chat_sessions"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
@@ -31,7 +31,7 @@ class PlanChatSession(Base):
 class PlanChatMessage(Base):
     __tablename__ = "plan_chat_messages"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     session_id: Mapped[int] = mapped_column(
         ForeignKey("plan_chat_sessions.id", ondelete="CASCADE"), index=True
     )

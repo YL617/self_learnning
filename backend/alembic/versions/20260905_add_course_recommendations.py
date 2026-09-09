@@ -6,10 +6,11 @@ Create Date: 2026-09-05
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "20260905_001"
-down_revision = "20260829_002"
+down_revision = "20260904_001"
 branch_labels = None
 depends_on = None
 

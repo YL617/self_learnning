@@ -34,7 +34,7 @@ class FocusSession(Base):
 class FocusTag(Base):
     __tablename__ = "focus_tags"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
@@ -77,7 +77,7 @@ class Pet(Base):
 class PetPlaySession(Base):
     __tablename__ = "pet_play_sessions"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     pet_id: Mapped[int] = mapped_column(
         ForeignKey("pets.id", ondelete="CASCADE"), index=True
     )
@@ -95,7 +95,7 @@ class PetPlaySession(Base):
 class PetMessage(Base):
     __tablename__ = "pet_messages"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     pet_id: Mapped[int] = mapped_column(
         ForeignKey("pets.id", ondelete="CASCADE"), index=True
     )
@@ -108,7 +108,7 @@ class PetMessage(Base):
 class PetMemory(Base):
     __tablename__ = "pet_memories"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     pet_id: Mapped[int] = mapped_column(
         ForeignKey("pets.id", ondelete="CASCADE"), index=True
     )

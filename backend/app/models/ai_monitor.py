@@ -18,7 +18,7 @@ from app.core.database import Base
 class AiProviderSnapshot(Base):
     __tablename__ = "ai_provider_snapshots"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     provider: Mapped[str] = mapped_column(String(32), index=True)
     total_balance: Mapped[str] = mapped_column(String(64), default="0")
     granted_balance: Mapped[str] = mapped_column(String(64), default="0")

@@ -17,7 +17,7 @@ from app.core.database import Base
 class ActivationCode(Base):
     __tablename__ = "activation_codes"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     tier: Mapped[str] = mapped_column(String(16))
     days: Mapped[int] = mapped_column(Integer)

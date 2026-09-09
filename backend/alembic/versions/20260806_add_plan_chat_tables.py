@@ -6,6 +6,7 @@ Create Date: 2026-08-06
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "20260806_003"
@@ -20,7 +21,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
         sa.Column("status", sa.String(length=32), nullable=False, server_default="collecting"),
-        sa.Column("collected_context", sa.Text(), nullable=False, server_default="{}"),
+        sa.Column("collected_context", sa.Text(), nullable=False),
         sa.Column("draft_json", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),
