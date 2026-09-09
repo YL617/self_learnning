@@ -1,0 +1,7856 @@
+{
+  "20260907_001": {
+    "activation_codes": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tier",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "days",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'unused'"
+        },
+        {
+          "name": "created_by",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "used_by",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "used_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "created_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "used_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_activation_codes_code",
+          "column_names": [
+            "code"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_daily_usage": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "usage_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "calls",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_ai_daily_usage_user_date",
+          "column_names": [
+            "user_id",
+            "usage_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ai_daily_usage_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_provider_snapshots": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "total_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "granted_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "topped_up_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "is_available",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "'1'"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'ok'"
+        },
+        {
+          "name": "error_message",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "checked_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_ai_provider_snapshots_provider",
+          "column_names": [
+            "provider"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_usage_records": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "usage_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tokens",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "cost",
+          "type": "FLOAT",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "recorded_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [
+        {
+          "name": "uq_ai_usage_provider_date",
+          "column_names": [
+            "provider",
+            "usage_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ai_usage_records_provider",
+          "column_names": [
+            "provider"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "answer_records": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_answer",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_correct",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "spent_seconds",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "question_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "questions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_answer_records_question_id",
+          "column_names": [
+            "question_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_answer_records_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "coin_transactions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "amount",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_coin_transactions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_coin_transactions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "course_chapters": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "course_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "order_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "course_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "courses",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_course_chapters_course_id",
+          "column_names": [
+            "course_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_chapters_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "course_recommendations": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "course_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'在线课程'"
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'pending'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "level",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(8)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "plan_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "study_plans",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "course_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "courses",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_course_recommendations_course_id",
+          "column_names": [
+            "course_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_recommendations_plan_id",
+          "column_names": [
+            "plan_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_recommendations_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "courses": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "level",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(8)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_status",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "http_status",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_checked_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_error",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "dismiss_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "save_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_courses_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "daily_stats": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "stat_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "focus_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "answered_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "correct_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "coin_earned",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_daily_stats_user_date",
+          "column_names": [
+            "user_id",
+            "stat_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_daily_stats_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "documents": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "filename",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "file_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "storage_path",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "chunks_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_documents_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_documents_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "focus_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "task_label",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tag_color",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_focus_sessions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_focus_sessions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "focus_tags": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(40)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "color",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'#0f766e'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_focus_tags_user_name",
+          "column_names": [
+            "user_id",
+            "name"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_focus_tags_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "knowledge_chunks": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "chunk_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "metadata_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "vector_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "document_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "documents",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_knowledge_chunks_document_id",
+          "column_names": [
+            "document_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_knowledge_chunks_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_memories": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_message_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_memories_end_message_id",
+          "column_names": [
+            "end_message_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_pet_memories_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_messages": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'assistant'"
+        },
+        {
+          "name": "kind",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'chat'"
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_messages_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_play_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'active'"
+        },
+        {
+          "name": "started_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "coin_cost",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'20'"
+        },
+        {
+          "name": "mood_gain",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "exp_gain",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'20'"
+        },
+        {
+          "name": "hunger_loss",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_play_sessions_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pets": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "level",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "exp",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mood",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "play_date",
+          "type": "DATE",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "play_count_today",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "playing_until",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pets_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_pets_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_chat_messages": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "session_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "plan_chat_sessions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_chat_messages_session_id",
+          "column_names": [
+            "session_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_chat_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'collecting'"
+        },
+        {
+          "name": "collected_context",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "draft_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_chat_sessions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_items": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "scheduled_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "order_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "plan_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "study_plans",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_items_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_plan_items_plan_id",
+          "column_names": [
+            "plan_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "questions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "knowledge_point",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "stem",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "options_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "answer",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "analysis",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "document_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "documents",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_questions_document_id",
+          "column_names": [
+            "document_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_questions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_questions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "study_plans": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "goal",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "start_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_study_plans_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_study_plans_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "user_profiles": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "major",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "grade",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "goals",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "daily_study_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "weak_subjects",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "school_level",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "pain_point",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "learning_style",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "weekly_study_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'420'"
+        },
+        {
+          "name": "available_time_slots",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "onboarding_completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "onboarding_completed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_user_profiles_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "users": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "hashed_password",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "membership_level",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'free'"
+        },
+        {
+          "name": "nickname",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "avatar_path",
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'user'"
+        },
+        {
+          "name": "membership_expires_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_users_email",
+          "column_names": [
+            "email"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_users_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_users_username",
+          "column_names": [
+            "username"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "wrong_book_items": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mistake_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "review_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mastered",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "question_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "questions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_wrong_book_items_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_wrong_book_items_question_id",
+          "column_names": [
+            "question_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_wrong_book_items_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    }
+  },
+  "20260908_001": {
+    "activation_codes": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tier",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "days",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'unused'"
+        },
+        {
+          "name": "created_by",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "used_by",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "used_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "created_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "used_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_activation_codes_code",
+          "column_names": [
+            "code"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_daily_usage": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "usage_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "calls",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_ai_daily_usage_user_date",
+          "column_names": [
+            "user_id",
+            "usage_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ai_daily_usage_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_provider_snapshots": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "total_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "granted_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "topped_up_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "is_available",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "'1'"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'ok'"
+        },
+        {
+          "name": "error_message",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "checked_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_ai_provider_snapshots_provider",
+          "column_names": [
+            "provider"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_usage_records": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "usage_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tokens",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "cost",
+          "type": "FLOAT",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "recorded_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [
+        {
+          "name": "uq_ai_usage_provider_date",
+          "column_names": [
+            "provider",
+            "usage_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ai_usage_records_provider",
+          "column_names": [
+            "provider"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "answer_records": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_answer",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_correct",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "spent_seconds",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "question_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "questions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_answer_records_question_id",
+          "column_names": [
+            "question_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_answer_records_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "coin_transactions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "amount",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_coin_transactions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_coin_transactions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "course_chapters": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "course_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "order_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "course_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "courses",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_course_chapters_course_id",
+          "column_names": [
+            "course_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_chapters_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "course_recommendations": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "course_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'在线课程'"
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'pending'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "level",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(8)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "plan_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "study_plans",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "course_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "courses",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_course_recommendations_course_id",
+          "column_names": [
+            "course_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_recommendations_plan_id",
+          "column_names": [
+            "plan_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_recommendations_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "courses": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "level",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(8)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_status",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "http_status",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_checked_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_error",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "dismiss_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "save_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_courses_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "daily_stats": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "stat_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "focus_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "answered_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "correct_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "coin_earned",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_daily_stats_user_date",
+          "column_names": [
+            "user_id",
+            "stat_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_daily_stats_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "documents": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "filename",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "file_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "storage_path",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "chunks_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_documents_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_documents_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "focus_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "task_label",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tag_color",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_focus_sessions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_focus_sessions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "focus_tags": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(40)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "color",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'#0f766e'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_focus_tags_user_name",
+          "column_names": [
+            "user_id",
+            "name"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_focus_tags_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "knowledge_chunks": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "chunk_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "metadata_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "vector_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "document_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "documents",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_knowledge_chunks_document_id",
+          "column_names": [
+            "document_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_knowledge_chunks_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "knowledge_points": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "normalized_name",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "normalized_subject",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "parent_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'active'"
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'system'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "parent_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "knowledge_points",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "RESTRICT"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_knowledge_points_normalized_subject_name",
+          "column_names": [
+            "normalized_subject",
+            "normalized_name"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_knowledge_points_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_knowledge_points_parent_id",
+          "column_names": [
+            "parent_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_memories": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_message_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_memories_end_message_id",
+          "column_names": [
+            "end_message_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_pet_memories_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_messages": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'assistant'"
+        },
+        {
+          "name": "kind",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'chat'"
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_messages_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_play_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'active'"
+        },
+        {
+          "name": "started_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "coin_cost",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'20'"
+        },
+        {
+          "name": "mood_gain",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "exp_gain",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'20'"
+        },
+        {
+          "name": "hunger_loss",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_play_sessions_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pets": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "level",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "exp",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mood",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "play_date",
+          "type": "DATE",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "play_count_today",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "playing_until",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pets_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_pets_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_chat_messages": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "session_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "plan_chat_sessions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_chat_messages_session_id",
+          "column_names": [
+            "session_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_chat_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'collecting'"
+        },
+        {
+          "name": "collected_context",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "draft_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_chat_sessions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_items": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "scheduled_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "order_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "plan_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "study_plans",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_items_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_plan_items_plan_id",
+          "column_names": [
+            "plan_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "questions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "knowledge_point",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "stem",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "options_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "answer",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "analysis",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "document_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "documents",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_questions_document_id",
+          "column_names": [
+            "document_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_questions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_questions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "study_plans": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "goal",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "start_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_study_plans_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_study_plans_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "user_profiles": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "major",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "grade",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "goals",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "daily_study_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "weak_subjects",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "school_level",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "pain_point",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "learning_style",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "weekly_study_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'420'"
+        },
+        {
+          "name": "available_time_slots",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "onboarding_completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "onboarding_completed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_user_profiles_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "users": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "hashed_password",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "membership_level",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'free'"
+        },
+        {
+          "name": "nickname",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "avatar_path",
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'user'"
+        },
+        {
+          "name": "membership_expires_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_users_email",
+          "column_names": [
+            "email"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_users_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_users_username",
+          "column_names": [
+            "username"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "wrong_book_items": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mistake_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "review_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mastered",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "question_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "questions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_wrong_book_items_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_wrong_book_items_question_id",
+          "column_names": [
+            "question_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_wrong_book_items_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    }
+  },
+  "20260909_001": {
+    "activation_codes": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tier",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "days",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'unused'"
+        },
+        {
+          "name": "created_by",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "used_by",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "used_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "created_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "used_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_activation_codes_code",
+          "column_names": [
+            "code"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_daily_usage": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "usage_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "calls",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_ai_daily_usage_user_date",
+          "column_names": [
+            "user_id",
+            "usage_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ai_daily_usage_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_provider_snapshots": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "total_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "granted_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "topped_up_balance",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "is_available",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "'1'"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'ok'"
+        },
+        {
+          "name": "error_message",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "checked_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_ai_provider_snapshots_provider",
+          "column_names": [
+            "provider"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "ai_usage_records": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "usage_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tokens",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "cost",
+          "type": "FLOAT",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "recorded_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [
+        {
+          "name": "uq_ai_usage_provider_date",
+          "column_names": [
+            "provider",
+            "usage_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ai_usage_records_provider",
+          "column_names": [
+            "provider"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "answer_records": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_answer",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_correct",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "spent_seconds",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "question_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "questions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_answer_records_question_id",
+          "column_names": [
+            "question_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_answer_records_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "coin_transactions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "amount",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_coin_transactions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_coin_transactions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "course_chapters": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "course_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "order_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "course_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "courses",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_course_chapters_course_id",
+          "column_names": [
+            "course_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_chapters_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "course_recommendations": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "course_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": "'在线课程'"
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'pending'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "level",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(8)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "plan_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "study_plans",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "course_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "courses",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_course_recommendations_course_id",
+          "column_names": [
+            "course_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_recommendations_plan_id",
+          "column_names": [
+            "plan_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_recommendations_status",
+          "column_names": [
+            "status"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_course_recommendations_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "courses": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "level",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(8)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_status",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "http_status",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_checked_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "health_error",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "dismiss_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "save_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "category",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_courses_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "daily_stats": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "stat_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "focus_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "answered_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "correct_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "coin_earned",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_daily_stats_user_date",
+          "column_names": [
+            "user_id",
+            "stat_date"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_daily_stats_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "documents": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "filename",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "file_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "storage_path",
+          "type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "chunks_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "size_bytes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "temp_cleanup_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_documents_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_documents_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "file_analyze_results": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "menu_json",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "message",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "document_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "documents",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_file_analyze_results_document_id",
+          "column_names": [
+            "document_id"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_file_analyze_results_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "focus_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "task_label",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tag_color",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_focus_sessions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_focus_sessions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "focus_tags": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(40)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "color",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'#0f766e'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_focus_tags_user_name",
+          "column_names": [
+            "user_id",
+            "name"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_focus_tags_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "knowledge_chunks": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "chunk_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "metadata_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "vector_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "document_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "documents",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_knowledge_chunks_document_id",
+          "column_names": [
+            "document_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_knowledge_chunks_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "knowledge_points": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "normalized_name",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "normalized_subject",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "parent_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'active'"
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'system'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "parent_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "knowledge_points",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "RESTRICT"
+          }
+        }
+      ],
+      "unique": [
+        {
+          "name": "uq_knowledge_points_normalized_subject_name",
+          "column_names": [
+            "normalized_subject",
+            "normalized_name"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_knowledge_points_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_knowledge_points_parent_id",
+          "column_names": [
+            "parent_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_memories": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_message_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_memories_end_message_id",
+          "column_names": [
+            "end_message_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_pet_memories_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_messages": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'assistant'"
+        },
+        {
+          "name": "kind",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'chat'"
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_messages_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pet_play_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "pet_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'active'"
+        },
+        {
+          "name": "started_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "coin_cost",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'20'"
+        },
+        {
+          "name": "mood_gain",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "exp_gain",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'20'"
+        },
+        {
+          "name": "hunger_loss",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'15'"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "pet_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pets",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pet_play_sessions_pet_id",
+          "column_names": [
+            "pet_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "pets": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "level",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "exp",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mood",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "play_date",
+          "type": "DATE",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "play_count_today",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "playing_until",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "hunger",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'100'"
+        },
+        {
+          "name": "evolution_stage",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'1'"
+        },
+        {
+          "name": "runaway",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "hunger_updated_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "last_fed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_pets_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_pets_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_adjustment_logs": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "before_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "after_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "plan_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "study_plans",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_adjustment_logs_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_plan_adjustment_logs_plan_id",
+          "column_names": [
+            "plan_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_chat_messages": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "session_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "plan_chat_sessions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_chat_messages_session_id",
+          "column_names": [
+            "session_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_chat_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'collecting'"
+        },
+        {
+          "name": "collected_context",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "draft_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_chat_sessions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "plan_items": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "scheduled_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "order_index",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "difficulty",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'medium'"
+        },
+        {
+          "name": "suggested_time_slot",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "buffer_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "plan_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "study_plans",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_plan_items_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_plan_items_plan_id",
+          "column_names": [
+            "plan_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "questions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "knowledge_point",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "stem",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "options_json",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "answer",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "analysis",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "is_favorite",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "0"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "document_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "documents",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_questions_document_id",
+          "column_names": [
+            "document_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_questions_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_questions_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "reminders": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "remind_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "triggered",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "dismissed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_reminders_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_reminders_remind_at",
+          "column_names": [
+            "remind_at"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_reminders_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "shop_items": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "price",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "effect_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [
+        {
+          "name": "uq_shop_items_name",
+          "column_names": [
+            "name"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_shop_items_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "study_plans": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "goal",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "start_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_study_plans_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_study_plans_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "todos": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "due_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_todos_due_date",
+          "column_names": [
+            "due_date"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_todos_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_todos_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "user_profiles": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "major",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "grade",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "goals",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "daily_study_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "weak_subjects",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "school_level",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "pain_point",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "learning_style",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "weekly_study_minutes",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'420'"
+        },
+        {
+          "name": "available_time_slots",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "onboarding_completed",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "onboarding_completed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_user_profiles_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "users": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "hashed_password",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "membership_level",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "default": "'free'"
+        },
+        {
+          "name": "nickname",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "avatar_path",
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "default": "'user'"
+        },
+        {
+          "name": "membership_expires_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "checkin_streak",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'0'"
+        },
+        {
+          "name": "last_checkin_date",
+          "type": "DATE",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_users_email",
+          "column_names": [
+            "email"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_users_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_users_username",
+          "column_names": [
+            "username"
+          ],
+          "unique": 1,
+          "dialect_options": {}
+        }
+      ]
+    },
+    "wrong_book_items": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "question_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mistake_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "review_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "mastered",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "review_stage",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "'1'"
+        },
+        {
+          "name": "next_review_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": "'1970-01-01'"
+        },
+        {
+          "name": "last_reviewed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fks": [
+        {
+          "name": null,
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        },
+        {
+          "name": null,
+          "constrained_columns": [
+            "question_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "questions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          }
+        }
+      ],
+      "unique": [],
+      "indexes": [
+        {
+          "name": "ix_wrong_book_items_id",
+          "column_names": [
+            "id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_wrong_book_items_question_id",
+          "column_names": [
+            "question_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        },
+        {
+          "name": "ix_wrong_book_items_user_id",
+          "column_names": [
+            "user_id"
+          ],
+          "unique": 0,
+          "dialect_options": {}
+        }
+      ]
+    }
+  }
+}
