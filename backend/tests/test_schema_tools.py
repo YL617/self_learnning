@@ -100,10 +100,40 @@ def test_drift_duplicate_unique_objects(engine):
     assert any("DUPLICATE UNIQUE users" in e for e in result.errors)
 
 
-def test_adoption_safe_20260909(engine):
+def test_adoption_complete_20260909(engine):
     _set_version(engine, "20260909_001")
     res = inspect_adoption(engine, Base)
-    assert res.status == "SAFE TO ADOPT TO 20260909_001"
+    assert res.status == "ADOPTION COMPLETE AT 20260909_001"
+    assert res.revision == "20260909_001"
+    assert any("schema_matches=20260909_001" in line for line in res.info)
+
+
+def test_adoption_target_revision_with_drift_blocks(engine):
+    _set_version(engine, "20260909_001")
+    _drop_column(engine, "users", "hashed_password")
+    res = inspect_adoption(engine, Base)
+    assert res.status == "ADOPTION BLOCKED"
+    assert any("MISSING COLUMN users.hashed_password" in reason for reason in res.reasons)
+
+
+@pytest.mark.parametrize("revision,drift,expected,exit_code", [
+    ("20260908_001", False, "SAFE TO ADOPT TO 20260909_001", 0),
+    ("20260909_001", False, "ADOPTION COMPLETE AT 20260909_001", 0),
+    ("20260909_001", True, "ADOPTION BLOCKED", 1),
+    ("unknown", False, "ADOPTION BLOCKED", 1),
+])
+def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
+                                          revision, drift, expected, exit_code):
+    import sqlalchemy
+
+    from app.core.adoption_inspector import main
+
+    _set_version(engine, revision)
+    if drift:
+        _drop_column(engine, "users", "hashed_password")
+    monkeypatch.setattr(sqlalchemy, "create_engine", lambda _: engine)
+    assert main() == exit_code
+    assert capsys.readouterr().out.splitlines()[0] == expected
 
 
 def test_adoption_20260908_reconcile_present(engine):
@@ -274,6 +304,6 @@ def test_tools_only_issue_read_statements(engine):
     statements = []
     event.listen(engine, "before_cursor_execute", lambda c, cur, sql, p, ctx, many: statements.append(sql))
     assert check_drift(engine, Base).exit_code == 0
-    assert inspect_adoption(engine, Base).status.startswith("SAFE")
+    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20260909_001"
     assert statements
     assert all(sql.lstrip().upper().startswith(("SELECT", "PRAGMA")) for sql in statements)

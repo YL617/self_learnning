@@ -35,7 +35,7 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
                 assert result.exit_code == 0
                 assert result.errors == []
                 assert len(result.warnings) == 40
-                assert adoption.status == "SAFE TO ADOPT TO 20260909_001"
+                assert adoption.status == "ADOPTION COMPLETE AT 20260909_001"
     finally:
         engine.dispose()
 

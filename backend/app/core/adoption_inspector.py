@@ -82,6 +82,8 @@ def inspect_adoption(engine, base):
             if drift.errors:
                 return blocked(*drift.errors)
             info.extend(drift.warnings)
+            if revision == TARGET:
+                return AdoptionResult(f"ADOPTION COMPLETE AT {TARGET}", revision, [], info)
             return AdoptionResult(f"SAFE TO ADOPT TO {TARGET}", revision, [], info)
         if matched != revision:
             return blocked("Schema and version disagree; partial adoption is not supported")
@@ -108,7 +110,9 @@ def main():
             print(f"INFO {line}")
         for line in result.reasons:
             print(f"ERROR {line}")
-        return 0 if result.status.startswith("SAFE TO ADOPT") else 1
+        return 0 if result.status in {
+            f"SAFE TO ADOPT TO {TARGET}", f"ADOPTION COMPLETE AT {TARGET}",
+        } else 1
     finally:
         engine.dispose()
 
