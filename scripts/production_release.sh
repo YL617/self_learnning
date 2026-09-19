@@ -18,6 +18,9 @@ if [ -n "${EXPECTED_COMMIT:-}" ] && [ "$commit" != "$EXPECTED_COMMIT" ]; then
   echo 'ERROR: HEAD does not match EXPECTED_COMMIT.'
   exit 1
 fi
+lock_hash=$(sha256sum backend/constraints-prod.lock | awk '{print $1}')
+export SOURCE_COMMIT="$commit"
+export DEPENDENCY_LOCK_SHA256="$lock_hash"
 echo "Deploy commit=$commit image=${BACKEND_IMAGE:-ai-study-backend:latest}"
 log_dir="${DEPLOY_LOG_DIR:-/var/log/ai-study-deploy}/$(date -u +%Y%m%dT%H%M%S)-$$"
 mkdir -p "$log_dir"

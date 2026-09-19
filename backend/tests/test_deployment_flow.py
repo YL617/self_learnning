@@ -5,6 +5,8 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -31,6 +33,9 @@ def release_env(tmp_path):
     bin_dir.mkdir()
     scripts = tmp_path / "scripts"
     scripts.mkdir()
+    backend = tmp_path / "backend"
+    backend.mkdir()
+    shutil.copyfile(ROOT / "backend" / "constraints-prod.lock", backend / "constraints-prod.lock")
     for name in ("production_release.sh", "update_production.sh", "deploy_production.sh"):
         shutil.copyfile(ROOT / "scripts" / name, scripts / name)
     (tmp_path / ".env").touch()
@@ -146,3 +151,32 @@ def test_storage_mount_must_cover_actual_directory():
     assert module.covered("/app/uploads", [{"Type": "volume", "Destination": "/app/uploads"}])
     assert not module.covered("/app/uploads", [{"Type": "volume", "Destination": "/app/uploads-old"}])
     assert not module.covered("/app/uploads", [{"Type": "tmpfs", "Destination": "/app/uploads"}])
+
+
+def test_production_constraints_pin_all_direct_dependencies():
+    constraints = {}
+    for line in (ROOT / "backend" / "constraints-prod.lock").read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        requirement = Requirement(line)
+        assert len(requirement.specifier) == 1
+        specifier = next(iter(requirement.specifier))
+        assert specifier.operator == "=="
+        constraints[canonicalize_name(requirement.name)] = specifier.version
+
+    for filename in ("requirements.txt", "requirements-ai.txt"):
+        for line in (ROOT / "backend" / filename).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            requirement = Requirement(line)
+            assert canonicalize_name(requirement.name) in constraints
+
+
+def test_backend_image_uses_validated_base_and_lock():
+    dockerfile = (ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
+    assert "python:3.12.14-slim-trixie@sha256:78387bc3881" in dockerfile
+    assert "--constraint constraints-prod.lock" in dockerfile
+    assert 'org.opencontainers.image.revision="${SOURCE_COMMIT}"' in dockerfile
+    assert "dependency-lock-sha256" in dockerfile

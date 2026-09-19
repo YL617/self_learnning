@@ -54,7 +54,11 @@ services:
 
   backend:
     image: ${BACKEND_IMAGE:-ai-study-backend:latest}
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
+        DEPENDENCY_LOCK_SHA256: ${DEPENDENCY_LOCK_SHA256:-unknown}
     container_name: ai-study-backend
     restart: unless-stopped
     environment:
@@ -89,7 +93,11 @@ services:
 
   worker:
     image: ${BACKEND_IMAGE:-ai-study-backend:latest}
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
+        DEPENDENCY_LOCK_SHA256: ${DEPENDENCY_LOCK_SHA256:-unknown}
     container_name: ai-study-worker
     restart: unless-stopped
     command: celery -A app.tasks.celery_app worker --loglevel=info
@@ -112,7 +120,11 @@ services:
 
   beat:
     image: ${BACKEND_IMAGE:-ai-study-backend:latest}
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
+        DEPENDENCY_LOCK_SHA256: ${DEPENDENCY_LOCK_SHA256:-unknown}
     container_name: ai-study-beat
     restart: unless-stopped
     command: celery -A app.tasks.celery_app beat --loglevel=info

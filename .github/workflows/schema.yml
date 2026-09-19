@@ -31,7 +31,9 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: backend/requirements*.txt
+          cache-dependency-path: |
+            backend/requirements*.txt
+            backend/constraints-prod.lock
       - run: pip install -r requirements-dev.txt
       - name: Fresh MySQL, Alembic check, drift and startup without create_all
         run: PYTHONPATH=. python tests/verify_schema_runtime.py
