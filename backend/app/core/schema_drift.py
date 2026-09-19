@@ -88,8 +88,13 @@ class DriftResult:
     info: list[str] = field(default_factory=list)
 
     @property
+    def unknown_warnings(self) -> list[str]:
+        return [w for w in self.warnings
+                if not w.startswith(("WHITELIST DEFAULT ", "FK AUTO INDEX "))]
+
+    @property
     def exit_code(self) -> int:
-        return 0 if not self.errors else 1
+        return 0 if not self.errors and not self.unknown_warnings else 1
 
 
 def _is_fk_auto_index(column_names: list[str], db_fks: list[dict]) -> bool:
@@ -249,7 +254,8 @@ def run(engine: Engine, base: type[DeclarativeBase]) -> int:
         print(f"WARN  {line}")
     for line in result.errors:
         print(f"ERROR {line}")
-    print(f"RESULT errors={len(result.errors)} warnings={len(result.warnings)}")
+    print(f"RESULT errors={len(result.errors)} warnings={len(result.warnings)} "
+          f"unknown_warnings={len(result.unknown_warnings)}")
     return result.exit_code
 
 

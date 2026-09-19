@@ -7,7 +7,8 @@ from sqlalchemy import select
 
 from app.api.router import api_router
 from app.core.config import get_settings
-from app.core.database import Base, SessionLocal, engine
+from app.core.database import SessionLocal, engine
+from app.core.revision_guard import require_schema_revision
 from app.models import User
 
 settings = get_settings()
@@ -15,8 +16,7 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # 开发阶段自动建表；生产环境请使用 Alembic 迁移
-    Base.metadata.create_all(bind=engine)
+    require_schema_revision(engine)
     avatars_dir = settings.UPLOAD_DIR / "avatars"
     avatars_dir.mkdir(parents=True, exist_ok=True)
     if settings.ADMIN_INITIAL_EMAIL:

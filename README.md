@@ -107,10 +107,11 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env   # 按需填写 AI API Key
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-默认使用 SQLite，零配置即可启动；需要 MySQL/Redis 时：
+默认使用 SQLite，首次启动或更新模型后先执行 `alembic upgrade head`。应用启动只核验 revision，不自动建表；需要 MySQL/Redis 时：
 
 ```bash
 docker compose up -d mysql redis
@@ -139,8 +140,14 @@ pnpm dev:mp-weixin
 ### 4. 一键启动完整后端栈
 
 ```bash
-docker compose up -d --build
+docker compose build backend web
+docker compose up -d --wait mysql redis
+docker compose run --rm --no-deps -T backend alembic upgrade head
+docker compose run --rm --no-deps -T backend python -m app.core.revision_guard
+docker compose up -d --no-build backend web
 ```
+
+以上为开发初始化示例。生产更新使用 `scripts/update_production.sh`，包含备份、停写、migration、revision/drift 校验和健康检查。详见 [单轨部署流程](./docs/Stage3_单轨部署说明.md)。
 
 ## 文档
 

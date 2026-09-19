@@ -1,8 +1,22 @@
 from celery import Celery
+from celery.signals import beat_init, worker_init
 
 from app.core.config import get_settings
 
 settings = get_settings()
+
+@worker_init.connect(weak=False)
+@beat_init.connect(weak=False)
+def verify_background_schema(**kwargs):
+    from app.core.database import engine
+    from app.core.revision_guard import SchemaRevisionError, require_schema_revision
+
+    try:
+        require_schema_revision(engine)
+    except SchemaRevisionError as exc:
+        # Celery signals swallow Exception; SystemExit must stop the process.
+        raise SystemExit(str(exc)) from None
+
 
 celery_app = Celery(
     "ai_study",

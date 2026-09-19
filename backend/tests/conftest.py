@@ -73,6 +73,8 @@ def mock_ai(monkeypatch):
 
 
 @pytest.fixture()
-def client():
+def client(monkeypatch):
+    # API fixtures own a temporary schema; lifecycle tests use real migrations.
+    monkeypatch.setattr("app.main.require_schema_revision", lambda engine: None)
     with TestClient(app) as test_client:
         yield test_client
