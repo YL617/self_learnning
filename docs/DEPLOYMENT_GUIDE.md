@@ -53,7 +53,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 ## 1.2 一键部署脚本
 
-脚本会完成：安装 Docker、开放端口、拉取代码、生成 `.env`、构建 Web/后端镜像、启动服务并执行迁移。
+先按上节安装 Docker、Git、Python 3 并配置防火墙。脚本会拉取代码、检查 `.env`、构建镜像，等待数据库、备份并执行迁移；仅在 migration/revision/drift 成功后启动新应用。详细顺序与失败处理见 [单轨部署说明](./Stage3_单轨部署说明.md)。
 
 ```bash
 sudo dnf install -y git
@@ -61,11 +61,11 @@ git clone https://github.com/YL617/self_learnning.git /tmp/ai-study-deploy
 sudo bash /tmp/ai-study-deploy/scripts/deploy_production.sh
 ```
 
-执行后编辑 `/opt/ai-study/.env`，至少填写 `SECRET_KEY` 与 `DEEPSEEK_API_KEY`，然后重启：
+首次缺少 `.env` 时，脚本复制示例后退出。编辑 `/opt/ai-study/.env`，填写数据库密码、`SECRET_KEY`、CORS 与 AI Key，然后重新运行：
 
 ```bash
 cd /opt/ai-study
-docker compose up -d
+bash scripts/deploy_production.sh
 ```
 
 ## 1.3 拉取并启动项目（手动方式）
@@ -74,10 +74,10 @@ docker compose up -d
 cd /opt
 git clone https://github.com/YL617/self_learnning.git ai-study
 cd ai-study
-cp .env.example backend/.env
+cp backend/.env.example .env
 ```
 
-编辑 `backend/.env` 与根目录 `.env`，至少配置：
+Docker Compose 使用根目录 `.env`；本机直接运行 Python 才使用 `backend/.env`。根目录至少配置：
 
 ```dotenv
 SECRET_KEY=替换为随机长字符串
@@ -87,17 +87,16 @@ ADMIN_INITIAL_EMAIL=3524045145@qq.com
 DATABASE_URL=mysql+pymysql://ai_study:ai_study_pass@mysql:3306/ai_study?charset=utf8mb4
 ```
 
-然后启动：
+配置完成后通过正式部署入口启动：
 
 ```bash
-docker compose up -d --build
-docker compose exec backend alembic upgrade head
+bash scripts/deploy_production.sh
 ```
 
 ## 2. 一键启动
 
 ```bash
-docker compose up -d --build
+bash scripts/update_production.sh
 ```
 
 默认服务：
@@ -114,7 +113,7 @@ docker compose up -d --build
 需要后台自动任务（每小时刷新 DeepSeek 监控、每日清理过期文档）时，再启动：
 
 ```bash
-docker compose --profile background up -d
+ENABLE_BACKGROUND=1 bash scripts/update_production.sh
 ```
 
 ## 3. 配置
@@ -146,12 +145,14 @@ FULL_DAILY_AI_QUOTA=300
 
 ## 4. 数据库
 
-首次启动自动建表。生产环境建议：
+应用启动不再自动建表。开发环境首次启动和升级后必须先执行：
 
 ```bash
 cd backend
 alembic upgrade head
 ```
+
+生产由显式部署步骤运行迁移。API、worker、beat 启动时只读检查数据库 revision 与代码 head 一致；不一致则拒绝启动，不会自动 stamp/upgrade。pytest 的临时数据库 fixture 独立保留 create_all。
 
 ## 5. 演示数据
 
@@ -202,7 +203,7 @@ sudo certbot --nginx -d yl617.xyz
 - [ ] 域名 yl617.xyz 已解析到 8.136.194.163
 - [ ] HTTPS 证书生效
 - [ ] `.env` 已配置 `SECRET_KEY`、`CORS_ORIGINS=https://yl617.xyz`、`DEEPSEEK_API_KEY`、`ADMIN_INITIAL_EMAIL=3524045145@qq.com`
-- [ ] 首次启动后执行 `alembic upgrade head`
+- [ ] 启动应用前 migration 成功，revision=head，Schema Drift 无错误
 - [ ] 管理员账号可通过 `ADMIN_INITIAL_EMAIL` 初始化
 - [ ] 后台可生成激活码，用户可兑换会员
 - [ ] DeepSeek 余额与用量可在 `/admin` 查看
