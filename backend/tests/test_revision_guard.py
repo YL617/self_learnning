@@ -42,7 +42,7 @@ def test_guard_is_read_only_and_detects_newer_database():
         statements = []
         event.listen(engine, "before_cursor_execute",
                      lambda c, cur, sql, p, ctx, many: statements.append(sql))
-        assert require_schema_revision(engine) == "20260909_001"
+        assert require_schema_revision(engine) == expected_head()
         assert all(s.lstrip().upper().startswith(("SELECT", "PRAGMA")) for s in statements)
         with engine.begin() as conn:
             conn.execute(text("UPDATE alembic_version SET version_num='20990101_001'"))

@@ -1,6 +1,16 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -80,6 +90,34 @@ class Question(Base):
     analysis: Mapped[str | None] = mapped_column(Text)
     source: Mapped[str] = mapped_column(String(32), default="ai")
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class QuestionKnowledgePoint(Base):
+    """题目与全局知识点的结构化关联（Phase 2）。
+
+    每道题最多一个 role=primary（由 Service 层保证）；
+    同一 (question, knowledge_point) 组合唯一。
+    """
+
+    __tablename__ = "question_knowledge_points"
+    __table_args__ = (
+        UniqueConstraint(
+            "question_id",
+            "knowledge_point_id",
+            name="uq_question_knowledge_points_pair",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("questions.id", ondelete="CASCADE")
+    )
+    knowledge_point_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_points.id", ondelete="RESTRICT"), index=True
+    )
+    role: Mapped[str] = mapped_column(String(16), default="primary", server_default="primary")
+    source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

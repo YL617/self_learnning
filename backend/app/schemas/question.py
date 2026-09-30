@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -12,6 +13,8 @@ class QuestionGenerateRequest(BaseModel):
     question_type: str = Field(default="choice", pattern="^(choice|fill|short_answer)$")
     document_id: int | None = None
     reference_question_id: int | None = None
+    # Phase 2：可选的结构化知识点；不传时行为与旧版完全一致。
+    knowledge_point_id: int | None = None
 
 
 class QuestionOut(ORMModel):
@@ -57,3 +60,21 @@ class WrongBookOut(ORMModel):
 
 class WrongBookItemUpdate(BaseModel):
     mastered: bool | None = None
+
+
+class QuestionKnowledgePointAttachItem(BaseModel):
+    knowledge_point_id: int
+    role: Literal["primary", "secondary"] = "primary"
+
+
+class QuestionKnowledgePointReplaceRequest(BaseModel):
+    items: list[QuestionKnowledgePointAttachItem] = Field(max_length=20)
+
+
+class QuestionKnowledgePointRead(ORMModel):
+    id: int
+    question_id: int
+    knowledge_point_id: int
+    role: str
+    source: str
+    created_at: datetime

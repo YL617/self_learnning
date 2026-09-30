@@ -1,7 +1,8 @@
 """机器可读的 Schema Reconciliation Manifest。
 
 供 migration test / drift checker / adoption inspector 共用，避免三套逻辑各写一份。
-仅描述 20260909_001 schema_reconciliation 负责的对象与已知 server_default 差异。
+仅描述 20260909_001 schema_reconciliation 负责的对象与已知 server_default 差异；
+reconciliation 之后由新 revision 创建的表登记在 POST_RECONCILIATION_TABLES。
 """
 
 import json
@@ -29,6 +30,13 @@ RECONCILED_COLUMNS: dict[str, list[str]] = {
 # 由 reconciliation 增加的索引
 RECONCILED_INDEXES: dict[str, list[str]] = {
     "course_recommendations": ["status"],
+}
+
+# reconciliation 之后由后续 revision 新建的整表（revision -> tables）。
+# 20260909_001 的 frozen contract 必须保持不含这些表；
+# adoption inspector 会据此校验 profile 链的一致性。
+POST_RECONCILIATION_TABLES: dict[str, list[str]] = {
+    "20261001_001": ["question_knowledge_points"],
 }
 
 # server_default 字段级白名单。

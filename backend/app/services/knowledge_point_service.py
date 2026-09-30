@@ -5,7 +5,7 @@ import re
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import KnowledgePoint
+from app.models import KnowledgePoint, QuestionKnowledgePoint
 
 KP_STATUS_ACTIVE = "active"
 KP_STATUS_PENDING = "pending"
@@ -58,6 +58,10 @@ class ParentCycleError(KnowledgePointError):
 
 
 class KnowledgePointHasChildren(KnowledgePointError):
+    pass
+
+
+class KnowledgePointInUse(KnowledgePointError):
     pass
 
 
@@ -267,5 +271,13 @@ class KnowledgePointService:
         )
         if has_children is not None:
             raise KnowledgePointHasChildren("存在子知识点，无法删除")
+        # Phase 2：存在题目关联时拒绝删除（DB RESTRICT 仅作最后防线）。
+        linked_question = self.db.scalar(
+            select(QuestionKnowledgePoint.id)
+            .where(QuestionKnowledgePoint.knowledge_point_id == knowledge_point_id)
+            .limit(1)
+        )
+        if linked_question is not None:
+            raise KnowledgePointInUse("知识点已被题目关联，请先解除关联")
         self.db.delete(item)
         return item

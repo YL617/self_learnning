@@ -22,6 +22,7 @@ from app.models.learning import (
     PlanAdjustmentLog,
     PlanItem,
     Question,
+    QuestionKnowledgePoint,
     StudyPlan,
     WrongBookItem,
 )
@@ -55,6 +56,7 @@ __all__ = [
     "PlanChatSession",
     "PlanItem",
     "Question",
+    "QuestionKnowledgePoint",
     "Reminder",
     "ShopItem",
     "StudyPlan",

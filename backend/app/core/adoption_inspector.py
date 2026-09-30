@@ -8,9 +8,14 @@ from sqlalchemy import inspect, text
 
 from app.core.schema_drift import check_drift
 from app.core.schema_profiles import load_profiles
-from app.core.schema_reconciliation_manifest import reconciliation_manifest
+from app.core.schema_reconciliation_manifest import (
+    POST_RECONCILIATION_TABLES,
+    RECONCILED_TABLES,
+    reconciliation_manifest,
+)
 
-TARGET = "20260909_001"
+TARGET = "20261001_001"
+RECONCILIATION_REVISION = "20260909_001"
 MIGRATION_DIR = Path(__file__).resolve().parents[2] / "alembic"
 
 
@@ -58,11 +63,24 @@ def inspect_adoption(engine, base):
             return blocked("Unknown revision")
         profiles = load_profiles(base)
         manifest = reconciliation_manifest()
-        if set(manifest["created_tables"]) != (
+        if set(manifest["created_tables"]) != set(RECONCILED_TABLES):
+            return blocked("Reconciliation manifest contradicts frozen profiles")
+        # reconciliation 之后新增的整表必须登记在 POST_RECONCILIATION_TABLES，
+        # 且不得出现在 20260909_001 的 frozen contract 中（历史合同不可覆盖）。
+        post_tables = {
+            table
+            for tables in POST_RECONCILIATION_TABLES.values()
+            for table in tables
+        }
+        expected_delta = set(RECONCILED_TABLES) | post_tables
+        if expected_delta != (
             set(profiles[TARGET].metadata.tables)
             - set(profiles["20260908_001"].metadata.tables)
         ):
             return blocked("Reconciliation manifest contradicts frozen profiles")
+        reconciled_tables = set(profiles[RECONCILIATION_REVISION].metadata.tables)
+        if post_tables & reconciled_tables:
+            return blocked("Post-reconciliation table leaked into frozen 20260909_001 contract")
         matches = []
         comparisons = {}
         for candidate, expected in profiles.items():

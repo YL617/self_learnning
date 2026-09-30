@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 LEGACY_REVISION = "20260908_001"
-TARGET_REVISION = "20260909_001"
+TARGET_REVISION = "20261001_001"
 
 
 @dataclass(frozen=True)

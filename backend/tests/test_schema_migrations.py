@@ -1,5 +1,6 @@
 """Real Alembic replay tests. No create_all/stamp and no application DB access."""
 
+import json
 import os
 import subprocess
 import sys
@@ -24,7 +25,7 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
     environment = {**os.environ, "DATABASE_URL": url}
     engine = create_engine(url)
     try:
-        for revision in ("20260907_001", "20260908_001", "head"):
+        for revision in ("20260907_001", "20260908_001", "20260909_001", "head"):
             subprocess.run([sys.executable, "-m", "alembic", "upgrade", revision],
                            cwd=backend, env=environment, check=True, capture_output=True)
             adoption = inspect_adoption(engine, Base)
@@ -35,7 +36,7 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
                 assert result.exit_code == 0
                 assert result.errors == []
                 assert len(result.warnings) == 40
-                assert adoption.status == "ADOPTION COMPLETE AT 20260909_001"
+                assert adoption.status == "ADOPTION COMPLETE AT 20261001_001"
     finally:
         engine.dispose()
 
@@ -50,5 +51,17 @@ def test_manifest_delta_and_historical_ownership():
         assert not {c["name"] for c in columns} & {c["name"] for c in before[table]["columns"]}
     assert manifest["added_indexes"]["course_recommendations"][0]["name"] == "ix_course_recommendations_status"
     chain = migration_chain()
-    assert len(chain) == len(set(chain)) == 16
-    assert chain[-1] == manifest["revision"]
+    assert len(chain) == len(set(chain)) == 17
+    assert manifest["revision"] in chain
+    assert chain[-1] == "20261001_001"
+
+
+def test_phase2_profile_added_without_overwriting_history():
+    """Phase 2 安全项：新 revision 有自己的 profile；20260909_001 合同不含新表。"""
+    from app.core.schema_profiles import PROFILE_PATH
+
+    profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    assert "question_knowledge_points" in profiles["20261001_001"]
+    assert "question_knowledge_points" not in profiles["20260909_001"]
+    # 历史合同表数量不变（Stage 3 验收时为 32 表）
+    assert len(profiles["20260909_001"]) == 32

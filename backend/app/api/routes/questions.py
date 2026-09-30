@@ -14,6 +14,7 @@ from app.models import (
     Document,
     KnowledgeChunk,
     Question,
+    QuestionKnowledgePoint,
     User,
     WrongBookItem,
 )
@@ -22,6 +23,9 @@ from app.schemas.question import (
     AnswerSubmit,
     QuestionFavoriteUpdate,
     QuestionGenerateRequest,
+    QuestionKnowledgePointAttachItem,
+    QuestionKnowledgePointRead,
+    QuestionKnowledgePointReplaceRequest,
     QuestionOut,
     WrongBookItemUpdate,
     WrongBookOut,
@@ -29,6 +33,15 @@ from app.schemas.question import (
 from app.services.content_filter import validate_text
 from app.services.engagement import award_coins, award_pet_exp, record_daily_stat
 from app.services.question_generator import check_answer, generate_questions
+from app.services.question_knowledge_point_service import (
+    AssociationNotFound,
+    KnowledgePointNotFound,
+    PrimaryConflict,
+    QuestionKnowledgePointError,
+    QuestionKnowledgePointService,
+    QuestionNotFound,
+    SubjectMismatch,
+)
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 wrong_book_router = APIRouter(prefix="/wrong-book", tags=["wrong-book"])
@@ -40,7 +53,9 @@ def _save_questions(
     user_id: int,
     document_id: int | None,
     questions: list[dict],
+    knowledge_point_id: int | None = None,
 ) -> list[Question]:
+    """落库题目；传入 knowledge_point_id 时在同一事务内建立结构化关联。"""
     saved: list[Question] = []
     for question in questions:
         model = Question(
@@ -56,6 +71,17 @@ def _save_questions(
         )
         db.add(model)
         saved.append(model)
+    db.flush()
+    if knowledge_point_id is not None:
+        service = QuestionKnowledgePointService(db)
+        for model in saved:
+            service.attach(
+                model.id,
+                knowledge_point_id,
+                role="primary",
+                source="manual",
+                owner_id=user_id,
+            )
     db.commit()
     for model in saved:
         db.refresh(model)
@@ -111,6 +137,22 @@ def generate(
             "analysis": original.analysis,
         }
 
+    validate_knowledge_point: int | None = None
+    if data.knowledge_point_id is not None:
+        try:
+            QuestionKnowledgePointService(db).validate_knowledge_point_for_subject(
+                data.knowledge_point_id, data.subject
+            )
+        except KnowledgePointNotFound as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+            ) from exc
+        except SubjectMismatch as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
+        validate_knowledge_point = data.knowledge_point_id
+
     try:
         questions = generate_questions(
             data.subject,
@@ -125,7 +167,14 @@ def generate(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(exc),
         )
-    return _save_questions(db, current_user.id, document_id, questions)
+    try:
+        return _save_questions(db, current_user.id, document_id, questions,
+                               knowledge_point_id=validate_knowledge_point)
+    except SubjectMismatch as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
 
 
 @router.get("", response_model=list[QuestionOut])
@@ -168,6 +217,131 @@ def update_question_favorite(
     return question
 
 
+def _resolve_question(
+    db: Session, question_id: int, current_user: User
+) -> Question:
+    """owner 或管理员可见；越权统一 404，不泄漏题目是否存在。"""
+    statement = select(Question).where(Question.id == question_id)
+    if current_user.role != "admin":
+        statement = statement.where(Question.user_id == current_user.id)
+    question = db.scalar(statement)
+    if question is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
+    return question
+
+
+def _association_owner_id(current_user: User) -> int | None:
+    """管理员传 None 表示不做 owner 过滤。"""
+    return None if current_user.role == "admin" else current_user.id
+
+
+def _map_association_errors(exc: Exception) -> HTTPException:
+    if isinstance(exc, (QuestionNotFound, KnowledgePointNotFound, AssociationNotFound)):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, (SubjectMismatch, PrimaryConflict, QuestionKnowledgePointError)):
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="关联操作失败")
+
+
+@router.get("/{question_id}/knowledge-points", response_model=list[QuestionKnowledgePointRead])
+def list_question_knowledge_points(
+    question_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list:
+    _resolve_question(db, question_id, current_user)
+    service = QuestionKnowledgePointService(db)
+    try:
+        return service.list_for_question(question_id, _association_owner_id(current_user))
+    except QuestionKnowledgePointError as exc:
+        raise _map_association_errors(exc) from exc
+
+
+@router.post("/{question_id}/knowledge-points", response_model=QuestionKnowledgePointRead, status_code=status.HTTP_201_CREATED)
+def attach_question_knowledge_point(
+    question_id: int,
+    data: QuestionKnowledgePointAttachItem,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    _resolve_question(db, question_id, current_user)
+    service = QuestionKnowledgePointService(db)
+    try:
+        item = service.attach(
+            question_id,
+            data.knowledge_point_id,
+            role=data.role,
+            source="manual",
+            owner_id=_association_owner_id(current_user),
+        )
+    except QuestionKnowledgePointError as exc:
+        raise _map_association_errors(exc) from exc
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/{question_id}/knowledge-points", response_model=list[QuestionKnowledgePointRead])
+def replace_question_knowledge_points(
+    question_id: int,
+    data: QuestionKnowledgePointReplaceRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list:
+    _resolve_question(db, question_id, current_user)
+    service = QuestionKnowledgePointService(db)
+    try:
+        items = service.replace(
+            question_id,
+            [(item.knowledge_point_id, item.role) for item in data.items],
+            source="manual",
+            owner_id=_association_owner_id(current_user),
+        )
+    except QuestionKnowledgePointError as exc:
+        db.rollback()
+        raise _map_association_errors(exc) from exc
+    db.commit()
+    return items
+
+
+@router.patch("/{question_id}/knowledge-points/{knowledge_point_id}", response_model=QuestionKnowledgePointRead)
+def set_primary_question_knowledge_point(
+    question_id: int,
+    knowledge_point_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    _resolve_question(db, question_id, current_user)
+    service = QuestionKnowledgePointService(db)
+    try:
+        item = service.set_primary(
+            question_id,
+            knowledge_point_id,
+            _association_owner_id(current_user),
+        )
+    except QuestionKnowledgePointError as exc:
+        raise _map_association_errors(exc) from exc
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/{question_id}/knowledge-points/{knowledge_point_id}", status_code=status.HTTP_204_NO_CONTENT)
+def detach_question_knowledge_point(
+    question_id: int,
+    knowledge_point_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    _resolve_question(db, question_id, current_user)
+    service = QuestionKnowledgePointService(db)
+    try:
+        service.detach(question_id, knowledge_point_id, _association_owner_id(current_user))
+    except QuestionKnowledgePointError as exc:
+        raise _map_association_errors(exc) from exc
+    db.commit()
+
+
 @router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_question(
     question_id: int,
@@ -184,6 +358,11 @@ def delete_question(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
     db.execute(sa_delete(AnswerRecord).where(AnswerRecord.question_id == question.id))
     db.execute(sa_delete(WrongBookItem).where(WrongBookItem.question_id == question.id))
+    db.execute(
+        sa_delete(QuestionKnowledgePoint).where(
+            QuestionKnowledgePoint.question_id == question.id
+        )
+    )
     db.delete(question)
     db.commit()
 

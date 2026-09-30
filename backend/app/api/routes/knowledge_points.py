@@ -1,23 +1,32 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_db
-from app.models import KnowledgePoint, User
+from app.models import KnowledgePoint, Question, User
 from app.schemas.knowledge import (
     KnowledgePointCreate,
     KnowledgePointRead,
     KnowledgePointUpdate,
 )
+from app.schemas.question import QuestionOut
 from app.services.knowledge_point_service import (
     DuplicateKnowledgePoint,
     InvalidParent,
     KnowledgePointHasChildren,
+    KnowledgePointInUse,
     KnowledgePointNotFound,
     KnowledgePointService,
     ParentCycleError,
+)
+from app.services.question_knowledge_point_service import (
+    KnowledgePointNotFound as QuestionKpNotFound,
+)
+from app.services.question_knowledge_point_service import (
+    QuestionKnowledgePointService,
 )
 
 router = APIRouter(prefix="/knowledge-points", tags=["knowledge-points"])
@@ -48,6 +57,32 @@ def get_knowledge_point(
         return _service(db).get(knowledge_point_id) or _raise_not_found()
     except KnowledgePointNotFound as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get("/{knowledge_point_id}/questions", response_model=list[QuestionOut])
+def list_questions_for_knowledge_point(
+    knowledge_point_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list:
+    """反查关联题目：普通用户仅可见自己的题目，管理员可见全部。"""
+    service = QuestionKnowledgePointService(db)
+    owner_id = None if current_user.role == "admin" else current_user.id
+    try:
+        question_ids = service.list_question_ids_for_knowledge_point(
+            knowledge_point_id, owner_id
+        )
+    except QuestionKpNotFound as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    if not question_ids:
+        return []
+    return list(
+        db.scalars(
+            select(Question)
+            .where(Question.id.in_(question_ids))
+            .order_by(Question.created_at.desc())
+        ).all()
+    )
 
 
 @router.post("", response_model=KnowledgePointRead, status_code=status.HTTP_201_CREATED)
@@ -108,6 +143,8 @@ def delete_knowledge_point(
     except KnowledgePointNotFound as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except KnowledgePointHasChildren as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except KnowledgePointInUse as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
 

@@ -8,6 +8,19 @@ from app.models import CoinTransaction, DailyStat, Pet, ShopItem, User
 DAILY_FOCUS_COIN_CAP = 40
 
 
+def _beijing_date(value: datetime | None = None) -> date:
+    """北京日键：UTC 时刻映射到 UTC+8 日期。
+
+    created_at 在 SQLite/MySQL 容器中均为 naive UTC 存储；
+    与其相加 8 小时后取日期，必须与"今天"的取法使用同一时钟基准，
+    否则主机时区非 UTC+8 时（如 UTC 容器 16:00-24:00 窗口）上限判定会错位。
+    """
+    moment = datetime.now(timezone.utc) if value is None else (
+        value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+    )
+    return moment.astimezone(timezone(timedelta(hours=8))).date()
+
+
 def refresh_pet_state(pet: Pet) -> Pet:
     now = datetime.now(timezone.utc)
     if pet.hunger_updated_at is None:
@@ -90,7 +103,7 @@ def record_checkin(db: Session, user: User) -> int:
 
 
 def today_focus_coins(db: Session, user_id: int) -> int:
-    today = date.today()
+    today = _beijing_date()
     rows = db.scalars(
         select(CoinTransaction).where(
             CoinTransaction.user_id == user_id,
@@ -100,8 +113,7 @@ def today_focus_coins(db: Session, user_id: int) -> int:
     return sum(
         tx.amount
         for tx in rows
-        if tx.created_at is not None
-        and (tx.created_at + timedelta(hours=8)).date() == today
+        if tx.created_at is not None and _beijing_date(tx.created_at) == today
     )
 
 
