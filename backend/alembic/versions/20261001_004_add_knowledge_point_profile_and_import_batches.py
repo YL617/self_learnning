@@ -127,9 +127,14 @@ def downgrade() -> None:
     for column in reversed(KP_NEW_COLUMNS):
         op.drop_column(KP_TABLE, column)
 
-    op.drop_index("ix_knowledge_point_import_batches_user_id", table_name=BATCH_TABLE)
+    # 顺序不可交换：InnoDB 把 user_id 上的这个索引当作
+    # fk_knowledge_point_import_batches_user_id 的支撑索引（实测
+    # information_schema.statistics 中 user_id 只有这 1 个索引），
+    # 若先 DROP INDEX 会直接报 MySQL 1553
+    # 「Cannot drop index ... needed in a foreign key constraint」。
     with op.batch_alter_table(BATCH_TABLE) as batch:
         batch.drop_constraint(
             "fk_knowledge_point_import_batches_user_id", type_="foreignkey"
         )
+    op.drop_index("ix_knowledge_point_import_batches_user_id", table_name=BATCH_TABLE)
     op.drop_table(BATCH_TABLE)
