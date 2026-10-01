@@ -28,6 +28,7 @@ from app.schemas.plan import (
 from app.services.content_filter import validate_text
 from app.services.course_recommender import is_platform_home, recommend_courses_for_plan
 from app.services.engagement import award_coins, award_pet_exp, record_checkin
+from app.services.recommendation import learning_state_context
 from app.services.study_planner import adjust_study_plan, generate_study_plan
 
 router = APIRouter(prefix="/plans", tags=["plans"])
@@ -122,6 +123,7 @@ def generate_plan(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     try:
+        state = learning_state_context(db, current_user.id)
         result = generate_study_plan(
             major=data.major,
             grade=data.grade,
@@ -129,6 +131,8 @@ def generate_plan(
             daily_minutes=data.daily_minutes,
             weeks=data.weeks,
             subjects=data.subjects,
+            mastery_summary=state.get("mastery_summary"),
+            weak_points=state.get("weak_points"),
         )
     except RuntimeError as exc:
         raise HTTPException(

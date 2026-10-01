@@ -7,29 +7,39 @@ import {
   Timer,
 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { focusApi } from '@/api/focus'
 import { masteryApi } from '@/api/mastery'
 import { demoApi } from '@/api/ops'
 import { plansApi } from '@/api/plans'
 import { questionsApi } from '@/api/questions'
+import { recommendationsApi } from '@/api/recommendations'
 import MasteryBar from '@/components/MasteryBar.vue'
+import RecommendationCard from '@/components/RecommendationCard.vue'
 import { useAuthStore } from '@/stores/auth'
-import type { KnowledgePointMastery, MasterySummary, StudyPlan } from '@/types'
+import type {
+  KnowledgePointMastery,
+  MasterySummary,
+  RecommendationItem,
+  StudyPlan,
+} from '@/types'
 
 const auth = useAuthStore()
+const router = useRouter()
 const stats = ref({ total_minutes: 0, session_count: 0, today_minutes: 0 })
 const plans = ref<StudyPlan[]>([])
 const questionCount = ref(0)
 const coinBalance = ref(0)
 const masterySummary = ref<MasterySummary | null>(null)
 const weakPoints = ref<KnowledgePointMastery[]>([])
+const recommendations = ref<RecommendationItem[]>([])
 const loading = ref(true)
 const demoLoading = ref(false)
 
 async function load() {
   try {
-    const [statsRes, plansRes, questionsRes, coinsRes, summaryRes, weakRes] =
+    const [statsRes, plansRes, questionsRes, coinsRes, summaryRes, weakRes, recRes] =
       await Promise.allSettled([
         focusApi.stats(),
         plansApi.list(),
@@ -37,6 +47,7 @@ async function load() {
         focusApi.transactions(),
         masteryApi.summary(),
         masteryApi.weak({ limit: 3 }),
+        recommendationsApi.today({ limit: 3 }),
       ])
     if (statsRes.status === 'fulfilled') stats.value = statsRes.value.data
     if (plansRes.status === 'fulfilled') plans.value = plansRes.value.data
@@ -46,6 +57,7 @@ async function load() {
     }
     if (summaryRes.status === 'fulfilled') masterySummary.value = summaryRes.value.data
     if (weakRes.status === 'fulfilled') weakPoints.value = weakRes.value.data
+    if (recRes.status === 'fulfilled') recommendations.value = recRes.value.data.items
   } finally {
     loading.value = false
   }
@@ -56,6 +68,11 @@ onMounted(load)
 function planProgress(plan: StudyPlan): number {
   if (!plan.items.length) return 0
   return Math.round((plan.items.filter((item) => item.completed).length / plan.items.length) * 100)
+}
+
+// 建议只读：不做"一键写入计划"，只把用户带到对应页面（错题→错题本，其余→练习）。
+function onStartRecommendation(item: RecommendationItem) {
+  router.push(item.action === 'review_wrong' ? '/wrong-book' : '/questions')
 }
 
 async function seedDemoData() {
@@ -171,6 +188,8 @@ async function seedDemoData() {
           </div>
         </div>
       </div>
+
+      <RecommendationCard :items="recommendations" @start="onStartRecommendation" />
 
       <div class="card">
         <div class="row space-between">

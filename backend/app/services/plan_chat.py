@@ -18,6 +18,7 @@ from app.models import (
 )
 from app.services.ai_gateway import AIModelGateway, extract_json
 from app.services.course_recommender import recommend_courses_for_plan
+from app.services.recommendation import learning_state_context
 from app.services.study_planner import _normalize, generate_study_plan
 
 SYSTEM_PROMPT = (
@@ -147,7 +148,16 @@ def _force_draft(context: dict[str, str]) -> dict[str, Any]:
         for item in re.split(r"[,，、;；]", context.get("subjects", ""))
         if item.strip()
     ]
-    return generate_study_plan(major, "", goal, daily_minutes, weeks, subjects)
+    return generate_study_plan(
+        major,
+        "",
+        goal,
+        daily_minutes,
+        weeks,
+        subjects,
+        mastery_summary=context.get("mastery_summary"),
+        weak_points=context.get("mastery_weak_points"),
+    )
 
 
 def _build_profile_context(db: Session, user_id: int) -> dict[str, str]:
@@ -227,6 +237,11 @@ def _background_text(
         parts.append(f"可用时段：{context['available_time_slots']}")
     if not parts:
         parts.append("用户尚未提供学情信息")
+    # 大阶段 3：把真实掌握度接进对话上下文（数值来自数据库，不编造）。
+    if context.get("mastery_summary"):
+        parts.append(f"掌握度概览：{context['mastery_summary']}")
+    if context.get("mastery_weak_points"):
+        parts.append(f"数据中的薄弱知识点：{context['mastery_weak_points']}")
     history = (
         "用户明确要规划新方向，历史计划不参与参考"
         if context.get("new_direction") == "true"
@@ -304,6 +319,12 @@ def _normalize_and_refine(
 def start_chat(db: Session, user_id: int) -> tuple[PlanChatSession, str, list[str]]:
     session = PlanChatSession(user_id=user_id, status="collecting")
     context = _build_profile_context(db, user_id)
+    # 大阶段 3：把真实学习状态并入上下文（仅作为背景，不占用 FIELD_QUESTIONS 的提问槽位）。
+    state = learning_state_context(db, user_id)
+    if state.get("mastery_summary"):
+        context["mastery_summary"] = state["mastery_summary"]
+    if state.get("weak_points"):
+        context["mastery_weak_points"] = state["weak_points"]
     next_key = "goal"
     context["__next_key"] = next_key or "done"
     context["__awaiting_field"] = next_key or "done"

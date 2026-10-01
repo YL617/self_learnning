@@ -1,5 +1,12 @@
 import { http } from './http'
-import type { KnowledgePoint, Question } from '@/types'
+import type {
+  KnowledgePoint,
+  LearningPath,
+  PrerequisiteDetail,
+  PrerequisiteItem,
+  PrerequisiteSuggestResult,
+  Question,
+} from '@/types'
 
 export interface KnowledgePointListParams {
   subject?: string
@@ -31,6 +38,27 @@ export const knowledgePointsApi = {
     http.patch<KnowledgePoint>(`/knowledge-points/${knowledgePointId}`, data),
   remove: (knowledgePointId: number) =>
     http.delete<void>(`/knowledge-points/${knowledgePointId}`),
+
+  // 大阶段 3：前置依赖 DAG。
+  // 读接口对所有登录用户开放（学生要能看到前置是否满足与学习路径）；
+  // 写接口与 LLM 提议仅管理员可用，且 LLM 只提议、不落库。
+  prerequisites: (knowledgePointId: number) =>
+    http.get<PrerequisiteDetail>(`/knowledge-points/${knowledgePointId}/prerequisites`),
+  addPrerequisite: (
+    knowledgePointId: number,
+    data: { prerequisite_id: number; strength?: number; note?: string | null },
+  ) =>
+    http.post<PrerequisiteItem>(`/knowledge-points/${knowledgePointId}/prerequisites`, data),
+  removePrerequisite: (knowledgePointId: number, prerequisiteId: number) =>
+    http.delete<void>(
+      `/knowledge-points/${knowledgePointId}/prerequisites/${prerequisiteId}`,
+    ),
+  learningPath: (knowledgePointId: number) =>
+    http.get<LearningPath>(`/knowledge-points/${knowledgePointId}/path`),
+  suggestPrerequisites: (knowledgePointId: number) =>
+    http.post<PrerequisiteSuggestResult>(
+      `/knowledge-points/${knowledgePointId}/prerequisites/suggest`,
+    ),
 }
 
 // 将知识点列表解析为 id -> name 映射，供关联标签展示使用。

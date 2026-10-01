@@ -10,7 +10,14 @@ import QuestionCard from '@/components/QuestionCard.vue'
 import QuestionsView from './QuestionsView.vue'
 
 vi.mock('@/api/knowledgePoints', () => ({
-  knowledgePointsApi: { list: vi.fn() },
+  knowledgePointsApi: {
+    list: vi.fn(),
+    prerequisites: vi.fn(),
+    addPrerequisite: vi.fn(),
+    removePrerequisite: vi.fn(),
+    learningPath: vi.fn(),
+    suggestPrerequisites: vi.fn(),
+  },
   toKnowledgePointNameMap: (items: { id: number; name: string }[]) =>
     Object.fromEntries(items.map((item) => [item.id, item.name])),
 }))
@@ -114,6 +121,14 @@ describe('QuestionsView（Phase 2 集成）', () => {
     )
     vi.mocked(questionsApi.generate).mockResolvedValue({ data: [] } as any)
     vi.mocked(masteryApi.get).mockResolvedValue({ data: mastery(1, 72) } as any)
+    vi.mocked(knowledgePointsApi.prerequisites).mockResolvedValue({
+      data: {
+        knowledge_point: { id: 1, name: '栈', subject: '数据结构', parent_id: null },
+        ready: true,
+        threshold: 70,
+        items: [],
+      },
+    } as any)
   })
 
   it('未选择结构化知识点时，旧行为不变（不发送 knowledge_point_id）', async () => {
@@ -195,5 +210,80 @@ describe('QuestionsView（Phase 2 集成）', () => {
 
     expect(masteryApi.get).toHaveBeenCalledTimes(2)
     expect(wrapper.find('.mastery-bar').text()).toContain('88%')
+  })
+
+  it('存在前置知识时提示「还要先学什么」，并区分是否已满足', async () => {
+    vi.mocked(knowledgePointsApi.prerequisites).mockResolvedValue({
+      data: {
+        knowledge_point: { id: 1, name: '栈', subject: '数据结构', parent_id: null },
+        ready: false,
+        threshold: 70,
+        items: [
+          {
+            id: 11,
+            knowledge_point_id: 1,
+            prerequisite_id: 2,
+            strength: 100,
+            source: 'manual',
+            status: 'active',
+            note: null,
+            created_at: '2026-10-01T00:00:00',
+            updated_at: '2026-10-01T00:00:00',
+            prerequisite: { id: 2, name: '链表', subject: '数据结构', parent_id: null },
+            satisfied: false,
+            blocking: true,
+          },
+          {
+            id: 12,
+            knowledge_point_id: 1,
+            prerequisite_id: 3,
+            strength: 30,
+            source: 'manual',
+            status: 'active',
+            note: null,
+            created_at: '2026-10-01T00:00:00',
+            updated_at: '2026-10-01T00:00:00',
+            prerequisite: { id: 3, name: '数组', subject: '数据结构', parent_id: null },
+            satisfied: false,
+            blocking: false,
+          },
+        ],
+      },
+    } as any)
+
+    const wrapper = mountView()
+    await flushPromises()
+    wrapper.findComponent(KnowledgePointSelector).vm.$emit('select', kp(1, '栈'))
+    await flushPromises()
+
+    const hint = wrapper.find('.prereq-hint')
+    expect(hint.exists()).toBe(true)
+    expect(knowledgePointsApi.prerequisites).toHaveBeenCalledWith(1)
+    expect(hint.text()).toContain('前置知识')
+    expect(hint.text()).toContain('链表')
+    expect(hint.text()).toContain('未满足')
+    expect(hint.text()).toContain('数组')
+    expect(hint.text()).toContain('建议先学')
+  })
+
+  it('没有前置知识时不展示前置提示（旧行为不变）', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    wrapper.findComponent(KnowledgePointSelector).vm.$emit('select', kp(1, '栈'))
+    await flushPromises()
+
+    expect(wrapper.find('.prereq-hint').exists()).toBe(false)
+  })
+
+  it('前置知识接口失败时静默降级，不影响掌握度展示', async () => {
+    vi.mocked(knowledgePointsApi.prerequisites).mockRejectedValue(new Error('boom'))
+
+    const wrapper = mountView()
+    await flushPromises()
+    wrapper.findComponent(KnowledgePointSelector).vm.$emit('select', kp(1, '栈'))
+    await flushPromises()
+
+    expect(wrapper.find('.prereq-hint').exists()).toBe(false)
+    expect(wrapper.find('.mastery-bar').text()).toContain('72%')
   })
 })

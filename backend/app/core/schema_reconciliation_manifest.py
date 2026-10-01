@@ -38,6 +38,7 @@ RECONCILED_INDEXES: dict[str, list[str]] = {
 POST_RECONCILIATION_TABLES: dict[str, list[str]] = {
     "20261001_001": ["question_knowledge_points"],
     "20261001_002": ["user_knowledge_point_mastery"],
+    "20261001_003": ["knowledge_point_prerequisites"],
 }
 
 # server_default 字段级白名单。

@@ -306,6 +306,88 @@ export interface WrongBookItem {
   question?: Question | null
 }
 
+// 大阶段 3：知识点前置依赖（DAG）。与 parent_id（归属层级树）语义不同：
+// parent_id 表达「属于」，prerequisite 表达「必须先学」。
+export interface PrerequisiteItem {
+  id: number
+  knowledge_point_id: number
+  prerequisite_id: number
+  strength: number
+  source: string
+  status: string
+  note?: string | null
+  created_at: string
+  updated_at: string
+  prerequisite?: KnowledgePointBrief | null
+  // 针对当前用户：该前置是否已满足 / 是否构成硬性阻塞
+  satisfied?: boolean | null
+  blocking?: boolean | null
+}
+
+export interface PrerequisiteDetail {
+  knowledge_point: KnowledgePointBrief
+  ready: boolean
+  threshold: number
+  items: PrerequisiteItem[]
+}
+
+export interface LearningPathStep {
+  order: number
+  knowledge_point: KnowledgePointBrief
+  mastery_score?: number | null
+  satisfied: boolean
+  is_target: boolean
+}
+
+export interface LearningPath {
+  target: KnowledgePointBrief
+  ready: boolean
+  threshold: number
+  steps: LearningPathStep[]
+}
+
+export interface PrerequisiteSuggestion {
+  prerequisite_id: number
+  prerequisite_name: string
+  reason: string
+  confidence: number
+}
+
+export interface PrerequisiteSuggestResult {
+  knowledge_point: KnowledgePointBrief
+  suggestions: PrerequisiteSuggestion[]
+  note?: string | null
+}
+
+// 大阶段 3：今日学习建议（后端确定性规则引擎生成，只读展示，不写入学习计划）。
+export type RecommendationAction =
+  | 'review_wrong'
+  | 'review_weak'
+  | 'learn_new'
+  | 'practice'
+
+export interface RecommendationItem {
+  action: RecommendationAction
+  action_label: string
+  knowledge_point_id: number
+  knowledge_point_name: string
+  subject: string
+  score: number
+  reason: string
+  order: number
+  estimated_minutes: number
+  // 打分分解项（base/urgency/gap/goal/unlock/recency），用于核对"为什么推荐这个"
+  components: Record<string, number>
+  question_ids: number[]
+}
+
+export interface RecommendationToday {
+  date: string
+  weak_threshold: number
+  ready_threshold: number
+  items: RecommendationItem[]
+}
+
 export interface DocumentItem {
   id: number
   filename: string

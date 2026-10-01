@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Pencil, Plus, RefreshCw, Search, Trash2, X } from 'lucide-vue-next'
+import { Pencil, Plus, RefreshCw, Route, Search, Trash2, X } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 
 import { knowledgePointsApi, type KnowledgePointPayload } from '@/api/knowledgePoints'
+import PrerequisiteEditor from '@/components/PrerequisiteEditor.vue'
 import type { KnowledgePoint } from '@/types'
 import { buildRows, parentCandidates, statusLabel } from '@/utils/knowledgePoints'
 
@@ -163,6 +164,14 @@ function clearFilters() {
   query.value = ''
 }
 
+// 大阶段 3：前置依赖 DAG 管理（展开式面板，避免再次改动表格列宽）。
+const prerequisiteTarget = ref<KnowledgePoint | null>(null)
+
+function togglePrerequisites(item: KnowledgePoint) {
+  prerequisiteTarget.value =
+    prerequisiteTarget.value?.id === item.id ? null : item
+}
+
 onMounted(load)
 </script>
 
@@ -315,11 +324,36 @@ onMounted(load)
           <button class="btn btn-ghost" type="button" title="编辑" @click="openEdit(row)">
             <Pencil :size="15" />
           </button>
+          <button
+            class="btn btn-ghost"
+            type="button"
+            title="前置关系"
+            @click="togglePrerequisites(row)"
+          >
+            <Route :size="15" />
+          </button>
           <button class="btn btn-ghost" type="button" title="删除" @click="remove(row)">
             <Trash2 :size="15" color="#dc2626" />
           </button>
         </span>
       </div>
+    </div>
+
+    <div v-if="prerequisiteTarget" class="card">
+      <div class="card-head">
+        <h2>前置关系：{{ prerequisiteTarget.name }}</h2>
+        <button class="btn btn-ghost" type="button" @click="prerequisiteTarget = null">
+          <X :size="16" />
+          收起
+        </button>
+      </div>
+      <p class="muted" style="margin-top: 0">
+        前置关系表示「必须先学」，与父知识点的归属层级不同；多个前置会组成学习路径。
+      </p>
+      <PrerequisiteEditor
+        :knowledge-point-id="prerequisiteTarget.id"
+        :knowledge-point-name="prerequisiteTarget.name"
+      />
     </div>
   </section>
 </template>

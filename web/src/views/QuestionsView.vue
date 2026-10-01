@@ -13,6 +13,7 @@ import type {
   KnowledgePoint,
   KnowledgePointMastery,
   KnowledgePointTag,
+  PrerequisiteDetail,
   Question,
   QuestionKnowledgePoint,
 } from '@/types'
@@ -38,21 +39,27 @@ const activeQuestion = ref<Question | null>(null)
 // 大阶段 2：当前所选知识点的掌握度。
 const selectedMastery = ref<KnowledgePointMastery | null>(null)
 const masteryLoading = ref(false)
+// 大阶段 3：该知识点的前置依赖（含是否已满足），用于提示"现在能不能学"。
+const selectedPrerequisites = ref<PrerequisiteDetail | null>(null)
 
 async function loadMastery() {
   const kpId = form.value.knowledge_point_id
   if (kpId == null) {
     selectedMastery.value = null
+    selectedPrerequisites.value = null
     return
   }
   masteryLoading.value = true
   try {
-    const { data } = await masteryApi.get(kpId)
+    const [masteryRes, prereqRes] = await Promise.allSettled([
+      masteryApi.get(kpId),
+      knowledgePointsApi.prerequisites(kpId),
+    ])
     // 切换知识点过程中可能已返回，避免写入过期结果。
-    if (form.value.knowledge_point_id === kpId) selectedMastery.value = data
-  } catch {
+    if (form.value.knowledge_point_id !== kpId) return
     // 404 = 尚未作答过该知识点，属正常空态。
-    selectedMastery.value = null
+    selectedMastery.value = masteryRes.status === 'fulfilled' ? masteryRes.value.data : null
+    selectedPrerequisites.value = prereqRes.status === 'fulfilled' ? prereqRes.value.data : null
   } finally {
     masteryLoading.value = false
   }
@@ -105,6 +112,7 @@ function onKpSelect(kp: KnowledgePoint | null) {
 function onKpTextInput() {
   form.value.knowledge_point_id = null
   selectedMastery.value = null
+  selectedPrerequisites.value = null
 }
 
 // 答题后掌握度已在后端事务内更新，这里只做局部刷新。
@@ -234,6 +242,20 @@ onMounted(load)
           <span>当前掌握度</span>
           <MasteryBar :score="selectedMastery?.mastery_score ?? null" :label="form.knowledge_point" />
           <p v-if="masteryLoading" class="muted mastery-hint">正在加载掌握度...</p>
+          <div v-if="selectedPrerequisites?.items.length" class="prereq-hint">
+            <span class="muted">前置知识</span>
+            <ul>
+              <li v-for="edge in selectedPrerequisites.items" :key="edge.id">
+                <span>{{ edge.prerequisite?.name || `#${edge.prerequisite_id}` }}</span>
+                <span
+                  class="badge"
+                  :class="edge.satisfied ? 'badge-green' : 'badge-amber'"
+                >
+                  {{ edge.satisfied ? '已满足' : edge.blocking ? '未满足' : '建议先学' }}
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
         <div class="field">
           <span>数量</span>
@@ -329,5 +351,25 @@ onMounted(load)
 .mastery-hint {
   margin: 0;
   font-size: 12px;
+}
+
+.prereq-hint {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.prereq-hint ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prereq-hint li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

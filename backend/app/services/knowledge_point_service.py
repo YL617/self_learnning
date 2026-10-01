@@ -5,7 +5,12 @@ import re
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import KnowledgePoint, QuestionKnowledgePoint, UserKnowledgePointMastery
+from app.models import (
+    KnowledgePoint,
+    KnowledgePointPrerequisite,
+    QuestionKnowledgePoint,
+    UserKnowledgePointMastery,
+)
 
 KP_STATUS_ACTIVE = "active"
 KP_STATUS_PENDING = "pending"
@@ -287,5 +292,16 @@ class KnowledgePointService:
         )
         if has_mastery is not None:
             raise KnowledgePointInUse("知识点已有用户掌握度记录，无法删除")
+        # 大阶段 3：被前置依赖边引用时同样拒绝，避免破坏学习路径图。
+        has_prerequisite_edge = self.db.scalar(
+            select(KnowledgePointPrerequisite.id)
+            .where(
+                (KnowledgePointPrerequisite.knowledge_point_id == knowledge_point_id)
+                | (KnowledgePointPrerequisite.prerequisite_id == knowledge_point_id)
+            )
+            .limit(1)
+        )
+        if has_prerequisite_edge is not None:
+            raise KnowledgePointInUse("知识点已建立前置依赖关系，请先解除前置关系")
         self.db.delete(item)
         return item

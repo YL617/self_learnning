@@ -12,6 +12,16 @@ from app.schemas.knowledge import (
     KnowledgePointRead,
     KnowledgePointUpdate,
 )
+from app.schemas.mastery import KnowledgePointBrief
+from app.schemas.prerequisite import (
+    LearningPathOut,
+    LearningPathStep,
+    PrerequisiteCreate,
+    PrerequisiteDetailOut,
+    PrerequisiteRead,
+    PrerequisiteSuggestion,
+    PrerequisiteSuggestOut,
+)
 from app.schemas.question import QuestionOut
 from app.services.knowledge_point_service import (
     DuplicateKnowledgePoint,
@@ -22,6 +32,20 @@ from app.services.knowledge_point_service import (
     KnowledgePointService,
     ParentCycleError,
 )
+from app.services.mastery import MasteryService
+from app.services.prerequisite import (
+    EDGE_SOURCE_MANUAL,
+    READY_THRESHOLD,
+    DuplicatePrerequisite,
+    PrerequisiteCycle,
+    PrerequisiteLinkNotFound,
+    PrerequisiteService,
+    SelfLoopPrerequisite,
+)
+from app.services.prerequisite import (
+    KnowledgePointNotFound as PrerequisiteKnowledgePointNotFound,
+)
+from app.services.prerequisite_suggest import suggest_prerequisites
 from app.services.question_knowledge_point_service import (
     KnowledgePointNotFound as QuestionKpNotFound,
 )
@@ -151,3 +175,163 @@ def delete_knowledge_point(
 
 def _raise_not_found() -> KnowledgePoint:
     raise KnowledgePointNotFound("知识点不存在")
+
+
+# --------------------------------------------------------------------------
+# 大阶段 3：知识点前置依赖（prerequisite DAG）
+# 与 parent_id（归属层级树）语义不同：本组接口表达「必须先学」，多对多。
+# --------------------------------------------------------------------------
+
+
+def _require_knowledge_point(db: Session, knowledge_point_id: int) -> KnowledgePoint:
+    item = _service(db).get(knowledge_point_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="知识点不存在")
+    return item
+
+
+def _mastery_scores(db: Session, user_id: int) -> dict[int, int]:
+    return {
+        row.knowledge_point_id: row.mastery_score
+        for row in MasteryService(db).list_for_user(user_id)
+    }
+
+
+def _brief(row: KnowledgePoint) -> KnowledgePointBrief:
+    return KnowledgePointBrief.model_validate(row)
+
+
+@router.get("/{knowledge_point_id}/prerequisites", response_model=PrerequisiteDetailOut)
+def list_prerequisites(
+    knowledge_point_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PrerequisiteDetailOut:
+    knowledge_point = _require_knowledge_point(db, knowledge_point_id)
+    service = PrerequisiteService(db)
+    edges = service.list_for(knowledge_point_id)
+    mastery = _mastery_scores(db, current_user.id)
+    statuses = {
+        item.prerequisite_id: item
+        for item in service.statuses_for(mastery, knowledge_point_id)
+    }
+    related = service.knowledge_points_by_ids([edge.prerequisite_id for edge in edges])
+    items: list[PrerequisiteRead] = []
+    for edge in edges:
+        payload = PrerequisiteRead.model_validate(edge)
+        related_kp = related.get(edge.prerequisite_id)
+        if related_kp is not None:
+            payload.prerequisite = _brief(related_kp)
+        state = statuses.get(edge.prerequisite_id)
+        if state is not None:
+            payload.satisfied = state.satisfied
+            payload.blocking = state.blocking
+        items.append(payload)
+    return PrerequisiteDetailOut(
+        knowledge_point=_brief(knowledge_point),
+        ready=service.is_ready(mastery, knowledge_point_id),
+        threshold=READY_THRESHOLD,
+        items=items,
+    )
+
+
+@router.post(
+    "/{knowledge_point_id}/prerequisites",
+    response_model=PrerequisiteRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_prerequisite(
+    knowledge_point_id: int,
+    data: PrerequisiteCreate,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PrerequisiteRead:
+    service = PrerequisiteService(db)
+    try:
+        edge = service.add(
+            knowledge_point_id=knowledge_point_id,
+            prerequisite_id=data.prerequisite_id,
+            strength=data.strength,
+            source=EDGE_SOURCE_MANUAL,
+            note=data.note,
+        )
+    except PrerequisiteKnowledgePointNotFound as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (SelfLoopPrerequisite, PrerequisiteCycle) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except DuplicatePrerequisite as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    db.commit()
+    db.refresh(edge)
+    payload = PrerequisiteRead.model_validate(edge)
+    related_kp = _service(db).get(edge.prerequisite_id)
+    if related_kp is not None:
+        payload.prerequisite = _brief(related_kp)
+    return payload
+
+
+@router.delete(
+    "/{knowledge_point_id}/prerequisites/{prerequisite_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_prerequisite(
+    knowledge_point_id: int,
+    prerequisite_id: int,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    service = PrerequisiteService(db)
+    try:
+        service.remove(knowledge_point_id, prerequisite_id)
+    except PrerequisiteLinkNotFound as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    db.commit()
+
+
+@router.get("/{knowledge_point_id}/path", response_model=LearningPathOut)
+def get_learning_path(
+    knowledge_point_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> LearningPathOut:
+    target = _require_knowledge_point(db, knowledge_point_id)
+    service = PrerequisiteService(db)
+    ordered = service.learning_path(knowledge_point_id)
+    if not ordered:
+        ordered = [target]
+    mastery = _mastery_scores(db, current_user.id)
+    steps = [
+        LearningPathStep(
+            order=index,
+            knowledge_point=_brief(row),
+            mastery_score=mastery.get(row.id),
+            satisfied=(mastery.get(row.id, 0) >= READY_THRESHOLD),
+            is_target=(row.id == knowledge_point_id),
+        )
+        for index, row in enumerate(ordered, start=1)
+    ]
+    return LearningPathOut(
+        target=_brief(target),
+        ready=service.is_ready(mastery, knowledge_point_id),
+        threshold=READY_THRESHOLD,
+        steps=steps,
+    )
+
+
+@router.post(
+    "/{knowledge_point_id}/prerequisites/suggest",
+    response_model=PrerequisiteSuggestOut,
+)
+def suggest_prerequisite_candidates(
+    knowledge_point_id: int,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PrerequisiteSuggestOut:
+    """让 LLM 提议前置关系。**只提议，不落库**，必须由管理员显式确认。"""
+    knowledge_point = _require_knowledge_point(db, knowledge_point_id)
+    suggestions, note = suggest_prerequisites(db, knowledge_point_id)
+    return PrerequisiteSuggestOut(
+        knowledge_point=_brief(knowledge_point),
+        suggestions=[PrerequisiteSuggestion(**item) for item in suggestions],
+        note=note,
+    )

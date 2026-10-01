@@ -13,6 +13,11 @@ vi.mock('@/api/knowledgePoints', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    prerequisites: vi.fn(),
+    addPrerequisite: vi.fn(),
+    removePrerequisite: vi.fn(),
+    learningPath: vi.fn(),
+    suggestPrerequisites: vi.fn(),
   },
 }))
 
@@ -68,6 +73,22 @@ describe('AdminKnowledgePointsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.mocked(knowledgePointsApi.prerequisites).mockResolvedValue({
+      data: {
+        knowledge_point: { id: 2, name: '栈', subject: '数据结构', parent_id: 1 },
+        ready: true,
+        threshold: 70,
+        items: [],
+      },
+    } as any)
+    vi.mocked(knowledgePointsApi.learningPath).mockResolvedValue({
+      data: {
+        target: { id: 2, name: '栈', subject: '数据结构', parent_id: 1 },
+        ready: true,
+        threshold: 70,
+        steps: [],
+      },
+    } as any)
   })
 
   it('加载并渲染全部知识点字段', async () => {
@@ -251,5 +272,34 @@ describe('AdminKnowledgePointsView', () => {
       .findAll('option')
       .map((option: any) => option.text())
     expect(options).toEqual(['无父级（顶层）', '进程'])
+  })
+
+  it('点击「前置关系」展开前置依赖面板，再次点击收起', async () => {
+    const wrapper = await setup()
+    expect(wrapper.text()).not.toContain('前置关系表示')
+
+    await rowByName(wrapper, '栈')!.find('[title="前置关系"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('前置关系：栈')
+    expect(wrapper.text()).toContain('前置关系表示')
+    expect(knowledgePointsApi.prerequisites).toHaveBeenCalledWith(2)
+    expect(knowledgePointsApi.learningPath).toHaveBeenCalledWith(2)
+
+    await rowByName(wrapper, '栈')!.find('[title="前置关系"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('前置关系表示')
+  })
+
+  it('前置面板与父级层级是两套语义，父级列不受前置关系影响', async () => {
+    const wrapper = await setup()
+    await rowByName(wrapper, '栈')!.find('[title="前置关系"]').trigger('click')
+    await flushPromises()
+
+    // 归属层级（parent_id）仍照常展示，加前置关系不会改动表格里的父级名称。
+    const row = rowByName(wrapper, '栈')!
+    expect(row.text()).toContain('线性表')
+    expect(knowledgePointsApi.update).not.toHaveBeenCalled()
   })
 })

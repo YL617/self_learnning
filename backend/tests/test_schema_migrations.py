@@ -26,7 +26,7 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
     engine = create_engine(url)
     try:
         for revision in ("20260907_001", "20260908_001", "20260909_001",
-                         "20261001_001", "head"):
+                         "20261001_001", "20261001_002", "head"):
             subprocess.run([sys.executable, "-m", "alembic", "upgrade", revision],
                            cwd=backend, env=environment, check=True, capture_output=True)
             adoption = inspect_adoption(engine, Base)
@@ -36,8 +36,8 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
                 result = check_drift(engine, Base)
                 assert result.exit_code == 0
                 assert result.errors == []
-                assert len(result.warnings) == 40
-                assert adoption.status == "ADOPTION COMPLETE AT 20261001_002"
+                assert result.unknown_warnings == []
+                assert adoption.status == "ADOPTION COMPLETE AT 20261001_003"
     finally:
         engine.dispose()
 
@@ -52,9 +52,9 @@ def test_manifest_delta_and_historical_ownership():
         assert not {c["name"] for c in columns} & {c["name"] for c in before[table]["columns"]}
     assert manifest["added_indexes"]["course_recommendations"][0]["name"] == "ix_course_recommendations_status"
     chain = migration_chain()
-    assert len(chain) == len(set(chain)) == 18
+    assert len(chain) == len(set(chain)) == 19
     assert manifest["revision"] in chain
-    assert chain[-1] == "20261001_002"
+    assert chain[-1] == "20261001_003"
 
 
 def test_phase2_profile_added_without_overwriting_history():
@@ -83,3 +83,23 @@ def test_learning_state_loop_profile_added_without_overwriting_history():
     assert not {u["name"] for u in profiles["20261001_001"]["wrong_book_items"]["unique"]}
     # 历史合同表数量不变
     assert len(profiles["20261001_001"]) == 33
+
+
+def test_prerequisite_profile_added_without_overwriting_history():
+    """大阶段 3：前置边表只出现在自己的 revision；历史合同逐字节不变。"""
+    from app.core.schema_profiles import PROFILE_PATH
+    from app.core.schema_reconciliation_manifest import POST_RECONCILIATION_TABLES
+
+    profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    assert "knowledge_point_prerequisites" in profiles["20261001_003"]
+    assert "knowledge_point_prerequisites" not in profiles["20261001_002"]
+    assert POST_RECONCILIATION_TABLES["20261001_003"] == ["knowledge_point_prerequisites"]
+    table = profiles["20261001_003"]["knowledge_point_prerequisites"]
+    assert {u["name"] for u in table["unique"]} == {"uq_knowledge_point_prerequisites_pair"}
+    assert {i["name"] for i in table["indexes"]} == {
+        "ix_knowledge_point_prerequisites_prerequisite_id"
+    }
+    assert len(table["fks"]) == 2
+    # 上一版合同表数量不变（33 + mastery 表 = 34）
+    assert len(profiles["20261001_002"]) == 34
+    assert len(profiles["20260909_001"]) == 32

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Integer,
@@ -92,4 +93,52 @@ class KnowledgePoint(Base):
     )
     children: Mapped[list["KnowledgePoint"]] = relationship(
         back_populates="parent",
+    )
+
+
+class KnowledgePointPrerequisite(Base):
+    """知识点前置依赖边（大阶段 3）。
+
+    语义：`knowledge_point_id` 依赖 `prerequisite_id`（必须先学会前置，才建议学后置）。
+
+    与 `KnowledgePoint.parent_id` 严格区分：
+      - `parent_id` 是「归属层级」（is-a / part-of，树，单父节点）；
+      - 本表是「前置依赖」（must-learn-before，多对多 DAG）。
+    二者不可互相替代，因此单独建边表，不改动 `parent_id` 语义。
+
+    `strength` 0~100：>= 阻塞阈值视为硬前置（未满足则不建议学后置），
+    低于阈值仅作为学习顺序建议。环与自环由 `PrerequisiteService` 与 DB CHECK 双重拦截。
+    """
+
+    __tablename__ = "knowledge_point_prerequisites"
+    __table_args__ = (
+        UniqueConstraint(
+            "knowledge_point_id",
+            "prerequisite_id",
+            name="uq_knowledge_point_prerequisites_pair",
+        ),
+        CheckConstraint(
+            "knowledge_point_id <> prerequisite_id",
+            name="ck_knowledge_point_prerequisites_no_self_loop",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    knowledge_point_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_points.id", ondelete="RESTRICT")
+    )
+    prerequisite_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_points.id", ondelete="RESTRICT"), index=True
+    )
+    strength: Mapped[int] = mapped_column(Integer, default=100, server_default="100")
+    source: Mapped[str] = mapped_column(
+        String(16), default="manual", server_default="manual"
+    )
+    status: Mapped[str] = mapped_column(
+        String(16), default="active", server_default="active"
+    )
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
     )

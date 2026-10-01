@@ -10,7 +10,9 @@ SYSTEM_PROMPT = (
     "只输出 JSON，不要输出任何解释或 Markdown。"
     'JSON 结构：{"title": "...", "goal": "...", "items": ['
     '{"title": "...", "subject": "...", "scheduled_date": "YYYY-MM-DD", '
-    '"duration_minutes": 60, "order_index": 1}]}'
+    '"duration_minutes": 60, "order_index": 1}]}\n'
+    "若提供了学生当前的掌握度与薄弱知识点，请据此安排任务优先级与难度；"
+    "这些数值是唯一可信来源，禁止自行编造或改写任何数值。"
 )
 
 
@@ -21,16 +23,23 @@ def _build_user_prompt(
     daily_minutes: int,
     weeks: int,
     subjects: list[str],
+    mastery_summary: str | None = None,
+    weak_points: str | None = None,
 ) -> str:
     subject_text = "、".join(subjects) if subjects else "按专业核心课合理安排"
-    return (
-        f"专业：{major}\n"
-        f"年级：{grade}\n"
-        f"目标：{goal}\n"
-        f"每日学习时长：{daily_minutes}分钟\n"
-        f"周期：{weeks}周\n"
-        f"重点科目：{subject_text}"
-    )
+    lines = [
+        f"专业：{major}",
+        f"年级：{grade}",
+        f"目标：{goal}",
+        f"每日学习时长：{daily_minutes}分钟",
+        f"周期：{weeks}周",
+        f"重点科目：{subject_text}",
+    ]
+    if mastery_summary:
+        lines.append(f"当前掌握度：{mastery_summary}")
+    if weak_points:
+        lines.append(f"薄弱知识点（优先安排）：{weak_points}")
+    return "\n".join(lines)
 
 
 def _normalize(
@@ -75,9 +84,21 @@ def generate_study_plan(
     daily_minutes: int,
     weeks: int,
     subjects: list[str],
+    *,
+    mastery_summary: str | None = None,
+    weak_points: str | None = None,
 ) -> dict[str, Any]:
     gateway = AIModelGateway()
-    user_prompt = _build_user_prompt(major, grade, goal, daily_minutes, weeks, subjects)
+    user_prompt = _build_user_prompt(
+        major,
+        grade,
+        goal,
+        daily_minutes,
+        weeks,
+        subjects,
+        mastery_summary=mastery_summary,
+        weak_points=weak_points,
+    )
     data = gateway.generate_json(SYSTEM_PROMPT, user_prompt)
     if not (
         isinstance(data, dict)
