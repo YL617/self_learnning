@@ -220,8 +220,24 @@ export interface KnowledgePoint {
   description?: string | null
   status: string
   source: string
+  // 大阶段 4 M1：知识库内容元数据（全部可空，历史知识点不会有值）。
+  // difficulty 只用于展示、排序与推荐；掌握度的难度系数来自作答记录，与它无关。
+  code?: string | null
+  aliases?: string[] | null
+  difficulty?: KnowledgePointDifficulty | null
+  estimated_minutes?: number | null
+  import_batch_id?: number | null
   created_at: string
   updated_at: string
+}
+
+// 与后端 knowledge_points.difficulty 的 CHECK 词表一致：全项目只有这一套。
+export type KnowledgePointDifficulty = 'easy' | 'medium' | 'hard'
+
+export const DIFFICULTY_LABELS: Record<KnowledgePointDifficulty, string> = {
+  easy: '简单',
+  medium: '中等',
+  hard: '困难',
 }
 
 export interface Question {
@@ -269,6 +285,9 @@ export interface KnowledgePointBrief {
   name: string
   subject: string
   parent_id?: number | null
+  // 大阶段 4 M1：可选展示字段（推荐与今日建议会用到）。
+  difficulty?: KnowledgePointDifficulty | null
+  estimated_minutes?: number | null
 }
 
 export interface KnowledgePointMastery {

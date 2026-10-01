@@ -1,6 +1,7 @@
 import { http } from './http'
 import type {
   KnowledgePoint,
+  KnowledgePointDifficulty,
   LearningPath,
   PrerequisiteDetail,
   PrerequisiteItem,
@@ -21,6 +22,11 @@ export interface KnowledgePointPayload {
   description?: string | null
   status?: 'active' | 'pending' | 'disabled'
   source?: 'system' | 'admin' | 'ai'
+  // 大阶段 4 M1：内容元数据。显式传 null 表示清空该字段。
+  code?: string | null
+  aliases?: string[] | null
+  difficulty?: KnowledgePointDifficulty | null
+  estimated_minutes?: number | null
 }
 
 // Phase 2 结构化知识点：查询与（管理员）写入。

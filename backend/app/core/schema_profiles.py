@@ -22,7 +22,7 @@ def load_profiles(base):
                 kind = col["type"].split("(")[0].upper()
                 types = {"INTEGER": sa.Integer, "BOOLEAN": sa.Boolean, "VARCHAR": sa.String,
                          "TEXT": sa.Text, "DATETIME": sa.DateTime, "DATE": sa.Date,
-                         "FLOAT": sa.Float, "NUMERIC": sa.Numeric}
+                         "FLOAT": sa.Float, "NUMERIC": sa.Numeric, "JSON": sa.JSON}
                 if kind not in types:
                     raise ValueError("Unsupported frozen type")
                 sql_type = types[kind]()

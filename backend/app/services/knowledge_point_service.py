@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -19,6 +19,19 @@ KP_STATUS_DISABLED = "disabled"
 KP_SOURCE_SYSTEM = "system"
 KP_SOURCE_ADMIN = "admin"
 KP_SOURCE_AI = "ai"
+
+# 知识点难度词表（大阶段 4 M1）。全项目只允许这一套，且**只用于展示、排序与
+# 推荐**——绝不参与掌握度计算（掌握度的难度系数来自作答记录，见
+# MasteryService.DIFFICULTY_WEIGHTS，两者是不同来源的两个概念）。
+#
+# 这里刻意重复字面量而不 import mastery：knowledge_point_service ← mastery ←
+# question_knowledge_point_service ← knowledge_point_service 会成环。
+# 三方一致性（本常量 / DIFFICULTY_WEIGHTS / KnowledgePointDifficulty）由
+# tests/test_schema_tools.py::test_knowledge_point_difficulty_vocabulary_is_pinned
+# 与 tests/test_knowledge_point_profile_m1.py 断言。
+KP_DIFFICULTY_LEVELS: tuple[str, ...] = ("easy", "medium", "hard")
+
+CODE_MAX_LENGTH = 64
 
 _WHITESPACE_RE = re.compile(r"\s+")
 
@@ -170,6 +183,44 @@ class KnowledgePointService:
         if self.db.scalar(statement) is not None:
             raise DuplicateKnowledgePoint("同一学科下已存在相同知识点")
 
+    def _assert_code(
+        self, code: str | None, exclude_id: int | None = None
+    ) -> str | None:
+        """规范并校验稳定编码。
+
+        大小写不敏感地判重：MySQL 默认排序规则本就大小写不敏感，SQLite 默认敏感，
+        在服务层统一成「不敏感」可以让两个方言给出同样的行为（DB 唯一索引只兜底）。
+        """
+        if code is None:
+            return None
+        cleaned = _collapse_whitespace(code)
+        if not cleaned:
+            return None
+        if len(cleaned) > CODE_MAX_LENGTH:
+            raise ValueError(f"编码不能超过 {CODE_MAX_LENGTH} 个字符")
+        statement = select(KnowledgePoint).where(
+            func.lower(KnowledgePoint.code) == cleaned.lower()
+        )
+        if exclude_id is not None:
+            statement = statement.where(KnowledgePoint.id != exclude_id)
+        if self.db.scalar(statement) is not None:
+            raise DuplicateKnowledgePoint("稳定编码已被其他知识点使用")
+        return cleaned
+
+    def _assert_difficulty(self, difficulty: str | None) -> str | None:
+        if difficulty is None:
+            return None
+        if difficulty not in KP_DIFFICULTY_LEVELS:
+            raise ValueError(f"难度只能是 {' / '.join(KP_DIFFICULTY_LEVELS)} 之一")
+        return difficulty
+
+    def _assert_estimated_minutes(self, minutes: int | None) -> int | None:
+        if minutes is None:
+            return None
+        if minutes < 0:
+            raise ValueError("预估学习时长不能为负数")
+        return minutes
+
     def _assert_parent(self, subject: str, parent_id: int) -> KnowledgePoint:
         parent = self.get(parent_id)
         if parent is None:
@@ -201,6 +252,11 @@ class KnowledgePointService:
         description: str | None = None,
         status: str = KP_STATUS_ACTIVE,
         source: str = KP_SOURCE_ADMIN,
+        code: str | None = None,
+        aliases: list[str] | None = None,
+        difficulty: str | None = None,
+        estimated_minutes: int | None = None,
+        import_batch_id: int | None = None,
     ) -> KnowledgePoint:
         cleaned_subject = self._assert_subject(subject)
         normalized_subject = normalize_subject(subject)
@@ -217,6 +273,11 @@ class KnowledgePointService:
             description=description,
             status=status,
             source=source,
+            code=self._assert_code(code),
+            aliases=aliases or None,
+            difficulty=self._assert_difficulty(difficulty),
+            estimated_minutes=self._assert_estimated_minutes(estimated_minutes),
+            import_batch_id=import_batch_id,
         )
         self.db.add(item)
         self.db.flush()
@@ -265,6 +326,15 @@ class KnowledgePointService:
             item.description = data.description
         if "status" in fields and data.status is not None:
             item.status = data.status
+        # ---- 大阶段 4 M1：内容元数据（显式传 null 即清空）----
+        if "code" in fields:
+            item.code = self._assert_code(data.code, exclude_id=item.id)
+        if "aliases" in fields:
+            item.aliases = data.aliases or None
+        if "difficulty" in fields:
+            item.difficulty = self._assert_difficulty(data.difficulty)
+        if "estimated_minutes" in fields:
+            item.estimated_minutes = self._assert_estimated_minutes(data.estimated_minutes)
         return item
 
     def delete(self, knowledge_point_id: int) -> KnowledgePoint:

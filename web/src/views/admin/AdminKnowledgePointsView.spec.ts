@@ -164,6 +164,10 @@ describe('AdminKnowledgePointsView', () => {
       parent_id: null,
       description: null,
       status: 'active',
+      code: null,
+      aliases: null,
+      difficulty: null,
+      estimated_minutes: null,
     })
     expect(vi.mocked(knowledgePointsApi.create).mock.calls[0][0]).not.toHaveProperty('source')
     expect(knowledgePointsApi.list).toHaveBeenCalledTimes(2)
@@ -187,6 +191,10 @@ describe('AdminKnowledgePointsView', () => {
       parent_id: 1,
       description: null,
       status: 'active',
+      code: null,
+      aliases: null,
+      difficulty: null,
+      estimated_minutes: null,
     })
   })
 
@@ -301,5 +309,108 @@ describe('AdminKnowledgePointsView', () => {
     const row = rowByName(wrapper, '栈')!
     expect(row.text()).toContain('线性表')
     expect(knowledgePointsApi.update).not.toHaveBeenCalled()
+  })
+
+  // ---------------------------------------------- 大阶段 4 M1：内容元数据
+
+  it('新增知识点时一并提交编码、别名、难度与预估时长', async () => {
+    const wrapper = await setup()
+    vi.mocked(knowledgePointsApi.create).mockResolvedValue({ data: kp(9, '二叉树') } as any)
+
+    await buttonByText(wrapper, '新增知识点')!.trigger('click')
+    await formField(wrapper, 0).find('input').setValue('二叉树')
+    await formField(wrapper, 1).find('input').setValue('数据结构')
+    await formField(wrapper, 5).find('input').setValue('DS.TREE.BST')
+    // 中英文逗号混用 + 重复项 + 空格，都应在提交前被规范化。
+    await formField(wrapper, 6).find('input').setValue('二叉查找树, BST，二叉查找树， ')
+    await formField(wrapper, 7).find('select').setValue('hard')
+    await formField(wrapper, 8).find('input').setValue('45')
+    await buttonByText(wrapper, '保存')!.trigger('click')
+    await flushPromises()
+
+    expect(knowledgePointsApi.create).toHaveBeenCalledWith({
+      name: '二叉树',
+      subject: '数据结构',
+      parent_id: null,
+      description: null,
+      status: 'active',
+      code: 'DS.TREE.BST',
+      aliases: ['二叉查找树', 'BST'],
+      difficulty: 'hard',
+      estimated_minutes: 45,
+    })
+  })
+
+  it('元数据留空时提交 null，而不是空字符串或 0', async () => {
+    const wrapper = await setup()
+    vi.mocked(knowledgePointsApi.create).mockResolvedValue({ data: kp(9, '队列') } as any)
+
+    await buttonByText(wrapper, '新增知识点')!.trigger('click')
+    await formField(wrapper, 0).find('input').setValue('队列')
+    await formField(wrapper, 1).find('input').setValue('数据结构')
+    await formField(wrapper, 6).find('input').setValue(' , ，')
+    await buttonByText(wrapper, '保存')!.trigger('click')
+    await flushPromises()
+
+    const payload = vi.mocked(knowledgePointsApi.create).mock.calls[0][0] as any
+    expect(payload.code).toBeNull()
+    expect(payload.aliases).toBeNull()
+    expect(payload.difficulty).toBeNull()
+    // 时长留空必须是 null —— 不能变成 0 分钟这种会被写进库的假数据。
+    expect(payload.estimated_minutes).toBeNull()
+  })
+
+  it('编辑时回填已有元数据，并允许清空', async () => {
+    const wrapper = await setup([
+      kp(5, '二叉树', {
+        code: 'DS.TREE.BST',
+        aliases: ['二叉查找树', 'BST'],
+        difficulty: 'hard',
+        estimated_minutes: 45,
+      }),
+    ])
+    vi.mocked(knowledgePointsApi.update).mockResolvedValue({ data: kp(5, '二叉树') } as any)
+
+    await rowByName(wrapper, '二叉树')!.find('[title="编辑"]').trigger('click')
+    expect((formField(wrapper, 5).find('input').element as HTMLInputElement).value).toBe(
+      'DS.TREE.BST',
+    )
+    expect((formField(wrapper, 6).find('input').element as HTMLInputElement).value).toBe(
+      '二叉查找树, BST',
+    )
+    expect((formField(wrapper, 7).find('select').element as HTMLSelectElement).value).toBe('hard')
+    expect((formField(wrapper, 8).find('input').element as HTMLInputElement).value).toBe('45')
+
+    await formField(wrapper, 5).find('input').setValue('')
+    await formField(wrapper, 7).find('select').setValue('')
+    await buttonByText(wrapper, '保存')!.trigger('click')
+    await flushPromises()
+
+    const payload = vi.mocked(knowledgePointsApi.update).mock.calls[0][1] as any
+    expect(payload.code).toBeNull()
+    expect(payload.difficulty).toBeNull()
+    // 未改动的字段保持原值。
+    expect(payload.aliases).toEqual(['二叉查找树', 'BST'])
+    expect(payload.estimated_minutes).toBe(45)
+  })
+
+  it('预估时长填非整数时不提交并给出中文提示', async () => {
+    const wrapper = await setup()
+    await buttonByText(wrapper, '新增知识点')!.trigger('click')
+    await formField(wrapper, 0).find('input').setValue('栈')
+    await formField(wrapper, 1).find('input').setValue('数据结构')
+    await formField(wrapper, 8).find('input').setValue('12.5')
+    await buttonByText(wrapper, '保存')!.trigger('click')
+    await flushPromises()
+
+    expect(knowledgePointsApi.create).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('预估时长必须是不小于 0 的整数分钟')
+  })
+
+  it('表单说明写明了别名的作用与难度的边界', async () => {
+    const wrapper = await setup()
+    await buttonByText(wrapper, '新增知识点')!.trigger('click')
+    expect(wrapper.find('.form-hint').text()).toContain('掌握度会被拆散')
+    expect(wrapper.find('.form-hint').text()).toContain('不参与掌握度计算')
   })
 })

@@ -10,6 +10,9 @@ class KnowledgePointBrief(ORMModel):
     name: str
     subject: str
     parent_id: int | None = None
+    # 大阶段 4 M1：可选展示字段（用于推荐与今日建议），默认 None 保持向后兼容。
+    difficulty: str | None = None
+    estimated_minutes: int | None = None
 
 
 class MasteryOut(ORMModel):

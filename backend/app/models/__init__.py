@@ -16,6 +16,7 @@ from app.models.knowledge import (
     FileAnalyzeResult,
     KnowledgeChunk,
     KnowledgePoint,
+    KnowledgePointImportBatch,
     KnowledgePointPrerequisite,
 )
 from app.models.learning import (
@@ -49,6 +50,7 @@ __all__ = [
     "FocusTag",
     "KnowledgeChunk",
     "KnowledgePoint",
+    "KnowledgePointImportBatch",
     "KnowledgePointPrerequisite",
     "Pet",
     "PetMemory",

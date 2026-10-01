@@ -4,13 +4,50 @@ import { computed, onMounted, ref } from 'vue'
 
 import { knowledgePointsApi, type KnowledgePointPayload } from '@/api/knowledgePoints'
 import PrerequisiteEditor from '@/components/PrerequisiteEditor.vue'
-import type { KnowledgePoint } from '@/types'
+import type { KnowledgePoint, KnowledgePointDifficulty } from '@/types'
 import { buildRows, parentCandidates, statusLabel } from '@/utils/knowledgePoints'
 
 const SOURCE_LABELS: Record<string, string> = {
   system: '系统',
   admin: '管理员',
   ai: 'AI',
+}
+
+interface KnowledgePointForm {
+  name: string
+  subject: string
+  parent_id: number | null
+  description: string
+  status: 'active' | 'pending' | 'disabled'
+  // 大阶段 4 M1：内容元数据。别名在表单里是逗号分隔的文本，时长保留字符串
+  // 以便区分「留空」与「填 0」。
+  code: string
+  aliases: string
+  difficulty: '' | KnowledgePointDifficulty
+  estimated_minutes: string
+}
+
+function emptyForm(): KnowledgePointForm {
+  return {
+    name: '',
+    subject: '',
+    parent_id: null,
+    description: '',
+    status: 'active',
+    code: '',
+    aliases: '',
+    difficulty: '',
+    estimated_minutes: '',
+  }
+}
+
+// 别名是中英文逗号分隔的文本；空串表示「没有别名」，去重后交给后端。
+function parseAliases(raw: string): string[] | null {
+  const items = raw
+    .split(/[,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+  return items.length ? Array.from(new Set(items)) : null
 }
 
 const items = ref<KnowledgePoint[]>([])
@@ -25,19 +62,7 @@ const formOpen = ref(false)
 const editing = ref<KnowledgePoint | null>(null)
 const saving = ref(false)
 const formError = ref('')
-const form = ref<{
-  name: string
-  subject: string
-  parent_id: number | null
-  description: string
-  status: 'active' | 'pending' | 'disabled'
-}>({
-  name: '',
-  subject: '',
-  parent_id: null,
-  description: '',
-  status: 'active',
-})
+const form = ref<KnowledgePointForm>(emptyForm())
 
 // 学科候选项来自已加载数据，供筛选与表单复用。
 const subjects = computed(() =>
@@ -70,13 +95,7 @@ async function load() {
 function openCreate() {
   editing.value = null
   formError.value = ''
-  form.value = {
-    name: '',
-    subject: subjectFilter.value || '',
-    parent_id: null,
-    description: '',
-    status: 'active',
-  }
+  form.value = { ...emptyForm(), subject: subjectFilter.value || '' }
   formOpen.value = true
 }
 
@@ -89,6 +108,10 @@ function openEdit(item: KnowledgePoint) {
     parent_id: item.parent_id ?? null,
     description: item.description ?? '',
     status: (item.status as 'active' | 'pending' | 'disabled') || 'active',
+    code: item.code ?? '',
+    aliases: (item.aliases ?? []).join(', '),
+    difficulty: item.difficulty ?? '',
+    estimated_minutes: item.estimated_minutes == null ? '' : String(item.estimated_minutes),
   }
   formOpen.value = true
 }
@@ -118,6 +141,12 @@ async function save() {
     formError.value = '知识点名称与学科不能为空'
     return
   }
+  const minutesRaw = form.value.estimated_minutes.trim()
+  const minutes = minutesRaw ? Number(minutesRaw) : null
+  if (minutes !== null && (!Number.isInteger(minutes) || minutes < 0)) {
+    formError.value = '预估时长必须是不小于 0 的整数分钟'
+    return
+  }
   saving.value = true
   formError.value = ''
   success.value = ''
@@ -127,6 +156,10 @@ async function save() {
     parent_id: form.value.parent_id,
     description: form.value.description.trim() || null,
     status: form.value.status,
+    code: form.value.code.trim() || null,
+    aliases: parseAliases(form.value.aliases),
+    difficulty: form.value.difficulty || null,
+    estimated_minutes: minutes,
   }
   try {
     if (editing.value) {
@@ -275,7 +308,37 @@ onMounted(load)
           <span>描述（可选）</span>
           <input v-model="form.description" class="input" placeholder="补充说明" />
         </div>
+        <div class="field">
+          <span>编码（可选）</span>
+          <input v-model="form.code" class="input" placeholder="例如：DS.TREE.BST" />
+        </div>
+        <div class="field">
+          <span>别名（可选，逗号分隔）</span>
+          <input v-model="form.aliases" class="input" placeholder="例如：堆栈, stack" />
+        </div>
+        <div class="field">
+          <span>难度（可选）</span>
+          <select v-model="form.difficulty" class="select">
+            <option value="">未设置</option>
+            <option value="easy">简单</option>
+            <option value="medium">中等</option>
+            <option value="hard">困难</option>
+          </select>
+        </div>
+        <div class="field">
+          <span>预估时长（分钟，可选）</span>
+          <input
+            v-model="form.estimated_minutes"
+            class="input"
+            inputmode="numeric"
+            placeholder="例如：30"
+          />
+        </div>
       </div>
+      <p class="muted form-hint">
+        别名用于避免同义名被建成多条知识点（否则同一知识点的掌握度会被拆散）。
+        难度与预估时长只用于展示与推荐，不参与掌握度计算。
+      </p>
       <p v-if="formError" class="text-danger">{{ formError }}</p>
       <div class="row gap" style="margin-top: 12px">
         <button class="btn btn-primary" type="button" :disabled="saving" @click="save">
@@ -392,6 +455,12 @@ onMounted(load)
 
 .field-wide {
   grid-column: 1 / -1;
+}
+
+.form-hint {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
 }
 
 .text-success {

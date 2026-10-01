@@ -171,6 +171,106 @@ def test_knowledge_point_prerequisites_fk_actions_contract():
     assert fks["prerequisite_id"].ondelete == "RESTRICT"
 
 
+def test_knowledge_point_profile_columns_contract():
+    """大阶段 4 M1：knowledge_points 内容元数据列 + 稳定编码唯一约束。"""
+    from sqlalchemy import CheckConstraint, UniqueConstraint
+
+    table = Base.metadata.tables["knowledge_points"]
+    index_names = {i.name for i in table.indexes}
+
+    added = ("code", "aliases", "difficulty", "estimated_minutes", "import_batch_id")
+    for name in added:
+        assert name in table.columns, name
+
+    # 全部可空且没有 server_default —— 因此历史行无需回填，加列对存量零风险。
+    for name in added:
+        column = table.columns[name]
+        assert column.nullable is True, name
+        assert column.server_default is None, name
+
+    uniques = {tuple(c.name for c in u.columns): u.name
+               for u in table.constraints if isinstance(u, UniqueConstraint)}
+    assert uniques[("code",)] == "uq_knowledge_points_code"
+    assert uniques[("normalized_subject", "normalized_name")] == (
+        "uq_knowledge_points_normalized_subject_name"
+    )
+
+    # 稳定编码的唯一索引同时服务编码查询。
+    assert "ix_knowledge_points_code" not in index_names
+    # 按批次反查导入产物所需的独立索引保留（也是 MySQL FK 的支撑索引）。
+    assert "ix_knowledge_points_import_batch_id" in index_names
+
+    checks = {c.name for c in table.constraints if isinstance(c, CheckConstraint)}
+    assert "ck_knowledge_points_difficulty" in checks
+    assert "ck_knowledge_points_estimated_minutes" in checks
+
+
+def test_knowledge_point_difficulty_vocabulary_is_pinned():
+    """难度词表只有 easy/medium/hard 一套，且由 DB CHECK 钉死。
+
+    `difficulty` 仅用于展示与排序；掌握度的难度系数来自作答记录
+    （`MasteryService.DIFFICULTY_WEIGHTS`），两者互相独立。
+    """
+    from sqlalchemy import CheckConstraint
+
+    from app.services.mastery import DIFFICULTY_WEIGHTS
+
+    table = Base.metadata.tables["knowledge_points"]
+    check = next(c for c in table.constraints
+                 if isinstance(c, CheckConstraint)
+                 and c.name == "ck_knowledge_points_difficulty")
+    sql = str(check.sqltext)
+    assert set(DIFFICULTY_WEIGHTS) == {"easy", "medium", "hard"}
+    for level in DIFFICULTY_WEIGHTS:
+        assert f"'{level}'" in sql, level
+
+
+def test_knowledge_point_import_batches_contract():
+    """大阶段 4 M1：导入批次表 —— 计数列 NOT NULL + 状态机 CHECK。"""
+    from sqlalchemy import CheckConstraint
+
+    table = Base.metadata.tables["knowledge_point_import_batches"]
+    index_names = {i.name for i in table.indexes}
+
+    assert [c.name for c in table.primary_key.columns] == ["id"]
+    assert "ix_knowledge_point_import_batches_id" not in index_names
+    assert "ix_knowledge_point_import_batches_user_id" in index_names
+
+    counters = ("total_rows", "created_count", "updated_count",
+                "skipped_count", "failed_count", "auto_parent_count")
+    for name in counters:
+        column = table.columns[name]
+        assert column.nullable is False, name
+        assert column.server_default is not None, name
+
+    # 审计信息必须留存，用户删除后不允许连带消失。
+    assert table.columns["user_id"].nullable is True
+    assert table.columns["error_summary"].nullable is True
+    assert table.columns["applied_at"].nullable is True
+    assert table.columns["rolled_back_at"].nullable is True
+
+    checks = {c.name for c in table.constraints if isinstance(c, CheckConstraint)}
+    assert checks == {
+        "ck_knowledge_point_import_batches_status",
+        "ck_knowledge_point_import_batches_conflict_strategy",
+        "ck_knowledge_point_import_batches_counts",
+    }
+
+
+def test_knowledge_point_import_batch_fk_actions_contract():
+    """批次归属可清空、知识点不因批次消失而消失。"""
+    batch_fks = {fk.parent.name: fk
+                 for fk in Base.metadata.tables["knowledge_point_import_batches"].foreign_keys}
+    assert batch_fks["user_id"].target_fullname == "users.id"
+    assert batch_fks["user_id"].ondelete == "SET NULL"
+
+    kp_fks = {fk.parent.name: fk
+              for fk in Base.metadata.tables["knowledge_points"].foreign_keys}
+    assert kp_fks["import_batch_id"].target_fullname == "knowledge_point_import_batches.id"
+    assert kp_fks["import_batch_id"].ondelete == "SET NULL"
+    assert kp_fks["parent_id"].ondelete == "RESTRICT"
+
+
 def test_wrong_book_items_unique_pair_contract():
     """大阶段 2：一个用户 + 一道题只允许一条错题记录。"""
     from sqlalchemy import UniqueConstraint
@@ -220,16 +320,16 @@ def test_drift_duplicate_unique_objects(engine):
     assert any("DUPLICATE UNIQUE users" in e for e in result.errors)
 
 
-def test_adoption_complete_20261001_003(engine):
-    _set_version(engine, "20261001_003")
+def test_adoption_complete_20261001_004(engine):
+    _set_version(engine, "20261001_004")
     res = inspect_adoption(engine, Base)
-    assert res.status == "ADOPTION COMPLETE AT 20261001_003"
-    assert res.revision == "20261001_003"
-    assert any("schema_matches=20261001_003" in line for line in res.info)
+    assert res.status == "ADOPTION COMPLETE AT 20261001_004"
+    assert res.revision == "20261001_004"
+    assert any("schema_matches=20261001_004" in line for line in res.info)
 
 
 def test_adoption_target_revision_with_drift_blocks(engine):
-    _set_version(engine, "20261001_003")
+    _set_version(engine, "20261001_004")
     _drop_column(engine, "users", "hashed_password")
     res = inspect_adoption(engine, Base)
     assert res.status == "ADOPTION BLOCKED"
@@ -237,12 +337,13 @@ def test_adoption_target_revision_with_drift_blocks(engine):
 
 
 @pytest.mark.parametrize("revision,drift,expected,exit_code", [
-    ("20260908_001", False, "SAFE TO ADOPT TO 20261001_003", 0),
-    ("20260909_001", False, "SAFE TO ADOPT TO 20261001_003", 0),
-    ("20261001_001", False, "SAFE TO ADOPT TO 20261001_003", 0),
-    ("20261001_002", False, "SAFE TO ADOPT TO 20261001_003", 0),
-    ("20261001_003", False, "ADOPTION COMPLETE AT 20261001_003", 0),
-    ("20261001_003", True, "ADOPTION BLOCKED", 1),
+    ("20260908_001", False, "SAFE TO ADOPT TO 20261001_004", 0),
+    ("20260909_001", False, "SAFE TO ADOPT TO 20261001_004", 0),
+    ("20261001_001", False, "SAFE TO ADOPT TO 20261001_004", 0),
+    ("20261001_002", False, "SAFE TO ADOPT TO 20261001_004", 0),
+    ("20261001_003", False, "SAFE TO ADOPT TO 20261001_004", 0),
+    ("20261001_004", False, "ADOPTION COMPLETE AT 20261001_004", 0),
+    ("20261001_004", True, "ADOPTION BLOCKED", 1),
     ("unknown", False, "ADOPTION BLOCKED", 1),
 ])
 def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
@@ -262,7 +363,7 @@ def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
 def test_adoption_20260908_reconcile_present(engine):
     _set_version(engine, "20260908_001")
     res = inspect_adoption(engine, Base)
-    assert res.status == "SAFE TO ADOPT TO 20261001_003"
+    assert res.status == "SAFE TO ADOPT TO 20261001_004"
 
 
 def test_adoption_20260907_missing_knowledge_points(engine):
@@ -395,7 +496,7 @@ def test_adoption_no_revision_blocks(engine):
 
 def test_adoption_multiple_revisions_blocks(engine):
     _set_version(engine, "20260908_001")
-    _set_version(engine, "20261001_003")
+    _set_version(engine, "20261001_004")
     assert inspect_adoption(engine, Base).status == "ADOPTION BLOCKED"
 
 
@@ -406,7 +507,7 @@ def test_adoption_bad_graph_blocks(engine, monkeypatch):
         raise ValueError("invalid graph")
 
     monkeypatch.setattr(adoption_inspector, "migration_chain", invalid)
-    _set_version(engine, "20261001_003")
+    _set_version(engine, "20261001_004")
     assert inspect_adoption(engine, Base).status == "ADOPTION BLOCKED"
 
 
@@ -416,17 +517,17 @@ def test_adoption_ambiguous_profiles_blocks(engine, monkeypatch):
     monkeypatch.setattr(adoption_inspector, "load_profiles", lambda _: {
         "20260908_001": Base, "20260909_001": Base,
     })
-    _set_version(engine, "20261001_003")
+    _set_version(engine, "20261001_004")
     assert inspect_adoption(engine, Base).status == "ADOPTION BLOCKED"
 
 
 def test_tools_only_issue_read_statements(engine):
     from sqlalchemy import event
 
-    _set_version(engine, "20261001_003")
+    _set_version(engine, "20261001_004")
     statements = []
     event.listen(engine, "before_cursor_execute", lambda c, cur, sql, p, ctx, many: statements.append(sql))
     assert check_drift(engine, Base).exit_code == 0
-    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261001_003"
+    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261001_004"
     assert statements
     assert all(sql.lstrip().upper().startswith(("SELECT", "PRAGMA")) for sql in statements)

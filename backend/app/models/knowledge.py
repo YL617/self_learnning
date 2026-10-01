@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -57,6 +58,68 @@ class FileAnalyzeResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+class KnowledgePointImportBatch(Base):
+    """知识点批量导入批次（大阶段 4 M1）。
+
+    只承担两件事，且只有这两件：
+
+      1. **追溯**：批次行记录「谁、什么时候、用哪种格式与冲突策略、导了多少」；
+         被导入的知识点通过 `KnowledgePoint.import_batch_id` 反向归属到批次，
+         因此批次表本身**不存放导入内容**。
+      2. **回滚**：按批次反查 `import_batch_id` 即可定位该批次产生的全部知识点。
+
+    `knowledge_points.import_batch_id` 的外键指向本表，所以同一 revision 内
+    必须**先建本表、再加列**。
+
+    计数列全部 NOT NULL + server_default '0'，避免「批次存在但读数缺失」的中间态。
+    """
+
+    __tablename__ = "knowledge_point_import_batches"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('applied', 'failed', 'rolled_back')",
+            name="ck_knowledge_point_import_batches_status",
+        ),
+        CheckConstraint(
+            "conflict_strategy IN ('skip', 'update_empty')",
+            name="ck_knowledge_point_import_batches_conflict_strategy",
+        ),
+        CheckConstraint(
+            "total_rows >= 0 AND created_count >= 0 AND updated_count >= 0 "
+            "AND skipped_count >= 0 AND failed_count >= 0 AND auto_parent_count >= 0",
+            name="ck_knowledge_point_import_batches_counts",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # 操作人可被删除，但导入审计必须留存 → SET NULL，绝不 CASCADE。
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # 文件名，或手工粘贴导入时的来源标签；仅作审计展示，不参与业务判断。
+    source_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_format: Mapped[str] = mapped_column(
+        String(16), default="tsv", server_default="tsv"
+    )
+    conflict_strategy: Mapped[str] = mapped_column(
+        String(16), default="skip", server_default="skip"
+    )
+    status: Mapped[str] = mapped_column(
+        String(16), default="applied", server_default="applied"
+    )
+    total_rows: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    updated_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    skipped_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    failed_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # 导入过程中自动创建的中间层级父节点数量（明细由导入报告逐行返回）。
+    auto_parent_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    rolled_back_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class KnowledgePoint(Base):
     """全局共享知识点；知识点通过 normalized_name 做学科内去重。"""
 
@@ -66,6 +129,19 @@ class KnowledgePoint(Base):
             "normalized_subject",
             "normalized_name",
             name="uq_knowledge_points_normalized_subject_name",
+        ),
+        # 稳定编码：改名/换学科不断链，也是导入幂等的对账键。可空 —— 两库的
+        # UNIQUE 索引都允许多个 NULL，历史数据不必回填。
+        UniqueConstraint("code", name="uq_knowledge_points_code"),
+        # 难度词表与 plan_items.difficulty / MasteryService.DIFFICULTY_WEIGHTS 同源，
+        # 全项目只允许这一套（大阶段 3 已因第二套难度语义踩过坑）。
+        CheckConstraint(
+            "difficulty IS NULL OR difficulty IN ('easy', 'medium', 'hard')",
+            name="ck_knowledge_points_difficulty",
+        ),
+        CheckConstraint(
+            "estimated_minutes IS NULL OR estimated_minutes >= 0",
+            name="ck_knowledge_points_estimated_minutes",
         ),
     )
 
@@ -82,6 +158,27 @@ class KnowledgePoint(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="active")
     source: Mapped[str] = mapped_column(String(16), default="system")
+    # ---- 大阶段 4 M1：知识库内容元数据 ----
+    # 全部可空、无 server_default —— 加列对存量数据零风险，无需回填；
+    # 生产实测该表 0 行，因此本次 ALTER 对线上是纯粹的空操作。
+    #
+    # 稳定编码（如 `DS.TREE.BST`）：改名/换学科不断链，也是导入幂等的对账键。
+    code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 别名数组（如 `["堆栈", "stack"]`）。存在的唯一目的：防止同义名被建成多条
+    # 知识点，从而把同一个知识点的掌握度拆散。用原生 JSON 而不是 JSON 文本，
+    # 避免 `knowledge_point.aliases` 在业务代码里变成一个可直接迭代的字符串。
+    aliases: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    # 仅用于展示、排序与推荐；**禁止参与 MasteryService 计算**（掌握度的难度
+    # 系数来自作答记录，与本列无关）。
+    difficulty: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # 预估学习时长（分钟），供推荐与今日建议展示。
+    estimated_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # 导入批次归属；批次被删除时清空归属而不是连带删知识点。
+    import_batch_id: Mapped[int | None] = mapped_column(
+        ForeignKey("knowledge_point_import_batches.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

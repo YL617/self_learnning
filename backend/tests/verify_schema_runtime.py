@@ -7,6 +7,12 @@ import os
 from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine import Engine, make_url
 
+# 可逆性验证：在真实 MySQL 上 downgrade 到这个 revision（大阶段 4 M1 引入前的
+# 基线）再 upgrade 回 head。基线是常量，因此后续新增 revision 也不会让这段失效。
+ROUNDTRIP_BASELINE = "20261001_003"
+ROUNDTRIP_ADDED_COLUMNS = {"code", "aliases", "difficulty", "estimated_minutes", "import_batch_id"}
+ROUNDTRIP_ADDED_TABLE = "knowledge_point_import_batches"
+
 
 def main():
     url = os.environ["SCHEMA_TEST_DATABASE_URL"]
@@ -38,6 +44,24 @@ def main():
         assert set(inspect(engine).get_table_names()) == set(Base.metadata.tables) | {"alembic_version"}
         command.check(cfg)
         print(f"FRESH MYSQL: head={head} errors=0 warnings={len(drift.warnings)} unknown=0")
+
+        # 真实 MySQL 上的可逆性：SQLite 的 DROP COLUMN / DROP CHECK 行为与 MySQL
+        # 不同，所以往返验证必须跑在 MySQL 上，不能只靠 SQLite 重放。
+        command.downgrade(cfg, ROUNDTRIP_BASELINE)
+        rolled_back = inspect(engine)
+        assert ROUNDTRIP_ADDED_TABLE not in rolled_back.get_table_names()
+        assert not (
+            ROUNDTRIP_ADDED_COLUMNS
+            & {c["name"] for c in rolled_back.get_columns("knowledge_points")}
+        )
+        command.upgrade(cfg, "head")
+        assert ROUNDTRIP_ADDED_TABLE in inspect(engine).get_table_names()
+        assert ROUNDTRIP_ADDED_COLUMNS <= {
+            c["name"] for c in inspect(engine).get_columns("knowledge_points")
+        }
+        roundtrip = check_drift(engine, Base)
+        assert roundtrip.exit_code == 0, roundtrip
+        print(f"MYSQL ROUNDTRIP: {ROUNDTRIP_BASELINE} -> head reversible, drift errors=0")
 
         def fingerprint():
             reader = inspect(engine)

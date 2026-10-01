@@ -39,6 +39,7 @@ POST_RECONCILIATION_TABLES: dict[str, list[str]] = {
     "20261001_001": ["question_knowledge_points"],
     "20261001_002": ["user_knowledge_point_mastery"],
     "20261001_003": ["knowledge_point_prerequisites"],
+    "20261001_004": ["knowledge_point_import_batches"],
 }
 
 # server_default 字段级白名单。
