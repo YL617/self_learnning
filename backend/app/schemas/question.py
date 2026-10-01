@@ -36,6 +36,8 @@ class QuestionFavoriteUpdate(BaseModel):
 
 class AnswerSubmit(BaseModel):
     user_answer: str = Field(min_length=1, max_length=2000)
+    # 大阶段 2：可选作答耗时，仅作为评估上下文，不参与正确答案判定。
+    spent_seconds: int = Field(default=0, ge=0, le=86400)
 
 
 class AnswerOut(ORMModel):
@@ -59,7 +61,9 @@ class WrongBookOut(ORMModel):
 
 
 class WrongBookItemUpdate(BaseModel):
+    # mastered 显式非空表示"标记/取消掌握"；reviewed 表示"完成一次复习"。
     mastered: bool | None = None
+    reviewed: bool = False
 
 
 class QuestionKnowledgePointAttachItem(BaseModel):

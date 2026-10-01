@@ -141,6 +141,14 @@ class AnswerRecord(Base):
 
 class WrongBookItem(Base):
     __tablename__ = "wrong_book_items"
+    __table_args__ = (
+        # 一个用户对同一道题只保留一条错题记录（幂等 upsert 的最终防线）。
+        UniqueConstraint(
+            "user_id",
+            "question_id",
+            name="uq_wrong_book_items_user_question",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
@@ -161,3 +169,39 @@ class WrongBookItem(Base):
     )
 
     question: Mapped[Question] = relationship()
+
+
+class UserKnowledgePointMastery(Base):
+    """用户维度的知识点掌握度（大阶段 2）。
+
+    mastery_score 恒为 0~100 的整数，由 MasteryService 的确定性算法维护，
+    绝不由 AI 直接决定；同一 (user, knowledge_point) 只保留一条记录。
+    """
+
+    __tablename__ = "user_knowledge_point_mastery"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "knowledge_point_id",
+            name="uq_user_knowledge_point_mastery_pair",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    knowledge_point_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_points.id", ondelete="RESTRICT"), index=True
+    )
+    mastery_score: Mapped[int] = mapped_column(Integer, default=50, server_default="50")
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    correct_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    correct_streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_answered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_correct_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

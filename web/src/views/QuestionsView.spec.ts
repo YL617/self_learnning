@@ -2,15 +2,22 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { knowledgePointsApi } from '@/api/knowledgePoints'
+import { masteryApi } from '@/api/mastery'
 import { questionsApi } from '@/api/questions'
-import type { KnowledgePoint, Question, QuestionKnowledgePoint } from '@/types'
+import type { KnowledgePoint, KnowledgePointMastery, Question, QuestionKnowledgePoint } from '@/types'
 import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
+import QuestionCard from '@/components/QuestionCard.vue'
 import QuestionsView from './QuestionsView.vue'
 
 vi.mock('@/api/knowledgePoints', () => ({
   knowledgePointsApi: { list: vi.fn() },
   toKnowledgePointNameMap: (items: { id: number; name: string }[]) =>
     Object.fromEntries(items.map((item) => [item.id, item.name])),
+}))
+
+vi.mock('@/api/mastery', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/api/mastery')>()),
+  masteryApi: { get: vi.fn(), list: vi.fn(), weak: vi.fn(), summary: vi.fn() },
 }))
 
 vi.mock('@/api/questions', () => ({
@@ -76,6 +83,23 @@ function assoc(questionId: number, kpId: number, role: string): QuestionKnowledg
   }
 }
 
+function mastery(kpId: number, score: number): KnowledgePointMastery {
+  return {
+    id: kpId,
+    knowledge_point_id: kpId,
+    mastery_score: score,
+    attempt_count: 3,
+    correct_count: 2,
+    correct_streak: 1,
+    last_answered_at: '2026-10-01T00:00:00',
+    last_correct_at: '2026-10-01T00:00:00',
+    last_reviewed_at: null,
+    created_at: '2026-10-01T00:00:00',
+    updated_at: '2026-10-01T00:00:00',
+    knowledge_point: { id: kpId, name: '栈', subject: '数据结构', parent_id: null },
+  }
+}
+
 function mountView() {
   return mount(QuestionsView, { global: { stubs: { teleport: true } } })
 }
@@ -89,6 +113,7 @@ describe('QuestionsView（Phase 2 集成）', () => {
       async (questionId: number) => ({ data: questionId === 101 ? [assoc(101, 1, 'primary')] : [] }) as any,
     )
     vi.mocked(questionsApi.generate).mockResolvedValue({ data: [] } as any)
+    vi.mocked(masteryApi.get).mockResolvedValue({ data: mastery(1, 72) } as any)
   })
 
   it('未选择结构化知识点时，旧行为不变（不发送 knowledge_point_id）', async () => {
@@ -130,5 +155,45 @@ describe('QuestionsView（Phase 2 集成）', () => {
     expect(cards[0].find('.question-tags').text()).toContain('栈和队列')
     // 第二条：结构化标签
     expect(cards[1].find('.question-tags').text()).toContain('栈')
+  })
+
+  it('选中知识点后展示该知识点的掌握度', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('.mastery-bar').exists()).toBe(false)
+
+    wrapper.findComponent(KnowledgePointSelector).vm.$emit('select', kp(1, '栈'))
+    await flushPromises()
+
+    expect(masteryApi.get).toHaveBeenCalledWith(1)
+    expect(wrapper.find('.mastery-bar').text()).toContain('72%')
+  })
+
+  it('尚未产生掌握度记录（404）时展示空态而非报错', async () => {
+    vi.mocked(masteryApi.get).mockRejectedValue({ response: { status: 404 } })
+
+    const wrapper = mountView()
+    await flushPromises()
+    wrapper.findComponent(KnowledgePointSelector).vm.$emit('select', kp(1, '栈'))
+    await flushPromises()
+
+    expect(wrapper.find('.mastery-bar').text()).toContain('暂无掌握度记录')
+    expect(wrapper.text()).not.toContain('生成失败')
+  })
+
+  it('答题后局部刷新掌握度', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    wrapper.findComponent(KnowledgePointSelector).vm.$emit('select', kp(1, '栈'))
+    await flushPromises()
+    expect(masteryApi.get).toHaveBeenCalledTimes(1)
+
+    vi.mocked(masteryApi.get).mockResolvedValue({ data: mastery(1, 88) } as any)
+    wrapper.findAllComponents(QuestionCard)[0].vm.$emit('answered', stQuestions[0], true)
+    await flushPromises()
+
+    expect(masteryApi.get).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('.mastery-bar').text()).toContain('88%')
   })
 })

@@ -24,6 +24,7 @@ from app.models.learning import (
     Question,
     QuestionKnowledgePoint,
     StudyPlan,
+    UserKnowledgePointMastery,
     WrongBookItem,
 )
 from app.models.ops import Course, CourseChapter, CourseRecommendation, Reminder, Todo
@@ -62,6 +63,7 @@ __all__ = [
     "StudyPlan",
     "Todo",
     "User",
+    "UserKnowledgePointMastery",
     "UserProfile",
     "WrongBookItem",
 ]

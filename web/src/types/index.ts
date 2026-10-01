@@ -263,6 +263,37 @@ export interface AnswerRecord {
   created_at: string
 }
 
+// 大阶段 2：用户维度的知识点掌握度（后端确定性算法维护，只读）。
+export interface KnowledgePointBrief {
+  id: number
+  name: string
+  subject: string
+  parent_id?: number | null
+}
+
+export interface KnowledgePointMastery {
+  id: number
+  knowledge_point_id: number
+  mastery_score: number
+  attempt_count: number
+  correct_count: number
+  correct_streak: number
+  last_answered_at?: string | null
+  last_correct_at?: string | null
+  last_reviewed_at?: string | null
+  created_at: string
+  updated_at: string
+  knowledge_point?: KnowledgePointBrief | null
+}
+
+export interface MasterySummary {
+  total: number
+  weak_count: number
+  average_score: number
+  today_review_count: number
+  weak_threshold: number
+}
+
 export interface WrongBookItem {
   id: number
   question_id: number

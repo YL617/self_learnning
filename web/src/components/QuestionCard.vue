@@ -20,6 +20,7 @@ const emit = defineEmits<{
   favorite: [question: Question]
   remove: [question: Question]
   manage: [question: Question]
+  answered: [question: Question, isCorrect: boolean]
 }>()
 
 // 主知识点优先展示。
@@ -55,6 +56,8 @@ async function submitAnswer() {
     const { data } = await questionsApi.submitAnswer(props.question.id, answer.value)
     submitted.value = true
     isCorrect.value = data.is_correct
+    // 让上层刷新该知识点的掌握度（后端在同一事务内已更新）。
+    emit('answered', props.question, data.is_correct)
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '提交失败'
   } finally {

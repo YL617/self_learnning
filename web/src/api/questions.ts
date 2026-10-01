@@ -33,8 +33,12 @@ export const questionsApi = {
   submitAnswer: (questionId: number, userAnswer: string) =>
     http.post<AnswerRecord>(`/questions/${questionId}/answers`, { user_answer: userAnswer }),
   wrongBook: () => http.get<WrongBookItem[]>('/wrong-book'),
+  dueWrongBook: () => http.get<WrongBookItem[]>('/wrong-book/review'),
   updateWrongItem: (itemId: number, mastered: boolean) =>
     http.patch<WrongBookItem>(`/wrong-book/${itemId}`, { mastered }),
+  // 完成一次复习：阶段前进、下次复习时间延后（由后端排期规则决定）。
+  reviewWrongItem: (itemId: number) =>
+    http.patch<WrongBookItem>(`/wrong-book/${itemId}`, { reviewed: true }),
 
   // ---- Phase 2：题目 ↔ 知识点结构化关联 ----
   getQuestionKnowledgePoints: (questionId: number) =>

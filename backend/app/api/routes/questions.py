@@ -1,10 +1,11 @@
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, require_ai_access
@@ -32,6 +33,8 @@ from app.schemas.question import (
 )
 from app.services.content_filter import validate_text
 from app.services.engagement import award_coins, award_pet_exp, record_daily_stat
+from app.services.evaluation import build_evaluation, load_knowledge_point_signals
+from app.services.mastery import MasteryService
 from app.services.question_generator import check_answer, generate_questions
 from app.services.question_knowledge_point_service import (
     AssociationNotFound,
@@ -42,10 +45,14 @@ from app.services.question_knowledge_point_service import (
     QuestionNotFound,
     SubjectMismatch,
 )
+from app.services.review import (
+    apply_review_outcome,
+    reset_for_relearn,
+    schedule_first_review,
+)
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 wrong_book_router = APIRouter(prefix="/wrong-book", tags=["wrong-book"])
-REVIEW_INTERVALS = {1: 1, 2: 3, 3: 7, 4: 15, 5: 30}
 
 
 def _save_questions(
@@ -367,6 +374,61 @@ def delete_question(
     db.commit()
 
 
+def _get_wrong_book_item(
+    db: Session, user_id: int, question_id: int
+) -> WrongBookItem | None:
+    return db.scalar(
+        select(WrongBookItem).where(
+            WrongBookItem.user_id == user_id,
+            WrongBookItem.question_id == question_id,
+        )
+    )
+
+
+def _apply_learning_state(
+    db: Session,
+    *,
+    user_id: int,
+    question: Question,
+    correct: bool,
+    spent_seconds: int,
+    mistake_reason: str | None,
+) -> None:
+    """学习状态闭环（同一事务内）：EvaluationResult → Mastery → WrongBook/Review。
+
+    题目没有结构化知识点时 signals 为空，MasteryService 不做任何事，
+    legacy 题目行为与旧版完全一致。
+    """
+    existing = _get_wrong_book_item(db, user_id, question.id)
+    reviewed = existing is not None
+    signals = load_knowledge_point_signals(db, question.id)
+    result = build_evaluation(
+        question,
+        correct=correct,
+        spent_seconds=spent_seconds,
+        knowledge_points=signals,
+    )
+    MasteryService(db).apply_evaluation(user_id, result, reviewed=reviewed)
+
+    today = date.today()
+    if correct:
+        if existing is not None:
+            apply_review_outcome(existing, correct=True, today=today)
+        return
+    if existing is None:
+        created = WrongBookItem(
+            user_id=user_id,
+            question_id=question.id,
+            mistake_reason=mistake_reason,
+            review_stage=1,
+        )
+        db.add(created)
+        db.flush()
+        schedule_first_review(created, today)
+    else:
+        apply_review_outcome(existing, correct=False, today=today)
+
+
 @router.post("/{question_id}/answers", response_model=AnswerOut, status_code=status.HTTP_201_CREATED)
 def submit_answer(
     question_id: int,
@@ -384,38 +446,43 @@ def submit_answer(
         question_id=question.id,
         user_answer=data.user_answer,
         is_correct=is_correct,
+        spent_seconds=max(0, int(data.spent_seconds or 0)),
     )
-    db.add(record)
-    if is_correct:
-        award_coins(db, current_user.id, 5, "答对题目")
-    else:
-        wrong = db.scalar(
-            select(WrongBookItem).where(
-                WrongBookItem.user_id == current_user.id,
-                WrongBookItem.question_id == question.id,
-            )
+    try:
+        db.add(record)
+        if is_correct:
+            award_coins(db, current_user.id, 5, "答对题目")
+        _apply_learning_state(
+            db,
+            user_id=current_user.id,
+            question=question,
+            correct=is_correct,
+            spent_seconds=record.spent_seconds,
+            mistake_reason=data.user_answer,
         )
-        if wrong is None:
-            db.add(
-                WrongBookItem(
-                    user_id=current_user.id,
-                    question_id=question.id,
-                    mistake_reason=data.user_answer,
-                    review_stage=1,
-                    next_review_date=date.today() + timedelta(days=1),
-                )
-            )
-        else:
-            wrong.review_count += 1
-    award_pet_exp(db, current_user.id, 3)
-    record_daily_stat(
-        db,
-        current_user.id,
-        answered=1,
-        correct=1 if is_correct else 0,
-        coins=5 if is_correct else 0,
-    )
-    db.commit()
+        award_pet_exp(db, current_user.id, 3)
+        record_daily_stat(
+            db,
+            current_user.id,
+            answered=1,
+            correct=1 if is_correct else 0,
+            coins=5 if is_correct else 0,
+        )
+        # 单一事务：答案、掌握度、错题/复习状态必须同时成功或同时失败。
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="提交冲突，请重试"
+        ) from exc
+    except Exception as exc:
+        # 任何评估/掌握度/错题写入异常都必须整体回滚，
+        # 否则会出现"答案已保存但掌握度没更新"的半完成状态。
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="学习状态更新失败，本次作答未保存，请重试",
+        ) from exc
     db.refresh(record)
     return record
 
@@ -461,6 +528,12 @@ def update_wrong_book_item(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> WrongBookItem:
+    """三种语义，互不混淆：
+
+    - mastered=True  → 标记已掌握（不再进入复习队列）
+    - mastered=False → 取消掌握，重新回到复习队列第 1 阶段
+    - reviewed=True  → 完成一次复习：阶段前进、下次复习时间延后，最高阶段后再答对即掌握
+    """
     item = db.scalar(
         select(WrongBookItem)
         .options(selectinload(WrongBookItem.question))
@@ -468,15 +541,19 @@ def update_wrong_book_item(
     )
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="错题记录不存在")
-    if data.mastered is not None:
-        item.mastered = data.mastered
-    item.review_count += 1
-    if not item.mastered:
-        item.review_stage = min(item.review_stage + 1, 5)
-        item.next_review_date = date.today() + timedelta(
-            days=REVIEW_INTERVALS[item.review_stage]
-        )
+    today = date.today()
+    if data.mastered is True:
+        item.mastered = True
         item.last_reviewed_at = datetime.now(timezone.utc)
+    elif data.mastered is False:
+        reset_for_relearn(item, today)
+    if data.reviewed:
+        if item.mastered:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该错题已标记为掌握，无需重复复习",
+            )
+        apply_review_outcome(item, correct=True, today=today)
     db.commit()
     db.refresh(item)
     return item

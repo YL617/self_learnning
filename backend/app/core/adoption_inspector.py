@@ -14,7 +14,7 @@ from app.core.schema_reconciliation_manifest import (
     reconciliation_manifest,
 )
 
-TARGET = "20261001_001"
+TARGET = "20261001_002"
 RECONCILIATION_REVISION = "20260909_001"
 MIGRATION_DIR = Path(__file__).resolve().parents[2] / "alembic"
 

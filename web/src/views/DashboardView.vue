@@ -9,34 +9,43 @@ import {
 import { onMounted, ref } from 'vue'
 
 import { focusApi } from '@/api/focus'
+import { masteryApi } from '@/api/mastery'
 import { demoApi } from '@/api/ops'
 import { plansApi } from '@/api/plans'
 import { questionsApi } from '@/api/questions'
+import MasteryBar from '@/components/MasteryBar.vue'
 import { useAuthStore } from '@/stores/auth'
-import type { StudyPlan } from '@/types'
+import type { KnowledgePointMastery, MasterySummary, StudyPlan } from '@/types'
 
 const auth = useAuthStore()
 const stats = ref({ total_minutes: 0, session_count: 0, today_minutes: 0 })
 const plans = ref<StudyPlan[]>([])
 const questionCount = ref(0)
 const coinBalance = ref(0)
+const masterySummary = ref<MasterySummary | null>(null)
+const weakPoints = ref<KnowledgePointMastery[]>([])
 const loading = ref(true)
 const demoLoading = ref(false)
 
 async function load() {
   try {
-    const [statsRes, plansRes, questionsRes, coinsRes] = await Promise.allSettled([
-      focusApi.stats(),
-      plansApi.list(),
-      questionsApi.list(),
-      focusApi.transactions(),
-    ])
+    const [statsRes, plansRes, questionsRes, coinsRes, summaryRes, weakRes] =
+      await Promise.allSettled([
+        focusApi.stats(),
+        plansApi.list(),
+        questionsApi.list(),
+        focusApi.transactions(),
+        masteryApi.summary(),
+        masteryApi.weak({ limit: 3 }),
+      ])
     if (statsRes.status === 'fulfilled') stats.value = statsRes.value.data
     if (plansRes.status === 'fulfilled') plans.value = plansRes.value.data
     if (questionsRes.status === 'fulfilled') questionCount.value = questionsRes.value.data.length
     if (coinsRes.status === 'fulfilled') {
       coinBalance.value = coinsRes.value.data.reduce((sum, tx) => sum + tx.amount, 0)
     }
+    if (summaryRes.status === 'fulfilled') masterySummary.value = summaryRes.value.data
+    if (weakRes.status === 'fulfilled') weakPoints.value = weakRes.value.data
   } finally {
     loading.value = false
   }
@@ -162,6 +171,34 @@ async function seedDemoData() {
           </div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="row space-between">
+          <h2>学习状态</h2>
+          <router-link to="/wrong-book" class="btn btn-ghost">
+            <BookOpenCheck :size="16" />
+            今日待复习 {{ masterySummary?.today_review_count ?? 0 }} 题
+          </router-link>
+        </div>
+        <div v-if="!weakPoints.length" class="empty">
+          暂无掌握度记录，做几道带知识点的练习题就能看到自己的薄弱环节
+        </div>
+        <div v-else class="list">
+          <div v-for="row in weakPoints" :key="row.id" class="list-item mastery-row">
+            <div class="list-item-main">
+              <div class="list-item-title">
+                {{ row.knowledge_point?.name || `知识点 #${row.knowledge_point_id}` }}
+              </div>
+              <MasteryBar
+                :score="row.mastery_score"
+                :label="`作答 ${row.attempt_count} 次 · 正确 ${row.correct_count} 次`"
+                compact
+              />
+            </div>
+            <span class="badge badge-amber">薄弱</span>
+          </div>
+        </div>
+      </div>
     </template>
   </section>
 </template>
@@ -195,5 +232,9 @@ async function seedDemoData() {
 .stat-icon-coin {
   background: var(--success-soft);
   color: var(--success);
+}
+
+.mastery-row {
+  align-items: flex-start;
 }
 </style>

@@ -6,6 +6,7 @@ from app.api.routes import (
     files,
     focus,
     knowledge_points,
+    mastery,
     onboarding,
     ops,
     plan_chat,
@@ -28,6 +29,7 @@ api_router.include_router(focus.router)
 api_router.include_router(focus.pet_router)
 api_router.include_router(focus.coin_router)
 api_router.include_router(knowledge_points.router)
+api_router.include_router(mastery.router)
 api_router.include_router(ops.todos_router)
 api_router.include_router(ops.reminders_router)
 api_router.include_router(ops.notifications_router)

@@ -37,6 +37,7 @@ RECONCILED_INDEXES: dict[str, list[str]] = {
 # adoption inspector 会据此校验 profile 链的一致性。
 POST_RECONCILIATION_TABLES: dict[str, list[str]] = {
     "20261001_001": ["question_knowledge_points"],
+    "20261001_002": ["user_knowledge_point_mastery"],
 }
 
 # server_default 字段级白名单。

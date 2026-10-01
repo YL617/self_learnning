@@ -3,11 +3,19 @@ import { FileQuestion, Sparkles } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 
 import { knowledgePointsApi, toKnowledgePointNameMap } from '@/api/knowledgePoints'
+import { masteryApi } from '@/api/mastery'
 import { questionsApi, type QuestionGeneratePayload } from '@/api/questions'
 import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
+import MasteryBar from '@/components/MasteryBar.vue'
 import QuestionCard from '@/components/QuestionCard.vue'
 import QuestionKnowledgePointsModal from '@/components/QuestionKnowledgePointsModal.vue'
-import type { KnowledgePoint, KnowledgePointTag, Question, QuestionKnowledgePoint } from '@/types'
+import type {
+  KnowledgePoint,
+  KnowledgePointMastery,
+  KnowledgePointTag,
+  Question,
+  QuestionKnowledgePoint,
+} from '@/types'
 
 const form = ref({
   subject: '数据结构',
@@ -26,6 +34,29 @@ const kpNameById = ref<Record<number, string>>({})
 const associationsByQuestion = ref<Record<number, QuestionKnowledgePoint[]>>({})
 const manageOpen = ref(false)
 const activeQuestion = ref<Question | null>(null)
+
+// 大阶段 2：当前所选知识点的掌握度。
+const selectedMastery = ref<KnowledgePointMastery | null>(null)
+const masteryLoading = ref(false)
+
+async function loadMastery() {
+  const kpId = form.value.knowledge_point_id
+  if (kpId == null) {
+    selectedMastery.value = null
+    return
+  }
+  masteryLoading.value = true
+  try {
+    const { data } = await masteryApi.get(kpId)
+    // 切换知识点过程中可能已返回，避免写入过期结果。
+    if (form.value.knowledge_point_id === kpId) selectedMastery.value = data
+  } catch {
+    // 404 = 尚未作答过该知识点，属正常空态。
+    selectedMastery.value = null
+  } finally {
+    masteryLoading.value = false
+  }
+}
 
 async function loadKpNames() {
   try {
@@ -67,11 +98,25 @@ function onKpSelect(kp: KnowledgePoint | null) {
   } else {
     form.value.knowledge_point_id = null
   }
+  loadMastery()
 }
 
 // 手动修改文本名称后不再指向某个结构化知识点，避免发送不匹配的 id。
 function onKpTextInput() {
   form.value.knowledge_point_id = null
+  selectedMastery.value = null
+}
+
+// 答题后掌握度已在后端事务内更新，这里只做局部刷新。
+function onAnswered(question: Question) {
+  const tag = (associationsByQuestion.value[question.id] || [])[0]
+  if (form.value.knowledge_point_id == null && tag) {
+    form.value.knowledge_point_id = tag.knowledge_point_id
+    if (kpNameById.value[tag.knowledge_point_id]) {
+      form.value.knowledge_point = kpNameById.value[tag.knowledge_point_id]
+    }
+  }
+  loadMastery()
 }
 
 async function generate() {
@@ -185,6 +230,11 @@ onMounted(load)
             @select="onKpSelect"
           />
         </div>
+        <div v-if="form.knowledge_point_id != null" class="field">
+          <span>当前掌握度</span>
+          <MasteryBar :score="selectedMastery?.mastery_score ?? null" :label="form.knowledge_point" />
+          <p v-if="masteryLoading" class="muted mastery-hint">正在加载掌握度...</p>
+        </div>
         <div class="field">
           <span>数量</span>
           <input v-model.number="form.count" class="input" type="number" min="1" max="20" />
@@ -223,6 +273,7 @@ onMounted(load)
           @favorite="toggleFavorite"
           @remove="removeQuestion"
           @manage="openManage"
+          @answered="onAnswered"
         />
       </div>
     </div>
@@ -273,5 +324,10 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 7px;
+}
+
+.mastery-hint {
+  margin: 0;
+  font-size: 12px;
 }
 </style>

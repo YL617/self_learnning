@@ -41,13 +41,24 @@ def test_wrong_item_gets_ebbinghaus_schedule(client):
     assert item["review_stage"] == 1
     assert item["next_review_date"] == (date.today() + timedelta(days=1)).isoformat()
 
+    # 大阶段 2：复习用显式 reviewed 语义（mastered 只负责标记掌握/取消掌握）。
     reviewed = client.patch(
         f"/api/v1/wrong-book/{item['id']}",
         headers=headers,
-        json={"mastered": False},
+        json={"reviewed": True},
     ).json()
     assert reviewed["review_stage"] == 2
     assert reviewed["next_review_date"] == (date.today() + timedelta(days=3)).isoformat()
+
+    # 复习阶段递进到最高阶段后再答对一次即视为已掌握。
+    for _ in range(4):
+        reviewed = client.patch(
+            f"/api/v1/wrong-book/{item['id']}",
+            headers=headers,
+            json={"reviewed": True},
+        ).json()
+    assert reviewed["review_stage"] == 5
+    assert reviewed["mastered"] is True
 
 
 def test_due_review_endpoint(client):

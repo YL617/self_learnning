@@ -20,10 +20,10 @@ from pathlib import Path
 from sqlalchemy import create_engine, inspect
 
 # 全部需要冻结/校验的 revision；新 revision 追加到元组末尾。
-REVISIONS = ("20260907_001", "20260908_001", "20260909_001", "20261001_001")
+REVISIONS = ("20260907_001", "20260908_001", "20260909_001", "20261001_001", "20261001_002")
 # 已发布（生产采用过）的可信 revision：其 frozen contract 一经生成即不可变更。
 # 未列入此元组的 revision 尚未发布，允许开发期重新冻结。
-RELEASE_HISTORY = ("20260907_001", "20260908_001", "20260909_001")
+RELEASE_HISTORY = ("20260907_001", "20260908_001", "20260909_001", "20261001_001")
 
 
 def snapshot_revision(backend: Path, directory: Path, revision: str) -> dict:

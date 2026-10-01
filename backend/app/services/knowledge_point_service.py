@@ -5,7 +5,7 @@ import re
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import KnowledgePoint, QuestionKnowledgePoint
+from app.models import KnowledgePoint, QuestionKnowledgePoint, UserKnowledgePointMastery
 
 KP_STATUS_ACTIVE = "active"
 KP_STATUS_PENDING = "pending"
@@ -279,5 +279,13 @@ class KnowledgePointService:
         )
         if linked_question is not None:
             raise KnowledgePointInUse("知识点已被题目关联，请先解除关联")
+        # 大阶段 2：存在用户掌握度记录时同样拒绝，避免静默清空学习进度。
+        has_mastery = self.db.scalar(
+            select(UserKnowledgePointMastery.id)
+            .where(UserKnowledgePointMastery.knowledge_point_id == knowledge_point_id)
+            .limit(1)
+        )
+        if has_mastery is not None:
+            raise KnowledgePointInUse("知识点已有用户掌握度记录，无法删除")
         self.db.delete(item)
         return item
