@@ -5,6 +5,7 @@ from app.api.routes import (
     auth,
     files,
     focus,
+    knowledge_import,
     knowledge_points,
     mastery,
     onboarding,
@@ -30,6 +31,7 @@ api_router.include_router(focus.router)
 api_router.include_router(focus.pet_router)
 api_router.include_router(focus.coin_router)
 api_router.include_router(knowledge_points.router)
+api_router.include_router(knowledge_import.router)
 api_router.include_router(mastery.router)
 api_router.include_router(recommendations.router)
 api_router.include_router(ops.todos_router)

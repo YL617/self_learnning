@@ -13,3 +13,6 @@ httpx>=0.27.0
 bcrypt>=4.0.0
 python-jose[cryptography]>=3.3.0
 alembic>=1.13.0
+# 大阶段 4 M2：批量导入解析 .xlsx（纯 Python，无编译依赖）。
+# 版本由 constraints-prod.lock 固定为 3.1.5（含传递依赖 et-xmlfile==2.0.0）。
+openpyxl>=3.1.0

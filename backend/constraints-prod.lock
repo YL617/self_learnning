@@ -1,5 +1,9 @@
 # Exported from the validated production backend image on 2026-09-19.
 # Target runtime: CPython 3.12.14 on Linux x86_64.
+# 2026-10-02（大阶段4 M2）：手工追加 openpyxl 与其唯一传递依赖 et-xmlfile，
+# 供「批量知识库导入」解析 .xlsx。两行都带精确版本，保持本文件「全量固定」的
+# 契约；`pip --constraint` 只约束出现在本文件里的包，因此必须同时写入
+# requirements.txt 与本文件，否则会静默安装未固定版本。
 aiohappyeyeballs==2.7.1
 aiohttp==3.14.3
 aiosignal==1.4.0
@@ -35,6 +39,7 @@ dnspython==2.8.0
 durationpy==0.11
 ecdsa==0.19.2
 email-validator==2.3.0
+et-xmlfile==2.0.0
 fastapi==0.141.1
 filelock==3.32.5
 filetype==1.2.0
@@ -84,6 +89,7 @@ numpy==2.5.2
 oauthlib==3.3.1
 onnxruntime==1.29.0
 openai==2.54.0
+openpyxl==3.1.5
 opentelemetry-api==1.44.0
 opentelemetry-exporter-otlp-proto-common==1.44.0
 opentelemetry-exporter-otlp-proto-grpc==1.44.0
