@@ -49,4 +49,29 @@ describe('router 后台访问控制', () => {
     expect(record?.path).toBe('/admin/knowledge-points')
     expect(record?.components?.default).toBeTruthy()
   })
+
+  // ------------------------------------------------ 大阶段 4 M3：知识库导入
+  it('未登录时无法进入知识库导入页', async () => {
+    const route = await go('/admin/knowledge-import')
+    expect(route.name).toBe('login')
+  })
+
+  it('普通用户无法进入知识库导入页', async () => {
+    loginAs({ id: 1, username: 'student', role: 'user' })
+    const route = await go('/admin/knowledge-import')
+    expect(route.name).toBe('dashboard')
+  })
+
+  it('管理员可以进入知识库导入页', async () => {
+    loginAs({ id: 1, username: 'root', role: 'admin' })
+    const route = await go('/admin/knowledge-import')
+    expect(route.name).toBe('admin-knowledge-import')
+    expect(route.path).toBe('/admin/knowledge-import')
+  })
+
+  it('知识库导入页已注册在后台布局下', () => {
+    const record = router.getRoutes().find((item) => item.name === 'admin-knowledge-import')
+    expect(record?.path).toBe('/admin/knowledge-import')
+    expect(record?.components?.default).toBeTruthy()
+  })
 })

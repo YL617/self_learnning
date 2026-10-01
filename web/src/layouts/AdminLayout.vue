@@ -7,6 +7,7 @@ import {
   KeyRound,
   LayoutDashboard,
   Network,
+  UploadCloud,
   Users,
 } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
@@ -19,6 +20,7 @@ const navItems = [
   { label: '激活码管理', to: '/admin/codes', icon: KeyRound },
   { label: '题目管理', to: '/admin/questions', icon: FileQuestion },
   { label: '知识点管理', to: '/admin/knowledge-points', icon: Network },
+  { label: '知识库导入', to: '/admin/knowledge-import', icon: UploadCloud },
   { label: '文档管理', to: '/admin/documents', icon: Files },
   { label: '课程管理', to: '/admin/courses', icon: GraduationCap },
 ]

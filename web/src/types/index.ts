@@ -590,3 +590,134 @@ export interface WeeklyReport {
   coins_earned: number
   wrong_added: number
 }
+
+// ---------------------------------------------------------------- 批量知识库导入
+// 大阶段 4 M2 的 6 个接口契约（前端侧镜像）。词表与后端 Literal 一一对应，
+// 后端 CHECK 约束已经钉死这些取值，前端不要自造新值。
+
+export type KnowledgeImportSourceFormat = 'tsv' | 'csv' | 'xlsx' | 'paste'
+// 刻意没有 overwrite：导入永不覆盖既有非空字段。
+export type KnowledgeImportConflictStrategy = 'skip' | 'update_empty'
+export type KnowledgeImportBatchStatus = 'applied' | 'failed' | 'rolled_back'
+export type KnowledgeImportRowAction = 'create' | 'skip' | 'update_empty'
+export type KnowledgeImportIssueLevel = 'error' | 'warning'
+
+// row 为 null 表示整批级结论（B 系列）；行级结论用 1-based 源行号。
+export interface KnowledgeImportIssue {
+  row: number | null
+  level: KnowledgeImportIssueLevel
+  code: string
+  field?: string | null
+  message: string
+}
+
+export interface KnowledgeImportPreviewRow {
+  row: number
+  subject: string
+  parent_path?: string | null
+  name: string
+  code?: string | null
+  aliases: string[]
+  difficulty?: string | null
+  estimated_minutes?: number | null
+  action: KnowledgeImportRowAction
+  existing_kp_id?: number | null
+  issues: KnowledgeImportIssue[]
+}
+
+export interface KnowledgeImportPlanCounts {
+  create?: number
+  skip?: number
+  update_empty?: number
+  create_parent?: number
+}
+
+export interface KnowledgeImportPreview {
+  source_format: KnowledgeImportSourceFormat
+  detected_encoding?: string | null
+  detected_delimiter?: string | null
+  has_header: boolean
+  total_rows: number
+  error_rows: number
+  warning_rows: number
+  parse_notes: string[]
+  planned: KnowledgeImportPlanCounts
+  new_subjects: string[]
+  parent_paths_to_create: string[]
+  rows: KnowledgeImportPreviewRow[]
+  truncated: boolean
+  conflict_strategy: KnowledgeImportConflictStrategy
+  can_apply: boolean
+}
+
+// 400 / 409 的结构化错误体（后端 HTTPException.detail）。
+export interface KnowledgeImportRejection {
+  message: string
+  code?: string | null
+  batch_errors: KnowledgeImportIssue[]
+  row_issues: KnowledgeImportIssue[]
+  cycle: string[]
+}
+
+export interface KnowledgeImportApplyResult {
+  batch_id: number
+  status: 'applied' | 'failed'
+  source_format: string
+  conflict_strategy: string
+  total_rows: number
+  created_count: number
+  updated_count: number
+  skipped_count: number
+  failed_count: number
+  auto_parent_count: number
+  duration_ms: number
+  rolled_back: boolean
+  rows: KnowledgeImportPreviewRow[]
+}
+
+export interface KnowledgeImportBatch {
+  id: number
+  user_id?: number | null
+  source_name?: string | null
+  source_format: string
+  conflict_strategy: string
+  status: KnowledgeImportBatchStatus | string
+  total_rows: number
+  created_count: number
+  updated_count: number
+  skipped_count: number
+  failed_count: number
+  auto_parent_count: number
+  error_summary?: string | null
+  created_at: string
+  applied_at?: string | null
+  rolled_back_at?: string | null
+}
+
+export type KnowledgeImportBlockingReason =
+  | 'has_children'
+  | 'linked_question'
+  | 'has_mastery'
+  | 'prerequisite_edge'
+
+export interface KnowledgeImportBlockingRef {
+  knowledge_point_id: number
+  knowledge_point_name: string
+  reason: KnowledgeImportBlockingReason
+  detail: string
+}
+
+export interface KnowledgeImportBatchDetail extends KnowledgeImportBatch {
+  knowledge_points: KnowledgePointBrief[]
+  blocking_references: KnowledgeImportBlockingRef[]
+  notes: string[]
+}
+
+export interface KnowledgeImportRollbackResult {
+  batch_id: number
+  deleted_count: number
+  // update_empty 补过、但回滚不会清空的条数（M2 已接受的局限）。
+  kept_updated_count: number
+  status: 'rolled_back'
+  rolled_back_at: string
+}

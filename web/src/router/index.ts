@@ -125,6 +125,11 @@ const router = createRouter({
           component: () => import('@/views/admin/AdminKnowledgePointsView.vue'),
         },
         {
+          path: 'knowledge-import',
+          name: 'admin-knowledge-import',
+          component: () => import('@/views/admin/AdminKnowledgeImportView.vue'),
+        },
+        {
           path: 'documents',
           name: 'admin-documents',
           component: () => import('@/views/admin/AdminDocumentsView.vue'),
