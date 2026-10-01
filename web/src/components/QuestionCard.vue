@@ -1,15 +1,34 @@
 <script setup lang="ts">
-import { Check, Eye, Heart, RotateCcw, Trash2 } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { Check, Eye, Heart, RotateCcw, Tags, Trash2 } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 
 import { questionsApi } from '@/api/questions'
-import type { Question } from '@/types'
+import type { KnowledgePointTag, Question } from '@/types'
 
-const props = defineProps<{ question: Question; showManage?: boolean }>()
+const props = withDefaults(
+  defineProps<{
+    question: Question
+    showManage?: boolean
+    knowledgePointTags?: KnowledgePointTag[]
+  }>(),
+  {
+    showManage: false,
+    knowledgePointTags: () => [],
+  },
+)
 const emit = defineEmits<{
   favorite: [question: Question]
   remove: [question: Question]
+  manage: [question: Question]
 }>()
+
+// 主知识点优先展示。
+const sortedTags = computed(() =>
+  [...props.knowledgePointTags].sort((a, b) => {
+    if (a.role === b.role) return a.id - b.id
+    return a.role === 'primary' ? -1 : 1
+  }),
+)
 
 const answer = ref('')
 const submitted = ref(false)
@@ -60,6 +79,10 @@ function reset() {
         <span class="badge badge-teal">{{ question.question_type }}</span>
       </div>
       <div v-if="showManage" class="row gap">
+        <button class="btn btn-ghost" type="button" title="管理知识点" @click="emit('manage', question)">
+          <Tags :size="16" />
+          知识点
+        </button>
         <button class="btn btn-ghost" type="button" title="收藏题目" @click="emit('favorite', question)">
           <Heart
             :size="16"
@@ -72,6 +95,19 @@ function reset() {
           <Trash2 :size="16" color="#dc2626" />
         </button>
       </div>
+    </div>
+    <div v-if="sortedTags.length || question.knowledge_point" class="question-tags row gap wrap">
+      <template v-if="sortedTags.length">
+        <span
+          v-for="tag in sortedTags"
+          :key="tag.id"
+          class="badge"
+          :class="tag.role === 'primary' ? 'badge-primary' : 'badge-plain'"
+        >
+          <template v-if="tag.role === 'primary'">[主] </template>{{ tag.name }}
+        </span>
+      </template>
+      <span v-else class="badge">{{ question.knowledge_point }}</span>
     </div>
     <h3 class="question-stem">{{ question.stem }}</h3>
     <div v-if="parseOptions().length" class="option-list">
@@ -113,3 +149,20 @@ function reset() {
     </div>
   </article>
 </template>
+
+<style scoped>
+.question-tags {
+  margin-top: 8px;
+}
+
+.badge-primary {
+  background: #d8efe4;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.badge-plain {
+  background: #efece2;
+  color: #57564f;
+}
+</style>

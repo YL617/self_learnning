@@ -2,13 +2,17 @@
 import { FileQuestion, Sparkles } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 
-import { questionsApi } from '@/api/questions'
+import { knowledgePointsApi, toKnowledgePointNameMap } from '@/api/knowledgePoints'
+import { questionsApi, type QuestionGeneratePayload } from '@/api/questions'
+import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
 import QuestionCard from '@/components/QuestionCard.vue'
-import type { Question } from '@/types'
+import QuestionKnowledgePointsModal from '@/components/QuestionKnowledgePointsModal.vue'
+import type { KnowledgePoint, KnowledgePointTag, Question, QuestionKnowledgePoint } from '@/types'
 
 const form = ref({
   subject: '数据结构',
   knowledge_point: '栈和队列',
+  knowledge_point_id: null as number | null,
   count: 5,
   question_type: 'choice' as 'choice' | 'fill' | 'short_answer',
 })
@@ -17,14 +21,76 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 
+// Phase 2：结构化知识点名称映射 + 每题的关联缓存。
+const kpNameById = ref<Record<number, string>>({})
+const associationsByQuestion = ref<Record<number, QuestionKnowledgePoint[]>>({})
+const manageOpen = ref(false)
+const activeQuestion = ref<Question | null>(null)
+
+async function loadKpNames() {
+  try {
+    const { data } = await knowledgePointsApi.list()
+    kpNameById.value = { ...kpNameById.value, ...toKnowledgePointNameMap(data) }
+  } catch {
+    // 名称解析失败不阻塞出题与列表展示（回退到旧文本知识点）。
+  }
+}
+
+async function loadAssociations(questionIds: number[]) {
+  const results = await Promise.allSettled(
+    questionIds.map((id) => questionsApi.getQuestionKnowledgePoints(id)),
+  )
+  const next = { ...associationsByQuestion.value }
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      next[questionIds[index]] = result.value.data
+    }
+  })
+  associationsByQuestion.value = next
+}
+
+function tagsFor(questionId: number): KnowledgePointTag[] {
+  const items = associationsByQuestion.value[questionId] || []
+  return items
+    .filter((item) => kpNameById.value[item.knowledge_point_id])
+    .map((item) => ({
+      id: item.knowledge_point_id,
+      name: kpNameById.value[item.knowledge_point_id],
+      role: item.role,
+    }))
+}
+
+function onKpSelect(kp: KnowledgePoint | null) {
+  if (kp) {
+    form.value.knowledge_point_id = kp.id
+    form.value.knowledge_point = kp.name
+  } else {
+    form.value.knowledge_point_id = null
+  }
+}
+
+// 手动修改文本名称后不再指向某个结构化知识点，避免发送不匹配的 id。
+function onKpTextInput() {
+  form.value.knowledge_point_id = null
+}
+
 async function generate() {
   loading.value = true
   error.value = ''
   success.value = ''
   try {
-    const { data } = await questionsApi.generate(form.value)
+    const payload: QuestionGeneratePayload = {
+      subject: form.value.subject,
+      knowledge_point: form.value.knowledge_point,
+      count: form.value.count,
+      question_type: form.value.question_type,
+      knowledge_point_id: form.value.knowledge_point_id ?? undefined,
+    }
+    const { data } = await questionsApi.generate(payload)
     questions.value = data
     success.value = `已生成 ${data.length} 道题目`
+    await loadKpNames()
+    await loadAssociations(data.map((item) => item.id))
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '生成失败'
   } finally {
@@ -36,6 +102,8 @@ async function load() {
   try {
     const { data } = await questionsApi.list()
     questions.value = data
+    await loadKpNames()
+    await loadAssociations(data.map((item) => item.id))
   } catch {
     questions.value = []
   }
@@ -66,6 +134,18 @@ async function removeQuestion(question: Question) {
   }
 }
 
+function openManage(question: Question) {
+  activeQuestion.value = question
+  manageOpen.value = true
+}
+
+function onAssociationsUpdated(questionId: number, associations: QuestionKnowledgePoint[]) {
+  associationsByQuestion.value = {
+    ...associationsByQuestion.value,
+    [questionId]: associations,
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -90,7 +170,20 @@ onMounted(load)
         </div>
         <div class="field">
           <span>知识点</span>
-          <input v-model="form.knowledge_point" class="input" />
+          <input
+            v-model="form.knowledge_point"
+            class="input"
+            placeholder="输入知识点名称"
+            @input="onKpTextInput"
+          />
+        </div>
+        <div class="field">
+          <span>结构化知识点（可选）</span>
+          <KnowledgePointSelector
+            :subject="form.subject"
+            :model-value="form.knowledge_point_id"
+            @select="onKpSelect"
+          />
         </div>
         <div class="field">
           <span>数量</span>
@@ -126,12 +219,21 @@ onMounted(load)
           :key="question.id"
           :question="question"
           :show-manage="true"
+          :knowledge-point-tags="tagsFor(question.id)"
           @favorite="toggleFavorite"
           @remove="removeQuestion"
+          @manage="openManage"
         />
       </div>
     </div>
     <div v-else class="empty">还没有题目，先在上面生成一组吧</div>
+
+    <QuestionKnowledgePointsModal
+      :open="manageOpen"
+      :question="activeQuestion"
+      @close="manageOpen = false"
+      @updated="onAssociationsUpdated"
+    />
   </section>
 </template>
 

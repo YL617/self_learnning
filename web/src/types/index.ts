@@ -211,6 +211,19 @@ export interface OnboardingResponse {
   plan?: StudyPlan | null
 }
 
+export interface KnowledgePoint {
+  id: number
+  name: string
+  normalized_name: string
+  subject: string
+  parent_id?: number | null
+  description?: string | null
+  status: string
+  source: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Question {
   id: number
   subject: string
@@ -222,6 +235,24 @@ export interface Question {
   analysis?: string | null
   source: string
   is_favorite: boolean
+}
+
+// Phase 2：题目 ↔ 知识点结构化关联。
+// 后端 QuestionKnowledgePointRead 不含嵌套知识点对象，前端需用 KnowledgePoint 列表按 id 解析名称。
+export interface QuestionKnowledgePoint {
+  id: number
+  question_id: number
+  knowledge_point_id: number
+  role: 'primary' | 'secondary' | string
+  source: string
+  created_at: string
+}
+
+// 已解析名称的关联标签（供题目卡片展示）。
+export interface KnowledgePointTag {
+  id: number
+  name: string
+  role: string
 }
 
 export interface AnswerRecord {
