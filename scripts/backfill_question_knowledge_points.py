@@ -26,9 +26,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-
 from sqlalchemy import select
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from app.core.database import SessionLocal
 from app.models import KnowledgePoint, Question, QuestionKnowledgePoint

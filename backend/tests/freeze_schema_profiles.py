@@ -4,9 +4,10 @@ Explicit developer utility; never accepts a URL or uses the application database
 
 Safety policy (Phase 2+):
   - Profiles for revisions NOT listed in REVISIONS are preserved byte-for-byte.
-  - Listed revisions are recomputed from a fresh replay; if a historical
-    revision's recomputed contract differs from the frozen one, the tool
-    aborts instead of silently overwriting a trusted contract.
+  - Released revisions (RELEASE_HISTORY) are replayed and compared; if their
+    recomputed contract differs from the frozen one, the tool aborts instead of
+    silently overwriting a trusted contract.
+  - Not-yet-released revisions may be re-frozen during development.
 """
 
 import json
@@ -18,8 +19,11 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, inspect
 
-# 历史可信 revision 只读校验；新 revision 追加到元组末尾。
+# 全部需要冻结/校验的 revision；新 revision 追加到元组末尾。
 REVISIONS = ("20260907_001", "20260908_001", "20260909_001", "20261001_001")
+# 已发布（生产采用过）的可信 revision：其 frozen contract 一经生成即不可变更。
+# 未列入此元组的 revision 尚未发布，允许开发期重新冻结。
+RELEASE_HISTORY = ("20260907_001", "20260908_001", "20260909_001")
 
 
 def snapshot_revision(backend: Path, directory: Path, revision: str) -> dict:
@@ -55,10 +59,10 @@ def main():
         for revision in REVISIONS:
             profiles[revision] = snapshot_revision(backend, Path(directory), revision)
 
-    for revision in REVISIONS:
+    for revision in RELEASE_HISTORY:
         if revision in existing and existing[revision] != profiles[revision]:
             print(f"ERROR: frozen contract for {revision} would change; "
-                  "historical migrations must not be modified. Aborting.")
+                  "released migrations must not be modified. Aborting.")
             raise SystemExit(1)
 
     path.write_text(json.dumps(profiles, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

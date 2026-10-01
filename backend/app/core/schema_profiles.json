@@ -10076,14 +10076,6 @@
       ],
       "indexes": [
         {
-          "name": "ix_question_knowledge_points_id",
-          "column_names": [
-            "id"
-          ],
-          "unique": 0,
-          "dialect_options": {}
-        },
-        {
           "name": "ix_question_knowledge_points_knowledge_point_id",
           "column_names": [
             "knowledge_point_id"

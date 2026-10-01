@@ -48,9 +48,6 @@ def upgrade() -> None:
         ),
     )
     op.create_index(
-        "ix_question_knowledge_points_id", "question_knowledge_points", ["id"]
-    )
-    op.create_index(
         "ix_question_knowledge_points_knowledge_point_id",
         "question_knowledge_points",
         ["knowledge_point_id"],
@@ -69,8 +66,5 @@ def downgrade() -> None:
     op.drop_index(
         "ix_question_knowledge_points_knowledge_point_id",
         table_name="question_knowledge_points",
-    )
-    op.drop_index(
-        "ix_question_knowledge_points_id", table_name="question_knowledge_points"
     )
     op.drop_table("question_knowledge_points")

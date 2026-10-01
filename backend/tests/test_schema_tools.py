@@ -71,6 +71,55 @@ def test_redundant_primary_key_indexes_are_not_in_orm_metadata():
         assert [i for i in table.indexes if i.name == f"ix_{table_name}_id"] == []
 
 
+def test_new_tables_have_no_redundant_primary_key_index():
+    """通用规则：20260909_001 之后新增的表禁止 PK 冗余索引。
+
+    PRIMARY KEY 自身已提供索引，额外 ix_<table>_id 是冗余。
+    历史表沿用已冻结的 20260909_001 契约（其 ix_<table>_id 仍被 drift 要求存在），
+    本阶段不做清理，故按冻结合同豁免。
+    """
+    from app.core.schema_profiles import load_profiles
+
+    historical = set(load_profiles(Base)["20260909_001"].metadata.tables)
+    checked = 0
+    for name, table in sorted(Base.metadata.tables.items()):
+        if name in historical:
+            continue
+        if [c.name for c in table.primary_key.columns] != ["id"]:
+            continue
+        checked += 1
+        assert table.c.id.primary_key is True, name
+        assert [i.name for i in table.indexes if i.name == f"ix_{name}_id"] == [], name
+    assert checked > 0
+
+
+def test_question_knowledge_points_index_and_constraint_contract():
+    from sqlalchemy import UniqueConstraint
+
+    table = Base.metadata.tables["question_knowledge_points"]
+    index_names = {i.name for i in table.indexes}
+
+    # PK 为 id，且不再有冗余的 PK 索引。
+    assert [c.name for c in table.primary_key.columns] == ["id"]
+    assert "ix_question_knowledge_points_id" not in index_names
+    # UNIQUE 覆盖 (question_id, knowledge_point_id)，可服务 question_id 前缀查询。
+    assert "ix_question_knowledge_points_question_id" not in index_names
+    uniques = {tuple(c.name for c in u.columns): u.name
+               for u in table.constraints if isinstance(u, UniqueConstraint)}
+    assert uniques == {
+        ("question_id", "knowledge_point_id"): "uq_question_knowledge_points_pair"
+    }
+    # 反向查询（按知识点找题）所需的独立索引保留。
+    assert "ix_question_knowledge_points_knowledge_point_id" in index_names
+
+    # FK 动作：题目删除级联清理关联；知识点删除由 RESTRICT 兜底（Service 已预检）。
+    fks = {fk.parent.name: fk for fk in table.foreign_keys}
+    assert fks["question_id"].target_fullname == "questions.id"
+    assert fks["question_id"].ondelete == "CASCADE"
+    assert fks["knowledge_point_id"].target_fullname == "knowledge_points.id"
+    assert fks["knowledge_point_id"].ondelete == "RESTRICT"
+
+
 def test_drift_missing_table(engine):
     _drop_table(engine, "plan_adjustment_logs")
     result = check_drift(engine, Base)
