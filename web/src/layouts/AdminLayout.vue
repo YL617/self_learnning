@@ -6,6 +6,7 @@ import {
   GraduationCap,
   KeyRound,
   LayoutDashboard,
+  Network,
   Users,
 } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
@@ -17,6 +18,7 @@ const navItems = [
   { label: '用户管理', to: '/admin/users', icon: Users },
   { label: '激活码管理', to: '/admin/codes', icon: KeyRound },
   { label: '题目管理', to: '/admin/questions', icon: FileQuestion },
+  { label: '知识点管理', to: '/admin/knowledge-points', icon: Network },
   { label: '文档管理', to: '/admin/documents', icon: Files },
   { label: '课程管理', to: '/admin/courses', icon: GraduationCap },
 ]

@@ -49,3 +49,30 @@ jobs:
         run: |
           bash -n ../scripts/deploy_production.sh ../scripts/update_production.sh ../scripts/production_release.sh
           docker compose -f ../docker-compose.yml --profile background config --quiet
+
+  web:
+    name: Web (TypeScript / Tests / Build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # 与 web/Dockerfile 完全一致的 pnpm 解析方式：Node 22 自带 corepack，
+      # 因此 CI 与生产镜像使用同一个 pnpm 版本，无需在 package.json 里硬编码。
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript typecheck
+        run: pnpm exec vue-tsc --noEmit
+      - name: Unit tests
+        run: pnpm exec vitest run
+      - name: Production build
+        run: pnpm build
+      - name: Production Web image build
+        working-directory: .
+        run: docker build -f web/Dockerfile -t ai-study-web:ci .
