@@ -12,7 +12,12 @@ from sqlalchemy.orm import Session
 
 from app.models import KnowledgePoint
 from app.services.ai_gateway import AIModelGateway
-from app.services.prerequisite import KnowledgePointNotFound, PrerequisiteService
+from app.services.knowledge_point_service import KP_NODE_TYPE_CONCEPT
+from app.services.prerequisite import (
+    KnowledgePointNotFound,
+    NotLearnableNode,
+    PrerequisiteService,
+)
 
 SUGGEST_LIMIT = 5
 CANDIDATE_LIMIT = 40
@@ -41,6 +46,9 @@ def _candidates(
         select(KnowledgePoint)
         .where(
             KnowledgePoint.status == "active",
+            # 只把可学习知识点交给 LLM —— 目录节点（排序 / 图 / 树与二叉树…）
+            # 绝不出现在候选列表里，否则 LLM 会提议「排序」作为前置。
+            KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
             KnowledgePoint.id != knowledge_point.id,
         )
         .order_by(KnowledgePoint.normalized_subject, KnowledgePoint.id)
@@ -70,6 +78,8 @@ def suggest_prerequisites(
     knowledge_point = db.get(KnowledgePoint, knowledge_point_id)
     if knowledge_point is None:
         raise KnowledgePointNotFound("知识点不存在")
+    if knowledge_point.node_type != KP_NODE_TYPE_CONCEPT:
+        raise NotLearnableNode("目录节点不能参与前置关系")
 
     candidates = _candidates(service, knowledge_point)
     if not candidates:

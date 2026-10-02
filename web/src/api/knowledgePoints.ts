@@ -2,6 +2,7 @@ import { http } from './http'
 import type {
   KnowledgePoint,
   KnowledgePointDifficulty,
+  KnowledgePointNodeType,
   LearningPath,
   PrerequisiteDetail,
   PrerequisiteItem,
@@ -13,6 +14,8 @@ export interface KnowledgePointListParams {
   subject?: string
   parent_id?: number
   q?: string
+  // P0：按节点类型过滤。不传 = 全部；concept = 仅可学习知识点。
+  node_type?: KnowledgePointNodeType
 }
 
 export interface KnowledgePointPayload {
@@ -22,6 +25,8 @@ export interface KnowledgePointPayload {
   description?: string | null
   status?: 'active' | 'pending' | 'disabled'
   source?: 'system' | 'admin' | 'ai'
+  // P0 node_type：默认 concept；container=目录（仅组织层级）。
+  node_type?: KnowledgePointNodeType
   // 大阶段 4 M1：内容元数据。显式传 null 表示清空该字段。
   code?: string | null
   aliases?: string[] | null

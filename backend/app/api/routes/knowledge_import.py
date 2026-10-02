@@ -49,6 +49,7 @@ from app.services.knowledge_import import (
     parse_pasted,
     parse_uploaded,
     plan_import,
+    preview_auto_parent_nodes,
     preview_rows,
     rollback_batch,
     template_csv,
@@ -140,6 +141,7 @@ def _preview_payload(plan, strategy: str) -> ImportPreviewOut:
         planned=plan.counts,
         new_subjects=plan.new_subjects,
         parent_paths_to_create=[item.display_path for item in plan.auto_parents],
+        auto_parent_nodes=preview_auto_parent_nodes(plan),
         rows=preview_rows(plan),
         truncated=plan.total_rows > PREVIEW_ROW_LIMIT,
         conflict_strategy=strategy,  # type: ignore[arg-type]
@@ -208,6 +210,8 @@ async def apply_import(
         skipped_count=report.skipped_count,
         failed_count=0,
         auto_parent_count=report.auto_parent_count,
+        created_concept_count=report.created_count,
+        created_container_count=report.auto_parent_count,
         duration_ms=report.duration_ms,
         rows=report.rows,
     )

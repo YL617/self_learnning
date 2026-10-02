@@ -31,6 +31,7 @@ function kp(id: number, name: string, overrides: Partial<KnowledgePoint> = {}): 
     description: null,
     status: 'active',
     source: 'admin',
+    node_type: 'concept',
     created_at: '2026-10-01T00:00:00',
     updated_at: '2026-10-01T00:00:00',
     ...overrides,
@@ -55,10 +56,13 @@ function bodyRows(wrapper: VueWrapper<any>) {
   return wrapper.findAll('.kp-tr').filter((row: any) => !row.classes().includes('kp-th'))
 }
 
+// P0：名称/父级选项前会带上类型图标（📁/🧠），断言前统一剥掉。
+function cleanText(text: string): string {
+  return text.replace(/[└📁🧠]/g, '').trim()
+}
+
 function rowByName(wrapper: VueWrapper<any>, name: string) {
-  return bodyRows(wrapper).find(
-    (row: any) => row.find('.kp-name').text().replace(/└/g, '').trim() === name,
-  )
+  return bodyRows(wrapper).find((row: any) => cleanText(row.find('.kp-name').text()) === name)
 }
 
 function buttonByText(wrapper: VueWrapper<any>, text: string) {
@@ -164,6 +168,7 @@ describe('AdminKnowledgePointsView', () => {
       parent_id: null,
       description: null,
       status: 'active',
+      node_type: 'concept',
       code: null,
       aliases: null,
       difficulty: null,
@@ -191,6 +196,7 @@ describe('AdminKnowledgePointsView', () => {
       parent_id: 1,
       description: null,
       status: 'active',
+      node_type: 'concept',
       code: null,
       aliases: null,
       difficulty: null,
@@ -252,7 +258,7 @@ describe('AdminKnowledgePointsView', () => {
 
     const options = formField(wrapper, 2)
       .findAll('option')
-      .map((option: any) => option.text())
+      .map((option: any) => cleanText(option.text()))
     expect(options).toEqual(['无父级（顶层）', '线性表', '栈', '顺序栈'])
     expect(options).not.toContain('进程')
   })
@@ -263,7 +269,7 @@ describe('AdminKnowledgePointsView', () => {
 
     const options = formField(wrapper, 2)
       .findAll('option')
-      .map((option: any) => option.text())
+      .map((option: any) => cleanText(option.text()))
     expect(options).toEqual(['无父级（顶层）', '线性表'])
   })
 
@@ -278,7 +284,7 @@ describe('AdminKnowledgePointsView', () => {
     expect((formField(wrapper, 2).find('select').element as HTMLSelectElement).value).toBe('')
     const options = formField(wrapper, 2)
       .findAll('option')
-      .map((option: any) => option.text())
+      .map((option: any) => cleanText(option.text()))
     expect(options).toEqual(['无父级（顶层）', '进程'])
   })
 
@@ -334,6 +340,7 @@ describe('AdminKnowledgePointsView', () => {
       parent_id: null,
       description: null,
       status: 'active',
+      node_type: 'concept',
       code: 'DS.TREE.BST',
       aliases: ['二叉查找树', 'BST'],
       difficulty: 'hard',
@@ -412,5 +419,64 @@ describe('AdminKnowledgePointsView', () => {
     await buttonByText(wrapper, '新增知识点')!.trigger('click')
     expect(wrapper.find('.form-hint').text()).toContain('掌握度会被拆散')
     expect(wrapper.find('.form-hint').text()).toContain('不参与掌握度计算')
+  })
+
+  // ---------------------------------------------- P0：节点类型（container/concept）
+
+  it('列表展示类型列并区分目录与知识点', async () => {
+    const wrapper = await setup([
+      kp(1, '数据结构', { node_type: 'container' }),
+      kp(2, '栈', { parent_id: 1, node_type: 'concept' }),
+    ])
+
+    expect(wrapper.find('.kp-th').findAll('span').map((el: any) => el.text())).toContain('类型')
+    const containerRow = rowByName(wrapper, '数据结构')!
+    expect(containerRow.text()).toContain('目录')
+    expect(containerRow.classes()).toContain('kp-tr-container')
+
+    const conceptRow = rowByName(wrapper, '栈')!
+    expect(conceptRow.text()).toContain('知识点')
+    expect(conceptRow.classes()).not.toContain('kp-tr-container')
+  })
+
+  it('类型筛选可只看目录或只看知识点', async () => {
+    const wrapper = await setup([
+      kp(1, '数据结构', { node_type: 'container' }),
+      kp(2, '栈', { node_type: 'concept' }),
+      kp(3, '队列', { node_type: 'concept' }),
+    ])
+
+    // 状态筛选是第三个 field（学科 / 类型 / 名称搜索）。
+    await wrapper.findAll('.filter-row select')[1].setValue('container')
+    await flushPromises()
+    expect(bodyRows(wrapper)).toHaveLength(1)
+    expect(rowByName(wrapper, '数据结构')).toBeTruthy()
+
+    await wrapper.findAll('.filter-row select')[1].setValue('concept')
+    await flushPromises()
+    expect(bodyRows(wrapper)).toHaveLength(2)
+    expect(rowByName(wrapper, '数据结构')).toBeFalsy()
+  })
+
+  it('新增表单默认提交 concept，切换为目录时展示提示', async () => {
+    const wrapper = await setup()
+    vi.mocked(knowledgePointsApi.create).mockResolvedValue({ data: kp(9, '数据结构') } as any)
+    await buttonByText(wrapper, '新增知识点')!.trigger('click')
+
+    // 类型字段在表单末尾，打开时不应显示目录提示。
+    expect(wrapper.find('.container-hint').exists()).toBe(false)
+
+    await formField(wrapper, 0).find('input').setValue('数据结构')
+    await formField(wrapper, 1).find('input').setValue('数据结构')
+    await formField(wrapper, 9).find('select').setValue('container')
+    await flushPromises()
+
+    expect(wrapper.find('.container-hint').text()).toContain('不参与题目关联、掌握度、推荐和前置关系')
+
+    await buttonByText(wrapper, '保存')!.trigger('click')
+    await flushPromises()
+
+    const payload = vi.mocked(knowledgePointsApi.create).mock.calls[0][0] as any
+    expect(payload.node_type).toBe('container')
   })
 })

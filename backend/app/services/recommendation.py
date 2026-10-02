@@ -39,7 +39,11 @@ from app.models import (
     UserProfile,
     WrongBookItem,
 )
-from app.services.knowledge_point_service import clean_name, normalize_subject
+from app.services.knowledge_point_service import (
+    KP_NODE_TYPE_CONCEPT,
+    clean_name,
+    normalize_subject,
+)
 from app.services.mastery import MASTERY_INITIAL, MASTERY_MAX, WEAK_THRESHOLD
 from app.services.prerequisite import PrerequisiteService
 from app.services.question_knowledge_point_service import QKP_ROLE_PRIMARY
@@ -172,7 +176,15 @@ def data_scale(db: Session) -> DataScaleSnapshot:
 
     total_answers = int(db.scalar(select(func.count(AnswerRecord.id))) or 0)
     user_count = int(db.scalar(select(func.count(User.id))) or 0)
-    knowledge_point_count = int(db.scalar(select(func.count(KnowledgePoint.id))) or 0)
+    # 只统计可学习知识点（concept）：目录节点不是学习对象，计入会让规模快照失真。
+    knowledge_point_count = int(
+        db.scalar(
+            select(func.count(KnowledgePoint.id)).where(
+                KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT
+            )
+        )
+        or 0
+    )
     question_count = int(db.scalar(select(func.count(Question.id))) or 0)
     tagged_question_count = int(
         db.scalar(
@@ -361,8 +373,16 @@ class RecommendationService:
 
     # ---------------------------------------------------------- 数据装载
     def _knowledge_points(self) -> dict[int, KnowledgePoint]:
+        """全部**可学习**知识点（active + concept）。
+
+        这是 4 个动作（review_wrong / review_weak / learn_new / practice）共用的
+        唯一候选装载函数：把 node_type 过滤放在这里，容器必然不会进入任何推荐动作。
+        """
         rows = self.db.scalars(
-            select(KnowledgePoint).where(KnowledgePoint.status == "active")
+            select(KnowledgePoint).where(
+                KnowledgePoint.status == "active",
+                KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
+            )
         ).all()
         return {row.id: row for row in rows}
 
@@ -428,7 +448,11 @@ class RecommendationService:
     def _legacy_index(
         self, knowledge_points: dict[int, KnowledgePoint]
     ) -> dict[tuple[str, str], KnowledgePoint]:
-        """legacy 题目只有自由文本知识点名；用它做一次确定性回退解析。"""
+        """legacy 题目只有自由文本知识点名；用它做一次确定性回退解析。
+
+        入参来自 `_knowledge_points()`，因此天然只含 concept —— 容器名不会被用来
+        回退解析题目文本（例如「排序」不会命中容器）。
+        """
         index: dict[tuple[str, str], KnowledgePoint] = {}
         for knowledge_point in knowledge_points.values():
             key = (knowledge_point.normalized_subject, knowledge_point.normalized_name)
@@ -609,6 +633,8 @@ class RecommendationService:
             .where(
                 QuestionKnowledgePoint.question_id.in_(set(question_ids)),
                 QuestionKnowledgePoint.role == QKP_ROLE_PRIMARY,
+                # 防御历史脏数据：即便曾把题目关联到容器，也不在推荐理由里带出容器名。
+                KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
             )
         ).all()
         return {int(question_id): kp for question_id, kp in rows}

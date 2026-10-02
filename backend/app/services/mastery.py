@@ -19,6 +19,7 @@ from app.services.evaluation import (
     EvaluationResult,
     KnowledgePointSignal,
 )
+from app.services.knowledge_point_service import KP_NODE_TYPE_CONCEPT
 from app.services.question_knowledge_point_service import (
     QKP_ROLE_PRIMARY,
     QKP_ROLE_SECONDARY,
@@ -138,7 +139,16 @@ class MasteryService:
     def list_for_user(self, user_id: int, *, limit: int | None = None) -> list[UserKnowledgePointMastery]:
         statement = (
             select(UserKnowledgePointMastery)
-            .where(UserKnowledgePointMastery.user_id == user_id)
+            .join(
+                KnowledgePoint,
+                KnowledgePoint.id == UserKnowledgePointMastery.knowledge_point_id,
+            )
+            .where(
+                UserKnowledgePointMastery.user_id == user_id,
+                # 读取层防御：container 永远不产生 mastery；即便历史脏数据存在，
+                # 也不计入列表 / 统计（写入侧已由题目关联关口拦截）。
+                KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
+            )
             .order_by(
                 UserKnowledgePointMastery.mastery_score.desc(),
                 UserKnowledgePointMastery.id,
@@ -157,8 +167,13 @@ class MasteryService:
     ) -> list[UserKnowledgePointMastery]:
         statement = (
             select(UserKnowledgePointMastery)
+            .join(
+                KnowledgePoint,
+                KnowledgePoint.id == UserKnowledgePointMastery.knowledge_point_id,
+            )
             .where(
                 UserKnowledgePointMastery.user_id == user_id,
+                KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
                 UserKnowledgePointMastery.attempt_count >= WEAK_MIN_ATTEMPTS,
                 UserKnowledgePointMastery.mastery_score < threshold,
             )
@@ -173,11 +188,53 @@ class MasteryService:
 
     def average_score(self, user_id: int) -> float:
         value = self.db.scalar(
-            select(func.avg(UserKnowledgePointMastery.mastery_score)).where(
-                UserKnowledgePointMastery.user_id == user_id
+            select(func.avg(UserKnowledgePointMastery.mastery_score))
+            .join(
+                KnowledgePoint,
+                KnowledgePoint.id == UserKnowledgePointMastery.knowledge_point_id,
+            )
+            .where(
+                UserKnowledgePointMastery.user_id == user_id,
+                KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
             )
         )
         return float(value) if value is not None else 0.0
+
+    def count_for_user(self, user_id: int) -> int:
+        """该用户的有效掌握度记录数（只计 concept，用于 summary 的总数）。"""
+        return int(
+            self.db.scalar(
+                select(func.count(UserKnowledgePointMastery.id))
+                .join(
+                    KnowledgePoint,
+                    KnowledgePoint.id == UserKnowledgePointMastery.knowledge_point_id,
+                )
+                .where(
+                    UserKnowledgePointMastery.user_id == user_id,
+                    KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
+                )
+            )
+            or 0
+        )
+
+    def count_weak(self, user_id: int, *, threshold: int = WEAK_THRESHOLD) -> int:
+        """薄弱知识点数量（只计 concept）。"""
+        return int(
+            self.db.scalar(
+                select(func.count(UserKnowledgePointMastery.id))
+                .join(
+                    KnowledgePoint,
+                    KnowledgePoint.id == UserKnowledgePointMastery.knowledge_point_id,
+                )
+                .where(
+                    UserKnowledgePointMastery.user_id == user_id,
+                    KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT,
+                    UserKnowledgePointMastery.attempt_count >= WEAK_MIN_ATTEMPTS,
+                    UserKnowledgePointMastery.mastery_score < threshold,
+                )
+            )
+            or 0
+        )
 
     def knowledge_points_by_ids(self, ids: list[int]) -> dict[int, KnowledgePoint]:
         if not ids:

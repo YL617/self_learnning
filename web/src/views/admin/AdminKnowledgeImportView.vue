@@ -121,10 +121,10 @@ async function runApply() {
   const lines = [
     '即将执行导入：',
     '',
-    `新增 ${count('create')}`,
+    `新增知识点 ${count('create_concept')}`,
+    `新增目录 ${count('create_container')}`,
     `跳过 ${count('skip')}`,
     `补空 ${count('update_empty')}`,
-    `自动创建父节点 ${count('create_parent')}`,
     '',
   ]
   if (current.truncated) {

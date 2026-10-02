@@ -4,8 +4,14 @@ import { computed, onMounted, ref } from 'vue'
 
 import { knowledgePointsApi, type KnowledgePointPayload } from '@/api/knowledgePoints'
 import PrerequisiteEditor from '@/components/PrerequisiteEditor.vue'
-import type { KnowledgePoint, KnowledgePointDifficulty } from '@/types'
-import { buildRows, parentCandidates, statusLabel } from '@/utils/knowledgePoints'
+import type { KnowledgePoint, KnowledgePointDifficulty, KnowledgePointNodeType } from '@/types'
+import {
+  buildRows,
+  nodeTypeIcon,
+  nodeTypeLabel,
+  parentCandidates,
+  statusLabel,
+} from '@/utils/knowledgePoints'
 
 const SOURCE_LABELS: Record<string, string> = {
   system: '系统',
@@ -19,6 +25,8 @@ interface KnowledgePointForm {
   parent_id: number | null
   description: string
   status: 'active' | 'pending' | 'disabled'
+  // P0：节点类型。默认 concept；container=目录（仅组织层级）。
+  node_type: KnowledgePointNodeType
   // 大阶段 4 M1：内容元数据。别名在表单里是逗号分隔的文本，时长保留字符串
   // 以便区分「留空」与「填 0」。
   code: string
@@ -34,6 +42,7 @@ function emptyForm(): KnowledgePointForm {
     parent_id: null,
     description: '',
     status: 'active',
+    node_type: 'concept',
     code: '',
     aliases: '',
     difficulty: '',
@@ -56,6 +65,7 @@ const error = ref('')
 const success = ref('')
 
 const subjectFilter = ref('')
+const nodeTypeFilter = ref<KnowledgePointNodeType | 'all'>('all')
 const query = ref('')
 
 const formOpen = ref(false)
@@ -72,11 +82,28 @@ const subjects = computed(() =>
 )
 
 const rows = computed(() =>
-  buildRows(items.value, { subject: subjectFilter.value, query: query.value }),
+  buildRows(items.value, {
+    subject: subjectFilter.value,
+    nodeType: nodeTypeFilter.value,
+    query: query.value,
+  }),
+)
+
+// P0：目录 / 知识点的数量分别展示，避免把两者混成一个数。
+const conceptCount = computed(
+  () => items.value.filter((item) => item.node_type === 'concept').length,
+)
+const containerCount = computed(
+  () => items.value.filter((item) => item.node_type === 'container').length,
 )
 
 const parentOptions = computed(() =>
-  parentCandidates(items.value, form.value.subject, editing.value?.id ?? null),
+  parentCandidates(
+    items.value,
+    form.value.subject,
+    editing.value?.id ?? null,
+    form.value.node_type,
+  ),
 )
 
 async function load() {
@@ -108,6 +135,7 @@ function openEdit(item: KnowledgePoint) {
     parent_id: item.parent_id ?? null,
     description: item.description ?? '',
     status: (item.status as 'active' | 'pending' | 'disabled') || 'active',
+    node_type: item.node_type ?? 'concept',
     code: item.code ?? '',
     aliases: (item.aliases ?? []).join(', '),
     difficulty: item.difficulty ?? '',
@@ -136,6 +164,15 @@ function onParentChange(event: Event) {
   form.value.parent_id = raw ? Number(raw) : null
 }
 
+// P0：切换到「目录」时，父级只能是目录；若原父级是知识点则清空（后端亦会拒绝）。
+function onNodeTypeChange() {
+  if (form.value.node_type !== 'container' || form.value.parent_id == null) return
+  const parent = items.value.find((item) => item.id === form.value.parent_id)
+  if (!parent || parent.node_type !== 'container') {
+    form.value.parent_id = null
+  }
+}
+
 async function save() {
   if (!form.value.name.trim() || !form.value.subject.trim()) {
     formError.value = '知识点名称与学科不能为空'
@@ -156,6 +193,7 @@ async function save() {
     parent_id: form.value.parent_id,
     description: form.value.description.trim() || null,
     status: form.value.status,
+    node_type: form.value.node_type,
     code: form.value.code.trim() || null,
     aliases: parseAliases(form.value.aliases),
     difficulty: form.value.difficulty || null,
@@ -194,6 +232,7 @@ async function remove(item: KnowledgePoint) {
 
 function clearFilters() {
   subjectFilter.value = ''
+  nodeTypeFilter.value = 'all'
   query.value = ''
 }
 
@@ -242,6 +281,14 @@ onMounted(load)
           </select>
         </div>
         <div class="field">
+          <span>类型筛选</span>
+          <select v-model="nodeTypeFilter" class="select">
+            <option value="all">全部</option>
+            <option value="container">仅目录</option>
+            <option value="concept">仅知识点</option>
+          </select>
+        </div>
+        <div class="field">
           <span>名称搜索</span>
           <input v-model="query" class="input" placeholder="输入知识点名称" />
         </div>
@@ -252,7 +299,8 @@ onMounted(load)
       </div>
       <p class="muted filter-hint">
         <Search :size="13" />
-        共 {{ items.length }} 个知识点，当前筛选显示 {{ rows.length }} 个
+        共 {{ items.length }} 个节点（知识点 {{ conceptCount }} / 目录 {{ containerCount }}），当前筛选显示
+        {{ rows.length }} 个
       </p>
     </div>
 
@@ -292,7 +340,7 @@ onMounted(load)
           >
             <option value="">无父级（顶层）</option>
             <option v-for="option in parentOptions" :key="option.id" :value="option.id">
-              {{ option.name }}
+              {{ nodeTypeIcon(option.node_type) }} {{ option.name }}
             </option>
           </select>
         </div>
@@ -334,7 +382,17 @@ onMounted(load)
             placeholder="例如：30"
           />
         </div>
+        <div class="field">
+          <span>节点类型</span>
+          <select v-model="form.node_type" class="select" @change="onNodeTypeChange">
+            <option value="concept">🧠 知识点</option>
+            <option value="container">📁 目录</option>
+          </select>
+        </div>
       </div>
+      <p v-if="form.node_type === 'container'" class="container-hint">
+        目录节点仅用于组织知识结构，不参与题目关联、掌握度、推荐和前置关系。
+      </p>
       <p class="muted form-hint">
         别名用于避免同义名被建成多条知识点（否则同一知识点的掌握度会被拆散）。
         难度与预估时长只用于展示与推荐，不参与掌握度计算。
@@ -359,6 +417,7 @@ onMounted(load)
     <div v-else class="kp-table">
       <div class="kp-tr kp-th">
         <span>名称</span>
+        <span>类型</span>
         <span>学科</span>
         <span>父知识点</span>
         <span>状态</span>
@@ -366,12 +425,23 @@ onMounted(load)
         <span>创建时间</span>
         <span>操作</span>
       </div>
-      <div v-for="row in rows" :key="row.id" class="kp-tr">
+      <div
+        v-for="row in rows"
+        :key="row.id"
+        class="kp-tr"
+        :class="{ 'kp-tr-container': row.node_type === 'container' }"
+      >
         <span
           class="kp-name"
           :style="row.depth ? { paddingLeft: `${row.depth * 18}px` } : undefined"
         >
-          <span v-if="row.depth" class="kp-branch">└</span>{{ row.name }}
+          <span v-if="row.depth" class="kp-branch">└</span
+          ><span class="kp-icon">{{ nodeTypeIcon(row.node_type) }}</span>{{ row.name }}
+        </span>
+        <span>
+          <span class="badge" :class="row.node_type === 'container' ? 'badge-amber' : 'badge-green'">
+            {{ nodeTypeLabel(row.node_type) }}
+          </span>
         </span>
         <span><span class="badge">{{ row.subject }}</span></span>
         <span class="muted">{{ row.parentName || '—' }}</span>
@@ -463,6 +533,17 @@ onMounted(load)
   line-height: 1.6;
 }
 
+.container-hint {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-sm);
+}
+
 .text-success {
   color: #15803d;
 }
@@ -475,7 +556,7 @@ onMounted(load)
 
 .kp-tr {
   display: grid;
-  grid-template-columns: 2.2fr 1fr 1.4fr 0.8fr 0.8fr 1fr 0.9fr;
+  grid-template-columns: 2.2fr 0.7fr 1fr 1.3fr 0.8fr 0.8fr 1fr 0.9fr;
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
@@ -483,6 +564,16 @@ onMounted(load)
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13.5px;
+}
+
+/* P0：目录节点用浅色底 + 左侧色条区分，避免与可学习知识点混淆。 */
+.kp-tr-container {
+  background: var(--surface-2);
+  border-left: 3px solid var(--amber, #d9a441);
+}
+
+.kp-icon {
+  margin-right: 2px;
 }
 
 .kp-th {

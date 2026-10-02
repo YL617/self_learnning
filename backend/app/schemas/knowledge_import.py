@@ -43,10 +43,23 @@ class PreviewRow(BaseModel):
     aliases: list[str] = Field(default_factory=list)
     difficulty: str | None = None
     estimated_minutes: int | None = None
+    # 大阶段 4 P0：本行「知识点名」一律推导为 concept（目录由层级路径推导）。
+    node_type: str = "concept"
+    # 类型推导来源（让管理员在写库前看懂「为什么是这个类型」）。
+    node_type_source: str | None = None
     action: RowAction = "create"
     # 命中既有知识点时给出其 id（`skip` / `update_empty` 才有值）。
     existing_kp_id: int | None = None
     issues: list[RowIssue] = Field(default_factory=list)
+
+
+class PreviewNodeType(BaseModel):
+    """预览中「将自动创建的目录节点」及其类型推导来源。"""
+
+    name: str
+    path: str
+    node_type: str = "container"
+    node_type_source: str = "由层级路径自动推导"
 
 
 class ImportPreviewOut(BaseModel):
@@ -61,10 +74,15 @@ class ImportPreviewOut(BaseModel):
     warning_rows: int = 0
     # 解析事实回显（编码回退 / 分隔符 / 空行剔除 / 多 sheet 等）。
     parse_notes: list[str] = Field(default_factory=list)
-    # {"create": n, "skip": n, "update_empty": n, "create_parent": n}
+    # {"create": n, "skip": n, "update_empty": n, "create_parent": n,
+    #  "create_concept": n, "create_container": n}
+    # create_concept = 将创建的可学习知识点数；create_container = 将自动创建的目录节点数。
+    # 刻意分成两个键，避免把「知识点」与「目录」混成一个 created_count。
     planned: dict[str, int] = Field(default_factory=dict)
     new_subjects: list[str] = Field(default_factory=list)
     parent_paths_to_create: list[str] = Field(default_factory=list)
+    # 每个将自动创建的目录节点（名称 / 路径 / 类型 / 推导来源）。
+    auto_parent_nodes: list[PreviewNodeType] = Field(default_factory=list)
     rows: list[PreviewRow] = Field(default_factory=list)
     truncated: bool = False
     conflict_strategy: ConflictStrategy = "skip"
@@ -100,6 +118,9 @@ class ImportApplyOut(BaseModel):
     # apply 成功时恒为 0（全有或全无）；失败时等于 total_rows。
     failed_count: int
     auto_parent_count: int
+    # 显式双计数（P0）：新建可学习知识点数 / 自动创建目录节点数，不混成一个 created_count。
+    created_concept_count: int = 0
+    created_container_count: int = 0
     duration_ms: int
     rolled_back: bool = False
     rows: list[PreviewRow] = Field(default_factory=list)

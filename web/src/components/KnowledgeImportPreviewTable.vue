@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { DIFFICULTY_LABELS, type KnowledgePointDifficulty } from '@/types'
 import type { KnowledgeImportIssue, KnowledgeImportPreview, KnowledgeImportPreviewRow } from '@/types'
 import { ACTION_LABELS, issueText, plannedCount } from '@/utils/knowledgeImport'
+import { nodeTypeIcon, nodeTypeLabel } from '@/utils/knowledgePoints'
 
 // 后端 preview 最多返回 200 行；一页 50 行，不做虚拟滚动。
 const PAGE_SIZE = 50
@@ -51,8 +52,12 @@ function issueClass(issue: KnowledgeImportIssue): string {
       <span class="stat-value">{{ preview.total_rows }}</span>
     </div>
     <div class="stat-card">
-      <span class="stat-label">将创建</span>
-      <span class="stat-value">{{ count('create') }}</span>
+      <span class="stat-label">将创建知识点</span>
+      <span class="stat-value">{{ count('create_concept') }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">将自动创建目录</span>
+      <span class="stat-value">{{ count('create_container') }}</span>
     </div>
     <div class="stat-card">
       <span class="stat-label">将跳过</span>
@@ -61,10 +66,6 @@ function issueClass(issue: KnowledgeImportIssue): string {
     <div class="stat-card">
       <span class="stat-label">将补空</span>
       <span class="stat-value">{{ count('update_empty') }}</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">自动创建父节点</span>
-      <span class="stat-value">{{ count('create_parent') }}</span>
     </div>
     <div class="stat-card">
       <span class="stat-label">错误数</span>
@@ -85,12 +86,25 @@ function issueClass(issue: KnowledgeImportIssue): string {
     仅展示前 {{ preview.rows.length }} 行，实际共 {{ preview.total_rows }} 行。
   </p>
 
+  <details v-if="preview.auto_parent_nodes?.length" class="imp-autoparent">
+    <summary>
+      📁 将自动创建 {{ preview.auto_parent_nodes.length }} 个目录节点（由层级路径推导，不参与题目关联 / 掌握度 / 推荐）
+    </summary>
+    <ul class="imp-list imp-notes">
+      <li v-for="node in preview.auto_parent_nodes" :key="node.path">
+        <span class="imp-ap-path">{{ node.path }}</span>
+        <span class="muted">（{{ node.node_type_source || '由层级路径自动推导' }}）</span>
+      </li>
+    </ul>
+  </details>
+
   <div class="imp-table">
     <div class="imp-tr imp-th">
       <span>行号</span>
       <span>学科</span>
       <span>层级路径</span>
       <span>名称</span>
+      <span>类型</span>
       <span>别名</span>
       <span>难度</span>
       <span>预计学时</span>
@@ -103,6 +117,12 @@ function issueClass(issue: KnowledgeImportIssue): string {
       <span>{{ row.subject }}</span>
       <span class="muted">{{ row.parent_path || '—' }}</span>
       <span class="imp-name">{{ row.name }}</span>
+      <span class="imp-type">
+        <span class="badge" :class="row.node_type === 'container' ? 'badge-amber' : 'badge-green'">
+          {{ nodeTypeIcon(row.node_type) }} {{ nodeTypeLabel(row.node_type) }}
+        </span>
+        <span v-if="row.node_type_source" class="muted imp-type-src">{{ row.node_type_source }}</span>
+      </span>
       <span class="muted">{{ row.aliases?.length ? row.aliases.join(' / ') : '—' }}</span>
       <span class="muted">{{ difficultyText(row.difficulty) }}</span>
       <span class="muted">{{ row.estimated_minutes ?? '—' }}</span>
@@ -149,6 +169,21 @@ function issueClass(issue: KnowledgeImportIssue): string {
   line-height: 1.7;
 }
 
+.imp-autoparent {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+}
+
+.imp-autoparent summary {
+  cursor: pointer;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.imp-ap-path {
+  font-weight: 600;
+}
+
 .imp-list {
   margin: 0;
   padding-left: 18px;
@@ -165,7 +200,7 @@ function issueClass(issue: KnowledgeImportIssue): string {
 
 .imp-tr {
   display: grid;
-  grid-template-columns: 0.5fr 1fr 1.4fr 1.2fr 1.4fr 0.7fr 0.8fr 1.2fr 0.7fr 2.4fr;
+  grid-template-columns: 0.5fr 1fr 1.4fr 1.2fr 1.2fr 1.3fr 0.7fr 0.8fr 1.1fr 0.7fr 2.4fr;
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
@@ -173,7 +208,19 @@ function issueClass(issue: KnowledgeImportIssue): string {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  min-width: 1080px;
+  min-width: 1180px;
+}
+
+.imp-type {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.imp-type-src {
+  font-size: 11.5px;
+  line-height: 1.3;
 }
 
 .imp-tr.is-error {

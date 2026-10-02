@@ -18,12 +18,14 @@ function resultRows(): KnowledgeImportPreviewRow[] {
 // 结果 CSV 完全在浏览器本地生成（服务端不落盘），并做公式注入防护。
 function exportCsv() {
   const table: unknown[][] = [
-    ['行号', '学科', '层级路径', '名称', '别名', '难度', '预计学时', '编码', '动作', '校验结论'],
+    ['行号', '学科', '层级路径', '名称', '类型', '类型来源', '别名', '难度', '预计学时', '编码', '动作', '校验结论'],
     ...resultRows().map((row) => [
       row.row,
       row.subject,
       row.parent_path ?? '',
       row.name,
+      row.node_type === 'container' ? '目录' : '知识点',
+      row.node_type_source ?? '',
       (row.aliases ?? []).join('|'),
       row.difficulty ?? '',
       row.estimated_minutes ?? '',
@@ -54,8 +56,12 @@ function exportCsv() {
         <span class="stat-value">{{ STATUS_LABELS[result.status] ?? result.status }}</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">新增</span>
-        <span class="stat-value">{{ result.created_count }}</span>
+        <span class="stat-label">新增知识点</span>
+        <span class="stat-value">{{ result.created_concept_count }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">新增目录</span>
+        <span class="stat-value">{{ result.created_container_count }}</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">补空</span>
@@ -64,10 +70,6 @@ function exportCsv() {
       <div class="stat-card">
         <span class="stat-label">跳过</span>
         <span class="stat-value">{{ result.skipped_count }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">自动创建父节点</span>
-        <span class="stat-value">{{ result.auto_parent_count }}</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">耗时</span>

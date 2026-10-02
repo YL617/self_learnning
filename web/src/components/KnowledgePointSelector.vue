@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue'
 
 import { knowledgePointsApi } from '@/api/knowledgePoints'
-import type { KnowledgePoint } from '@/types'
+import type { KnowledgePoint, KnowledgePointNodeType } from '@/types'
+import { nodeTypeIcon } from '@/utils/knowledgePoints'
 
 const props = withDefaults(
   defineProps<{
@@ -12,12 +13,15 @@ const props = withDefaults(
     excludeIds?: number[]
     disabled?: boolean
     placeholder?: string
+    // P0：默认只允许选择可学习知识点（concept）；目录节点不可被选中。
+    nodeType?: KnowledgePointNodeType
   }>(),
   {
     modelValue: null,
     excludeIds: () => [],
     disabled: false,
     placeholder: '选择结构化知识点',
+    nodeType: 'concept',
   },
 )
 
@@ -59,7 +63,7 @@ async function load() {
   }
   loading.value = true
   try {
-    const { data } = await knowledgePointsApi.list({ subject })
+    const { data } = await knowledgePointsApi.list({ subject, node_type: props.nodeType })
     if (seq !== requestSeq) return
     items.value = data
     loadedOnce.value = true
@@ -73,7 +77,7 @@ async function load() {
   }
 }
 
-watch(() => props.subject, load, { immediate: true })
+watch(() => [props.subject, props.nodeType], load, { immediate: true })
 
 defineExpose({ reload: load })
 </script>
@@ -88,7 +92,7 @@ defineExpose({ reload: load })
     >
       <option value="">{{ loading ? '加载中...' : placeholder }}</option>
       <option v-for="item in available" :key="item.id" :value="item.id">
-        {{ item.name }}
+        {{ nodeTypeIcon(item.node_type) }} {{ item.name }}
       </option>
     </select>
     <p v-if="error" class="text-danger kp-hint">{{ error }}</p>

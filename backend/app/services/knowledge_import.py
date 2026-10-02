@@ -39,9 +39,16 @@ from app.models import (
     UserKnowledgePointMastery,
 )
 from app.schemas.knowledge import KnowledgePointUpdate
-from app.schemas.knowledge_import import BlockingRef, PreviewRow, RowIssue
+from app.schemas.knowledge_import import (
+    BlockingRef,
+    PreviewNodeType,
+    PreviewRow,
+    RowIssue,
+)
 from app.services.knowledge_point_service import (
     CODE_MAX_LENGTH,
+    KP_NODE_TYPE_CONCEPT,
+    KP_NODE_TYPE_CONTAINER,
     KP_SOURCE_ADMIN,
     KnowledgePointService,
     clean_name,
@@ -111,6 +118,10 @@ DELIMITER_LABELS = {"\t": "制表符", ",": "逗号", ";": "分号", "|": "竖�
 PATH_SEPARATOR_RE = re.compile(r"[>＞]")
 ALIAS_SEPARATOR_RE = re.compile(r"[|,，]")
 INTEGER_RE = re.compile(r"\d+(?:\.0+)?")
+
+# 节点类型推导来源文案（大阶段 4 P0）：让管理员在 preview 里看懂「为什么是这个类型」。
+NODE_TYPE_SOURCE_ROW = "知识点行"
+NODE_TYPE_SOURCE_PATH = "由层级路径自动推导"
 
 
 # --------------------------------------------------------------------------
@@ -195,6 +206,9 @@ class ParsedRow:
     difficulty: str | None = None
     estimated_minutes: int | None = None
     code: str | None = None
+    # 行级节点类型：本行的「知识点名」一律是 concept（目录由层级路径推导为 container）。
+    node_type: str = KP_NODE_TYPE_CONCEPT
+    node_type_source: str = NODE_TYPE_SOURCE_ROW
 
     # 行内纯校验结论
     issues: list[RowIssue] = field(default_factory=list)
@@ -729,6 +743,70 @@ def validate_rows(rows: list[ParsedRow]) -> None:
             )
 
     _mark_alias_cross_row(rows)
+    _mark_node_type_conflicts(rows)
+
+
+def _mark_node_type_conflicts(rows: list[ParsedRow]) -> None:
+    """E12（I3）：同一名称在本批内既被作为「目录」（路径段）又被作为「知识点」声明。
+
+    例：
+        行1：路径「栈」，知识点「括号匹配」   → 栈 = container
+        行2：路径空，  知识点「栈」           → 栈 = concept
+    这属于**节点身份冲突**，不做静默裁决（不"显式行优先"），而是整批报 error，
+    拒绝 apply，强制管理员先人工统一知识模型。这是「零污染」的硬门禁。
+    """
+    concept_rows: dict[str, list[int]] = {}
+    container_rows: dict[str, list[int]] = {}
+    for row in rows:
+        if row.normalized_name:
+            concept_rows.setdefault(row.normalized_name, []).append(row.row)
+        for segment in row.parent_chain:
+            key = clean_name(segment)
+            if key:
+                container_rows.setdefault(key, []).append(row.row)
+
+    conflicts = set(concept_rows) & set(container_rows)
+    if not conflicts:
+        return
+
+    for row in rows:
+        declared: set[str] = set()
+        if row.normalized_name in conflicts:
+            declared.add(row.normalized_name)
+            others = "、".join(
+                f"第 {item} 行" for item in sorted(set(container_rows[row.normalized_name]))
+            )
+            row.issues.append(
+                RowIssue(
+                    row=row.row,
+                    level="error",
+                    code="E12",
+                    field="name",
+                    message=(
+                        f"「{row.name}」在本批中同时被作为目录（{others}的层级路径）"
+                        "与知识点声明，节点类型冲突，请先人工统一知识模型"
+                    ),
+                )
+            )
+        for segment in row.parent_chain:
+            key = clean_name(segment)
+            if key in conflicts and key not in declared:
+                declared.add(key)
+                others = "、".join(
+                    f"第 {item} 行" for item in sorted(set(concept_rows[key]))
+                )
+                row.issues.append(
+                    RowIssue(
+                        row=row.row,
+                        level="error",
+                        code="E12",
+                        field="parent_path",
+                        message=(
+                            f"层级路径中的「{segment}」在本批中同时被作为知识点声明"
+                            f"（{others}），节点类型冲突，请先人工统一知识模型"
+                        ),
+                    )
+                )
 
 
 def _mark_alias_cross_row(rows: list[ParsedRow]) -> None:
@@ -873,18 +951,36 @@ def plan_import(db: Session, table: ParsedTable, strategy: str) -> PlanResult:
             action = "skip"
         plan.rows.append(PlannedRow(parsed=row, action=action, existing=existing))
         if existing is not None:
-            row.db_issues = [
-                RowIssue(
-                    row=row.row,
-                    level="warning",
-                    code="W03",
-                    field="name",
-                    message=(
-                        f"已存在同名知识点（id={existing.id}），"
-                        + ("将补充其空字段" if action == "update_empty" else "本次将跳过")
-                    ),
-                )
-            ]
+            if existing.node_type != KP_NODE_TYPE_CONCEPT:
+                # I4：已有节点不得因本次导入改变类型。库中的目录节点被本批当作
+                # 知识点（concept）导入 = **节点身份冲突** → 整批 error（不是 warning，
+                # 不允许"确认后硬导"，必须先人工解决知识模型）。
+                row.db_issues = [
+                    RowIssue(
+                        row=row.row,
+                        level="error",
+                        code="E13",
+                        field="name",
+                        message=(
+                            f"「{existing.name}」在库中已是目录节点，"
+                            "本批把它作为知识点导入会造成节点类型冲突，"
+                            "请先人工解决知识模型"
+                        ),
+                    )
+                ]
+            else:
+                row.db_issues = [
+                    RowIssue(
+                        row=row.row,
+                        level="warning",
+                        code="W03",
+                        field="name",
+                        message=(
+                            f"已存在同名知识点（id={existing.id}），"
+                            + ("将补充其空字段" if action == "update_empty" else "本次将跳过")
+                        ),
+                    )
+                ]
 
     # ---- 节点索引：既有知识点 → 本批新建行 → 自动创建父节点（逐层追加）----
     node_for: dict[tuple[str, str], tuple] = {
@@ -997,6 +1093,9 @@ def plan_import(db: Session, table: ParsedTable, strategy: str) -> PlanResult:
         "skip": sum(1 for item in plan.rows if item.action == "skip"),
         "update_empty": sum(1 for item in plan.rows if item.action == "update_empty"),
         "create_parent": len(plan.auto_parents),
+        # 显式的双计数：知识点（concept）与目录（container）分开，避免混成一个 created_count。
+        "create_concept": sum(1 for item in plan.rows if item.action == "create"),
+        "create_container": len(plan.auto_parents),
     }
     return plan
 
@@ -1037,6 +1136,8 @@ def preview_row(planned: PlannedRow) -> PreviewRow:
         aliases=list(row.aliases),
         difficulty=row.difficulty,
         estimated_minutes=row.estimated_minutes,
+        node_type=row.node_type,
+        node_type_source=row.node_type_source,
         action=planned.action,  # type: ignore[arg-type]
         existing_kp_id=planned.existing.id if planned.existing is not None else None,
         issues=row.all_issues,
@@ -1045,6 +1146,19 @@ def preview_row(planned: PlannedRow) -> PreviewRow:
 
 def preview_rows(plan: PlanResult, *, limit: int = PREVIEW_ROW_LIMIT) -> list[PreviewRow]:
     return [preview_row(item) for item in plan.rows[:limit]]
+
+
+def preview_auto_parent_nodes(plan: PlanResult) -> list[PreviewNodeType]:
+    """预览里显式列出「将自动创建的目录节点」及其类型来源。"""
+    return [
+        PreviewNodeType(
+            name=auto.name,
+            path=auto.display_path,
+            node_type=KP_NODE_TYPE_CONTAINER,
+            node_type_source=NODE_TYPE_SOURCE_PATH,
+        )
+        for auto in plan.auto_parents
+    ]
 
 
 # --------------------------------------------------------------------------
@@ -1083,8 +1197,12 @@ def _creation_specs(plan: PlanResult) -> dict[tuple, _CreationSpec]:
     """
     specs: dict[tuple, _CreationSpec] = {}
     for auto in plan.auto_parents:
+        # 自动创建的父节点 = 纯目录节点（container），只参与层级与展示。
         specs[auto.key] = _CreationSpec(
-            subject=auto.subject, name=auto.name, parent_key=auto.parent_key
+            subject=auto.subject,
+            name=auto.name,
+            parent_key=auto.parent_key,
+            extras={"node_type": KP_NODE_TYPE_CONTAINER},
         )
     for planned in plan.rows:
         if planned.action != "create":
@@ -1095,6 +1213,8 @@ def _creation_specs(plan: PlanResult) -> dict[tuple, _CreationSpec]:
             name=row.name,
             parent_key=planned.parent_node,
             extras={
+                # 真实导入行 = 可学习知识点（concept）。
+                "node_type": KP_NODE_TYPE_CONCEPT,
                 "code": row.code,
                 "aliases": row.aliases or None,
                 "difficulty": row.difficulty,
@@ -1460,10 +1580,14 @@ def _delete_leaf_to_root(db: Session, ids: set[int]) -> int:
 # --------------------------------------------------------------------------
 
 TEMPLATE_HEADER = "学科,层级路径,知识点名,别名,难度,预计学时,编码"
+# 样例刻意让**层级路径的每一段都只作目录**（声明为知识点的是「知识点名」列），
+# 因此不会触发 E12「同名同时被作为目录与知识点」的类型冲突。
 TEMPLATE_SAMPLE_ROWS = (
-    "数据结构,线性表,线性表,linear list|顺序表,easy,30,DS.LINEAR.LIST",
-    "数据结构,线性表>栈,栈,堆栈|stack|LIFO,medium,20,DS.LINEAR.STACK",
-    "数据结构,线性表>队列,队列,queue|FIFO,medium,20,DS.LINEAR.QUEUE",
+    "数据结构,线性表,顺序表,linear list|sequential list,easy,30,DS.LINEAR.SEQUENTIAL",
+    "数据结构,线性表>链表,单链表,singly linked list|linked list,medium,40,"
+    "DS.LINEAR.LINKED_LIST.SINGLE",
+    "数据结构,树与二叉树>二叉树遍历,先序遍历,preorder traversal,medium,40,"
+    "DS.TREE.BINARY.TRAVERSAL.PREORDER",
 )
 
 

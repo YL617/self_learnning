@@ -220,6 +220,9 @@ export interface KnowledgePoint {
   description?: string | null
   status: string
   source: string
+  // P0 node_type：container=目录（只组织层级），concept=可学习知识点。
+  // 后端 NOT NULL + server_default='concept'，历史数据均为 concept。
+  node_type: KnowledgePointNodeType
   // 大阶段 4 M1：知识库内容元数据（全部可空，历史知识点不会有值）。
   // difficulty 只用于展示、排序与推荐；掌握度的难度系数来自作答记录，与它无关。
   code?: string | null
@@ -229,6 +232,19 @@ export interface KnowledgePoint {
   import_batch_id?: number | null
   created_at: string
   updated_at: string
+}
+
+// 与后端 knowledge_points.node_type 的 CHECK 词表一致：全项目只有这一套。
+export type KnowledgePointNodeType = 'container' | 'concept'
+
+export const NODE_TYPE_LABELS: Record<KnowledgePointNodeType, string> = {
+  container: '目录',
+  concept: '知识点',
+}
+
+export const NODE_TYPE_ICONS: Record<KnowledgePointNodeType, string> = {
+  container: '📁',
+  concept: '🧠',
 }
 
 // 与后端 knowledge_points.difficulty 的 CHECK 词表一致：全项目只有这一套。
@@ -285,6 +301,8 @@ export interface KnowledgePointBrief {
   name: string
   subject: string
   parent_id?: number | null
+  // P0：容器不会出现在掌握度 / 推荐里，但保留字段以便前端做防御性判断。
+  node_type?: KnowledgePointNodeType | null
   // 大阶段 4 M1：可选展示字段（推荐与今日建议会用到）。
   difficulty?: KnowledgePointDifficulty | null
   estimated_minutes?: number | null
@@ -620,9 +638,20 @@ export interface KnowledgeImportPreviewRow {
   aliases: string[]
   difficulty?: string | null
   estimated_minutes?: number | null
+  // P0：本行将成为哪种节点。行「知识点名」= concept；层级路径自动创建 = container。
+  node_type: KnowledgePointNodeType
+  node_type_source?: string | null
   action: KnowledgeImportRowAction
   existing_kp_id?: number | null
   issues: KnowledgeImportIssue[]
+}
+
+// P0：预览里显式列出的「将自动创建的目录节点」。
+export interface KnowledgeImportAutoParentNode {
+  name: string
+  path: string
+  node_type: KnowledgePointNodeType
+  node_type_source?: string | null
 }
 
 export interface KnowledgeImportPlanCounts {
@@ -630,6 +659,9 @@ export interface KnowledgeImportPlanCounts {
   skip?: number
   update_empty?: number
   create_parent?: number
+  // P0：知识点与目录分开计数，不要混成一个 create。
+  create_concept?: number
+  create_container?: number
 }
 
 export interface KnowledgeImportPreview {
@@ -644,6 +676,8 @@ export interface KnowledgeImportPreview {
   planned: KnowledgeImportPlanCounts
   new_subjects: string[]
   parent_paths_to_create: string[]
+  // P0：将自动创建的目录节点（含类型来源）。
+  auto_parent_nodes: KnowledgeImportAutoParentNode[]
   rows: KnowledgeImportPreviewRow[]
   truncated: boolean
   conflict_strategy: KnowledgeImportConflictStrategy
@@ -666,6 +700,9 @@ export interface KnowledgeImportApplyResult {
   conflict_strategy: string
   total_rows: number
   created_count: number
+  // P0：知识点与目录分开计数。
+  created_concept_count: number
+  created_container_count: number
   updated_count: number
   skipped_count: number
   failed_count: number

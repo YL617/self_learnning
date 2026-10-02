@@ -39,6 +39,7 @@ from app.services.question_generator import check_answer, generate_questions
 from app.services.question_knowledge_point_service import (
     AssociationNotFound,
     KnowledgePointNotFound,
+    NotLearnableNode,
     PrimaryConflict,
     QuestionKnowledgePointError,
     QuestionKnowledgePointService,
@@ -158,6 +159,10 @@ def generate(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
             ) from exc
+        except NotLearnableNode as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
         validate_knowledge_point = data.knowledge_point_id
 
     try:
@@ -178,6 +183,11 @@ def generate(
         return _save_questions(db, current_user.id, document_id, questions,
                                knowledge_point_id=validate_knowledge_point)
     except SubjectMismatch as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except NotLearnableNode as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)

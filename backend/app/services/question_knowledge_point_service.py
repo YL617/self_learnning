@@ -4,6 +4,7 @@
   - 每道题最多一个 role=primary；set_primary 是唯一显式切换入口。
   - 同一 (question, knowledge_point) 组合唯一；duplicate attach 幂等。
   - Question.subject 与 KnowledgePoint.subject 标准化后必须一致。
+  - **只有 node_type=concept 的可学习知识点才能被关联**（container 一律拒绝）。
   - owner 之外一律 404 语义（由 Router 层传入 owner_id，None 表示管理员）。
 """
 
@@ -13,7 +14,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import KnowledgePoint, Question, QuestionKnowledgePoint
-from app.services.knowledge_point_service import normalize_subject
+from app.services.knowledge_point_service import (
+    KP_NODE_TYPE_CONCEPT,
+    normalize_subject,
+)
 
 QKP_ROLE_PRIMARY = "primary"
 QKP_ROLE_SECONDARY = "secondary"
@@ -34,6 +38,12 @@ class QuestionNotFound(QuestionKnowledgePointError):
 
 class KnowledgePointNotFound(QuestionKnowledgePointError):
     pass
+
+
+class NotLearnableNode(QuestionKnowledgePointError):
+    """目录节点（node_type=container）不参与题目关联。"""
+
+
 
 
 class AssociationNotFound(QuestionKnowledgePointError):
@@ -64,9 +74,17 @@ class QuestionKnowledgePointService:
         return question
 
     def _get_knowledge_point(self, knowledge_point_id: int) -> KnowledgePoint:
+        """取知识点并强制「可学习」契约。
+
+        这是「目录节点不产生 mastery」的**唯一可靠关口**：mastery 的唯一写入源是
+        题目关联，关住关联即关住 mastery。任何未来的写入路径（含 M4 AI 标注接受）
+        只要复用本服务，就自动被拦截，不依赖前端过滤。
+        """
         item = self.db.get(KnowledgePoint, knowledge_point_id)
         if item is None:
             raise KnowledgePointNotFound("知识点不存在")
+        if item.node_type != KP_NODE_TYPE_CONCEPT:
+            raise NotLearnableNode("目录节点不能与题目关联")
         return item
 
     def _assert_subject(self, question: Question, knowledge_point: KnowledgePoint) -> None:
@@ -113,7 +131,13 @@ class QuestionKnowledgePointService:
     def list_question_ids_for_knowledge_point(
         self, knowledge_point_id: int, owner_id: int | None
     ) -> list[int]:
-        self._get_knowledge_point(knowledge_point_id)
+        # 读取路径放宽：目录节点按契约不可能有题目，直接返回空列表，
+        # 避免管理端遍历知识树时被 4xx 打断（不加"可学习"约束）。
+        item = self.db.get(KnowledgePoint, knowledge_point_id)
+        if item is None:
+            raise KnowledgePointNotFound("知识点不存在")
+        if item.node_type != KP_NODE_TYPE_CONCEPT:
+            return []
         statement = (
             select(QuestionKnowledgePoint.question_id)
             .join(Question, Question.id == QuestionKnowledgePoint.question_id)

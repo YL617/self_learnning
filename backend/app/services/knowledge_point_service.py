@@ -20,6 +20,17 @@ KP_SOURCE_SYSTEM = "system"
 KP_SOURCE_ADMIN = "admin"
 KP_SOURCE_AI = "ai"
 
+# 节点类型词表（大阶段 4 P0 修复）。全项目只允许这一套，且由 DB
+# `ck_knowledge_points_node_type` 钉死。三方一致性（本常量 / model CHECK /
+# `KnowledgePointNodeType` schema）由 tests 断言。
+#
+#   container：纯组织结构节点（目录）。只作 parent、只参与层级与展示；
+#              禁止进推荐 / mastery / 题目关联 / AI 标注 / 前置边端点 / 学习计划。
+#   concept  ：真正可学习、可测试、可单独 mastery 的原子知识点。
+KP_NODE_TYPE_CONTAINER = "container"
+KP_NODE_TYPE_CONCEPT = "concept"
+KP_NODE_TYPES: tuple[str, ...] = (KP_NODE_TYPE_CONTAINER, KP_NODE_TYPE_CONCEPT)
+
 # 知识点难度词表（大阶段 4 M1）。全项目只允许这一套，且**只用于展示、排序与
 # 推荐**——绝不参与掌握度计算（掌握度的难度系数来自作答记录，见
 # MasteryService.DIFFICULTY_WEIGHTS，两者是不同来源的两个概念）。
@@ -71,6 +82,10 @@ class InvalidParent(KnowledgePointError):
     pass
 
 
+class InvalidNodeType(KnowledgePointError):
+    """节点类型约束被违反（例如把目录节点挂到可学习知识点之下）。"""
+
+
 class ParentCycleError(KnowledgePointError):
     pass
 
@@ -102,6 +117,7 @@ class KnowledgePointService:
         subject: str | None = None,
         parent_id: int | None = None,
         query: str | None = None,
+        node_type: str | None = None,
     ) -> list[KnowledgePoint]:
         statement = select(KnowledgePoint)
         if subject is not None:
@@ -113,6 +129,8 @@ class KnowledgePointService:
         if query is not None:
             needle = clean_name(query)
             statement = statement.where(KnowledgePoint.normalized_name.contains(needle))
+        if node_type is not None:
+            statement = statement.where(KnowledgePoint.node_type == self._assert_node_type(node_type))
         statement = statement.order_by(KnowledgePoint.id)
         return list(self.db.scalars(statement).all())
 
@@ -221,6 +239,46 @@ class KnowledgePointService:
             raise ValueError("预估学习时长不能为负数")
         return minutes
 
+    def _assert_node_type(self, node_type: str | None) -> str:
+        """规范并校验节点类型；缺省视为 `concept`（与 DB server_default 一致）。"""
+        if node_type is None:
+            return KP_NODE_TYPE_CONCEPT
+        if node_type not in KP_NODE_TYPES:
+            raise ValueError(f"节点类型只能是 {' / '.join(KP_NODE_TYPES)} 之一")
+        return node_type
+
+    def _assert_parent_child_types(
+        self, *, parent: KnowledgePoint | None, child_type: str
+    ) -> None:
+        """父子类型约束：`container` 不得挂在 `concept` 之下。
+
+        允许 parent→child：container→container / container→concept / concept→concept；
+        禁止 concept→container（会产生 `concept └─ container └─ concept` 的语义混乱树）。
+        服务层显式抛业务异常，不依赖 DB 的 IntegrityError。
+        """
+        if parent is None:
+            return
+        if (
+            child_type == KP_NODE_TYPE_CONTAINER
+            and parent.node_type == KP_NODE_TYPE_CONCEPT
+        ):
+            raise InvalidNodeType("目录节点不能挂在可学习知识点之下")
+
+    def _assert_children_types(self, node_id: int, new_type: str) -> None:
+        """把已有节点改为 `concept` 前，其下不得仍存在 `container` 子节点。"""
+        if new_type != KP_NODE_TYPE_CONCEPT:
+            return
+        child = self.db.scalar(
+            select(KnowledgePoint.id)
+            .where(
+                KnowledgePoint.parent_id == node_id,
+                KnowledgePoint.node_type == KP_NODE_TYPE_CONTAINER,
+            )
+            .limit(1)
+        )
+        if child is not None:
+            raise InvalidNodeType("该知识点之下仍有目录节点，不能改为可学习知识点")
+
     def _assert_parent(self, subject: str, parent_id: int) -> KnowledgePoint:
         parent = self.get(parent_id)
         if parent is None:
@@ -257,13 +315,16 @@ class KnowledgePointService:
         difficulty: str | None = None,
         estimated_minutes: int | None = None,
         import_batch_id: int | None = None,
+        node_type: str | None = None,
     ) -> KnowledgePoint:
         cleaned_subject = self._assert_subject(subject)
         normalized_subject = normalize_subject(subject)
         normalized = self._assert_name(name)
+        resolved_node_type = self._assert_node_type(node_type)
         self._assert_unique(normalized_subject, normalized)
         if parent_id is not None:
-            self._assert_parent(cleaned_subject, parent_id)
+            parent = self._assert_parent(cleaned_subject, parent_id)
+            self._assert_parent_child_types(parent=parent, child_type=resolved_node_type)
         item = KnowledgePoint(
             name=_collapse_whitespace(name),
             normalized_name=normalized,
@@ -273,6 +334,7 @@ class KnowledgePointService:
             description=description,
             status=status,
             source=source,
+            node_type=resolved_node_type,
             code=self._assert_code(code),
             aliases=aliases or None,
             difficulty=self._assert_difficulty(difficulty),
@@ -306,13 +368,24 @@ class KnowledgePointService:
         if "parent_id" in fields:
             next_parent_id = data.parent_id
 
+        next_node_type = item.node_type
+        if "node_type" in fields and data.node_type is not None:
+            next_node_type = self._assert_node_type(data.node_type)
+
+        next_parent: KnowledgePoint | None = None
         if next_parent_id is not None:
             if next_parent_id == item.id:
                 raise InvalidParent("知识点不能作为自己的父节点")
-            self._assert_parent(cleaned_subject, next_parent_id)
+            next_parent = self._assert_parent(cleaned_subject, next_parent_id)
             self._assert_no_cycle(item.id, next_parent_id)
         elif item.parent_id is not None and cleaned_subject != item.subject:
             raise InvalidParent("存在父知识点时不能直接修改学科，请先解除父级")
+
+        # 父子类型约束：container 不得挂在 concept 之下。
+        self._assert_parent_child_types(parent=next_parent, child_type=next_node_type)
+        # 改型为 concept 时，其下不得仍有 container 子节点。
+        if next_node_type != item.node_type:
+            self._assert_children_types(item.id, next_node_type)
 
         if "name" in fields and data.name is not None:
             item.name = _collapse_whitespace(data.name)
@@ -326,6 +399,8 @@ class KnowledgePointService:
             item.description = data.description
         if "status" in fields and data.status is not None:
             item.status = data.status
+        if "node_type" in fields and data.node_type is not None:
+            item.node_type = next_node_type
         # ---- 大阶段 4 M1：内容元数据（显式传 null 即清空）----
         if "code" in fields:
             item.code = self._assert_code(data.code, exclude_id=item.id)

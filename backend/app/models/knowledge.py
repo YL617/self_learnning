@@ -121,7 +121,13 @@ class KnowledgePointImportBatch(Base):
 
 
 class KnowledgePoint(Base):
-    """全局共享知识点；知识点通过 normalized_name 做学科内去重。"""
+    """全局共享知识点；知识点通过 normalized_name 做学科内去重。
+
+    `node_type` 区分两类节点（大阶段 4 P0 修复）：
+      - `container`：纯组织结构节点（目录），只参与层级与展示；
+      - `concept`  ：真正可学习、可测试、可单独 mastery 的原子知识点。
+    语义契约：container 不产生 mastery、不进推荐、不可题目关联、不作前置端点。
+    """
 
     __tablename__ = "knowledge_points"
     __table_args__ = (
@@ -143,6 +149,12 @@ class KnowledgePoint(Base):
             "estimated_minutes IS NULL OR estimated_minutes >= 0",
             name="ck_knowledge_points_estimated_minutes",
         ),
+        # 节点类型词表钉死在 DB 层。`server_default='concept'` 是 fail-loud 原则：
+        # 漏写类型 → 目录被当成知识点（可见错误）优于真知识点被静默降级（静默丢功能）。
+        CheckConstraint(
+            "node_type IN ('container', 'concept')",
+            name="ck_knowledge_points_node_type",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -158,6 +170,13 @@ class KnowledgePoint(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="active")
     source: Mapped[str] = mapped_column(String(16), default="system")
+    # ---- 大阶段 4 P0：节点类型（container | concept）----
+    # NOT NULL + server_default `concept`：
+    #   - 加列对存量行免回填；
+    #   - 未来任何漏写 node_type 的 INSERT 也落为 concept（fail-loud，见类 docstring）。
+    node_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="concept", server_default="concept", index=True
+    )
     # ---- 大阶段 4 M1：知识库内容元数据 ----
     # 全部可空、无 server_default —— 加列对存量数据零风险，无需回填；
     # 生产实测该表 0 行，因此本次 ALTER 对线上是纯粹的空操作。

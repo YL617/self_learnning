@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import KnowledgePoint, KnowledgePointPrerequisite
+from app.services.knowledge_point_service import KP_NODE_TYPE_CONCEPT
 
 # ---------------------------------------------------------------- 配置（唯一来源）
 EDGE_STATUS_ACTIVE = "active"
@@ -52,6 +53,12 @@ class PrerequisiteError(Exception):
 
 class KnowledgePointNotFound(PrerequisiteError):
     pass
+
+
+class NotLearnableNode(PrerequisiteError):
+    """目录节点（node_type=container）不能作为前置边的任一端点。"""
+
+
 
 
 class SelfLoopPrerequisite(PrerequisiteError):
@@ -295,10 +302,22 @@ class PrerequisiteService:
 
     # ---------------------------------------------------------- 写入
     def _assert_exists(self, knowledge_point_id: int, prerequisite_id: int) -> None:
-        if self.db.get(KnowledgePoint, knowledge_point_id) is None:
+        """校验两端存在，且**都必须是可学习知识点**（node_type=concept）。
+
+        前置边的两端都是「能力」，不是「目录」。DB 无法表达这个约束（FK 指向同一张
+        表），因此这里就是服务层的权威落点：container→concept / concept→container /
+        container→container 一律拒绝。
+        """
+        dependent = self.db.get(KnowledgePoint, knowledge_point_id)
+        if dependent is None:
             raise KnowledgePointNotFound("后置知识点不存在")
-        if self.db.get(KnowledgePoint, prerequisite_id) is None:
+        prerequisite = self.db.get(KnowledgePoint, prerequisite_id)
+        if prerequisite is None:
             raise KnowledgePointNotFound("前置知识点不存在")
+        if dependent.node_type != KP_NODE_TYPE_CONCEPT:
+            raise NotLearnableNode("目录节点不能作为前置关系的后置端点")
+        if prerequisite.node_type != KP_NODE_TYPE_CONCEPT:
+            raise NotLearnableNode("目录节点不能作为前置关系的端点")
 
     def would_create_cycle(self, knowledge_point_id: int, prerequisite_id: int) -> bool:
         """加入「prerequisite_id 在前、knowledge_point_id 在后」是否会成环。
@@ -318,9 +337,11 @@ class PrerequisiteService:
         source: str = EDGE_SOURCE_MANUAL,
         note: str | None = None,
     ) -> KnowledgePointPrerequisite:
+        # 先做「可学习知识点」身份闸门：container 端点一律在此被拒（含 container 自环），
+        # 再判自环 / 重复 / 成环。这样目录节点无论以何种组合出现，报错都归因于类型而非结构。
+        self._assert_exists(knowledge_point_id, prerequisite_id)
         if knowledge_point_id == prerequisite_id:
             raise SelfLoopPrerequisite("知识点不能作为自己的前置")
-        self._assert_exists(knowledge_point_id, prerequisite_id)
         if self.get_edge(knowledge_point_id, prerequisite_id) is not None:
             raise DuplicatePrerequisite("该前置关系已存在")
         if self.would_create_cycle(knowledge_point_id, prerequisite_id):
@@ -370,6 +391,7 @@ __all__ = [
     "STRENGTH_MIN",
     "DuplicatePrerequisite",
     "KnowledgePointNotFound",
+    "NotLearnableNode",
     "PrerequisiteCycle",
     "PrerequisiteError",
     "PrerequisiteLinkNotFound",

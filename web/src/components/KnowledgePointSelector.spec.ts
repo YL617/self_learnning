@@ -21,9 +21,15 @@ function kp(id: number, name: string, subject = '数据结构'): KnowledgePoint 
     description: null,
     status: 'active',
     source: 'admin',
+    node_type: 'concept',
     created_at: '2026-10-01T00:00:00',
     updated_at: '2026-10-01T00:00:00',
   }
+}
+
+// P0：选项文本会带上类型图标（🧠/📁），断言前剥掉。
+function cleanText(text: string): string {
+  return text.replace(/[└📁🧠]/g, '').trim()
 }
 
 describe('KnowledgePointSelector', () => {
@@ -38,8 +44,12 @@ describe('KnowledgePointSelector', () => {
     const wrapper = mount(KnowledgePointSelector, { props: { subject: '数据结构' } })
     await flushPromises()
 
-    expect(knowledgePointsApi.list).toHaveBeenCalledWith({ subject: '数据结构' })
-    const options = wrapper.findAll('option').map((o) => o.text())
+    // P0：默认只请求可学习知识点（concept）。
+    expect(knowledgePointsApi.list).toHaveBeenCalledWith({
+      subject: '数据结构',
+      node_type: 'concept',
+    })
+    const options = wrapper.findAll('option').map((o) => cleanText(o.text()))
     expect(options).toContain('栈')
     expect(options).toContain('队列')
   })
@@ -72,7 +82,10 @@ describe('KnowledgePointSelector', () => {
     await wrapper.setProps({ subject: '操作系统' })
     await flushPromises()
 
-    expect(knowledgePointsApi.list).toHaveBeenLastCalledWith({ subject: '操作系统' })
+    expect(knowledgePointsApi.list).toHaveBeenLastCalledWith({
+      subject: '操作系统',
+      node_type: 'concept',
+    })
   })
 
   it('excludeIds 过滤已关联知识点', async () => {
@@ -84,7 +97,7 @@ describe('KnowledgePointSelector', () => {
     })
     await flushPromises()
 
-    const options = wrapper.findAll('option').map((o) => o.text())
+    const options = wrapper.findAll('option').map((o) => cleanText(o.text()))
     expect(options).not.toContain('栈')
     expect(options).toContain('队列')
   })

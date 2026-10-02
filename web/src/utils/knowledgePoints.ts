@@ -1,4 +1,5 @@
-import type { KnowledgePoint } from '@/types'
+import type { KnowledgePoint, KnowledgePointNodeType } from '@/types'
+import { NODE_TYPE_ICONS, NODE_TYPE_LABELS } from '@/types'
 
 // 管理页展示行：在知识点基础上补充层级深度与父级名称。
 export interface KnowledgePointRow extends KnowledgePoint {
@@ -9,6 +10,8 @@ export interface KnowledgePointRow extends KnowledgePoint {
 export interface KnowledgePointFilters {
   subject?: string
   query?: string
+  // P0：前端本地筛选（服务端另有 node_type 过滤参数）。'all' | 'container' | 'concept'
+  nodeType?: KnowledgePointNodeType | 'all'
 }
 
 // 后端返回的是扁平列表，这里按 parent_id 推导层级深度（带环保护）。
@@ -43,12 +46,14 @@ export function buildRows(
 ): KnowledgePointRow[] {
   const subject = (filters.subject || '').trim()
   const needle = (filters.query || '').trim().toLowerCase()
+  const nodeType = filters.nodeType || 'all'
   const nameById = new Map<number, string>()
   for (const item of items) nameById.set(item.id, item.name)
   const depths = computeDepths(items)
 
   return items
     .filter((item) => !subject || item.subject === subject)
+    .filter((item) => nodeType === 'all' || item.node_type === nodeType)
     .filter((item) => !needle || item.name.toLowerCase().includes(needle))
     .map((item) => ({
       ...item,
@@ -64,11 +69,13 @@ export function buildRows(
     })
 }
 
-// 父级候选：只能是同一学科、且不能是自己或自己的后代（避免制造环）。
+// 父级候选：同一学科、排除自己与后代（避免成环）。
+// P0：container 只能挂在 container 之下（concept └─ container 结构被后端拒绝）。
 export function parentCandidates(
   items: KnowledgePoint[],
   subject: string,
   excludeId: number | null,
+  childType: KnowledgePointNodeType = 'concept',
 ): KnowledgePoint[] {
   const target = subject.trim()
   if (!target) return []
@@ -91,7 +98,17 @@ export function parentCandidates(
   }
   return items
     .filter((item) => item.subject === target && !blocked.has(item.id))
+    .filter((item) => childType !== 'container' || item.node_type === 'container')
     .sort((a, b) => a.id - b.id)
+}
+
+// P0：目录 / 知识点 的展示文案。
+export function nodeTypeLabel(nodeType: string): string {
+  return nodeType === 'container' ? NODE_TYPE_LABELS.container : NODE_TYPE_LABELS.concept
+}
+
+export function nodeTypeIcon(nodeType: string): string {
+  return nodeType === 'container' ? NODE_TYPE_ICONS.container : NODE_TYPE_ICONS.concept
 }
 
 export const STATUS_LABELS: Record<string, string> = {

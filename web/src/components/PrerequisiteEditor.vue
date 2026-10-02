@@ -43,7 +43,8 @@ async function load() {
     const [detailRes, pathRes, listRes] = await Promise.all([
       knowledgePointsApi.prerequisites(props.knowledgePointId),
       knowledgePointsApi.learningPath(props.knowledgePointId),
-      knowledgePointsApi.list(),
+      // P0：前置端点只能是可学习知识点，目录节点不进候选池。
+      knowledgePointsApi.list({ node_type: 'concept' }),
     ])
     detail.value = detailRes.data
     path.value = pathRes.data
@@ -56,6 +57,18 @@ async function load() {
 }
 
 watch(() => props.knowledgePointId, load, { immediate: true })
+
+// P0：后端 NotLearnableNode 会返回「目录节点…」类中文详情，这里补一层更直白的提示。
+function describeError(err: any, fallback: string): string {
+  const detail = err?.response?.data?.detail
+  if (typeof detail === 'string' && detail) {
+    if (detail.includes('目录节点')) {
+      return `${detail}（目录仅用于组织知识结构，不能参与前置关系）`
+    }
+    return detail
+  }
+  return fallback
+}
 
 async function add() {
   if (selectedId.value === '' || busy.value) return
@@ -74,7 +87,7 @@ async function add() {
     await load()
     emit('changed')
   } catch (err: any) {
-    error.value = err?.response?.data?.detail || '添加失败：该关系可能已存在或会形成循环'
+    error.value = describeError(err, '添加失败：该关系可能已存在或会形成循环')
   } finally {
     busy.value = false
   }
@@ -107,7 +120,7 @@ async function askAi() {
     suggestions.value = data.suggestions
     suggestionNote.value = data.note || ''
   } catch (err: any) {
-    error.value = err?.response?.data?.detail || 'AI 提议失败，请稍后重试'
+    error.value = describeError(err, 'AI 提议失败，请稍后重试')
   } finally {
     busy.value = false
   }

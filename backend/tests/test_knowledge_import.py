@@ -3,7 +3,8 @@
 覆盖范围（对应 M2 验收项）：
   - 解析：TSV / CSV（逗号、分号、引号内换行）/ BOM / GBK / 无表头 / 空行剔除；
   - xlsx：基本读取、多 sheet、旧版 .xls、损坏文件、数值单元格；
-  - 行级 error E01–E11 与整批级 error B01–B04（含 **成环**）；
+  - 行级 error E01–E13 与整批级 error B01–B04（含 **成环**）；
+  - 类型推导：行名 → concept / 路径段 → container；同段两型（E12）与库中类型冲突（E13）整批拒绝；
   - warning W01–W06 且 **不阻断** apply；
   - 幂等：`skip` 不动既有行 / `update_empty` 只补空 / 重复导入计数演进；
   - 父节点自动创建（单层、多层、复用、跨行共享、跨学科 E08）；
@@ -484,20 +485,41 @@ def test_b03_too_many_rows(client):
     assert "501" in response.json()["detail"]["message"]
 
 
-def test_b04_cycle_detected_across_rows(client):
-    """A>B 与 B>A 各自合法，合起来才成环 —— 逐行校验永远发现不了。"""
+def test_same_name_as_container_and_concept_is_rejected(client):
+    """E12：同一名称既是层级路径（container）又是知识点（concept）→ 整批拒绝。
+
+    「路径段=container / 行名=concept」的结构化推导下，导入期的父子成环必然要求
+    某个名称同时是行名与路径段，因此总是先被 E12 拦下（不允许"确认后硬导"）。
+    成环检测（B04）保留为纵深防御，由 test_detect_cycle_unit 直接做单元验证。
+    """
     _, headers = _register(client, "admin")
     content = "学科,层级路径,知识点名\n数据结构,A>B,B\n数据结构,B>A,A\n"
     payload = _preview(client, headers, content)
-    # preview 不落库，因此这里能正常返回；成环在 apply 时才拒绝写入。
-    assert payload["rows"][0]["name"] == "B"
+    assert payload["error_rows"] == 2
+    assert payload["can_apply"] is False
+    codes = {issue["code"] for row in payload["rows"] for issue in row["issues"]}
+    assert "E12" in codes
+
     response = _apply(client, headers, content)
     assert response.status_code == 409, response.text
-    assert _rejection_code(response) == "B04"
-    detail = response.json()["detail"]
-    assert len(detail["cycle"]) >= 3
-    assert "数据结构 > B" in detail["cycle"]
+    assert _rejection_code(response) == "A01"
+    row_codes = {issue["code"] for issue in response.json()["detail"]["row_issues"]}
+    assert "E12" in row_codes
     assert _counts()["knowledge_points"] == 0
+
+
+def test_detect_cycle_unit():
+    """B04 纵深防御：直接对 `_detect_cycle` 喂环形父子关系。"""
+    from app.services.knowledge_import import _detect_cycle, _new_node
+
+    a = _new_node("数据结构", "a")
+    b = _new_node("数据结构", "b")
+    labels = {a: "数据结构 > a", b: "数据结构 > b"}
+    cycle = _detect_cycle({a: b, b: a}, labels)
+    assert cycle is not None
+    assert len(cycle) >= 3
+    assert "数据结构 > a" in cycle
+    assert _detect_cycle({a: None}, labels) is None
 
 
 # ==================================================================
@@ -654,18 +676,31 @@ def test_duplicate_code_is_conflict_and_rolls_back_whole_batch(client):
 
 def test_auto_parent_single_and_multi_level(client):
     _, headers = _register(client, "admin")
-    content = "学科,层级路径,知识点名\n数据结构,线性表,线性表\n数据结构,线性表>栈>出栈,出栈\n"
+    # 层级路径的每一段都只作目录；被声明为知识点的是「知识点名」列。
+    content = (
+        "学科,层级路径,知识点名\n"
+        "数据结构,线性表>顺序表,顺序表\n"
+        "数据结构,线性表>链表>单链表,单链表\n"
+    )
     report = _apply_ok(client, headers, content)
     assert report["created_count"] == 2
-    # 第 1 行把「线性表」建成普通知识点，第 2 行只需自动补出中间的「栈」
-    assert report["auto_parent_count"] == 1
+    # 自动补出中间目录：「线性表」（单层）+「链表」（多层）
+    assert report["auto_parent_count"] == 2
 
     linear = _kp_by_name(client, headers, "线性表")
-    stack = _kp_by_name(client, headers, "栈")
-    pop = _kp_by_name(client, headers, "出栈")
-    assert linear is not None and stack is not None and pop is not None
-    assert stack["parent_id"] == linear["id"]
-    assert pop["parent_id"] == stack["id"]
+    linked = _kp_by_name(client, headers, "链表")
+    seq = _kp_by_name(client, headers, "顺序表")
+    single = _kp_by_name(client, headers, "单链表")
+    assert linear is not None and linked is not None
+    assert seq is not None and single is not None
+    # 层级路径 → container；知识点名 → concept。
+    assert linear["node_type"] == "container"
+    assert linked["node_type"] == "container"
+    assert seq["node_type"] == "concept"
+    assert single["node_type"] == "concept"
+    assert seq["parent_id"] == linear["id"]
+    assert linked["parent_id"] == linear["id"]
+    assert single["parent_id"] == linked["id"]
 
 
 def test_auto_parent_is_reused_across_rows(client):
@@ -870,15 +905,18 @@ def test_rollback_deletes_same_batch_parent_child_in_safe_order(client):
     report = _apply_ok(
         client,
         headers,
-        "学科,层级路径,知识点名\n数据结构,线性表,线性表\n数据结构,线性表>A,a\n",
+        "学科,层级路径,知识点名\n"
+        "数据结构,线性表>顺序表,顺序表\n"
+        "数据结构,线性表>链表>单链表,单链表\n",
     )
-    assert _counts()["knowledge_points"] == 2
+    # 2 个 concept（顺序表 / 单链表）+ 2 个自动目录（线性表 / 链表）
+    assert _counts()["knowledge_points"] == 4
 
     response = client.post(
         f"{IMPORT}/batches/{report['batch_id']}/rollback", headers=headers
     )
     assert response.status_code == 200, response.text
-    assert response.json()["deleted_count"] == 2
+    assert response.json()["deleted_count"] == 4
     assert _counts()["knowledge_points"] == 0
 
 
@@ -1049,8 +1087,23 @@ def test_template_download_has_bom_and_csv_content_type(client):
     assert payload["total_rows"] == 3
     assert payload["error_rows"] == 0
     assert payload["planned"]["create"] == 3
-    # 第 1 行把「线性表」本身建成知识点，因此不需要自动创建任何父节点。
-    assert payload["planned"]["create_parent"] == 0
+    # 知识点（concept）与目录（container）分开计数，不混成一个 created_count。
+    assert payload["planned"]["create_concept"] == 3
+    assert payload["planned"]["create_container"] == payload["planned"]["create_parent"]
+    assert payload["planned"]["create_container"] > 0
+    # 每一行「知识点名」= concept；层级路径自动创建的节点 = container。
+    assert all(row["node_type"] == "concept" for row in payload["rows"])
+    assert payload["auto_parent_nodes"]
+    assert all(
+        node["node_type"] == "container" and node["node_type_source"] == "由层级路径自动推导"
+        for node in payload["auto_parent_nodes"]
+    )
+    assert {node["path"] for node in payload["auto_parent_nodes"]} == {
+        "线性表",
+        "线性表 > 链表",
+        "树与二叉树",
+        "树与二叉树 > 二叉树遍历",
+    }
 
 
 # ==================================================================

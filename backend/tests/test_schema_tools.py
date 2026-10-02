@@ -320,16 +320,16 @@ def test_drift_duplicate_unique_objects(engine):
     assert any("DUPLICATE UNIQUE users" in e for e in result.errors)
 
 
-def test_adoption_complete_20261001_004(engine):
-    _set_version(engine, "20261001_004")
+def test_adoption_complete_20261002_005(engine):
+    _set_version(engine, "20261002_005")
     res = inspect_adoption(engine, Base)
-    assert res.status == "ADOPTION COMPLETE AT 20261001_004"
-    assert res.revision == "20261001_004"
-    assert any("schema_matches=20261001_004" in line for line in res.info)
+    assert res.status == "ADOPTION COMPLETE AT 20261002_005"
+    assert res.revision == "20261002_005"
+    assert any("schema_matches=20261002_005" in line for line in res.info)
 
 
 def test_adoption_target_revision_with_drift_blocks(engine):
-    _set_version(engine, "20261001_004")
+    _set_version(engine, "20261002_005")
     _drop_column(engine, "users", "hashed_password")
     res = inspect_adoption(engine, Base)
     assert res.status == "ADOPTION BLOCKED"
@@ -337,13 +337,14 @@ def test_adoption_target_revision_with_drift_blocks(engine):
 
 
 @pytest.mark.parametrize("revision,drift,expected,exit_code", [
-    ("20260908_001", False, "SAFE TO ADOPT TO 20261001_004", 0),
-    ("20260909_001", False, "SAFE TO ADOPT TO 20261001_004", 0),
-    ("20261001_001", False, "SAFE TO ADOPT TO 20261001_004", 0),
-    ("20261001_002", False, "SAFE TO ADOPT TO 20261001_004", 0),
-    ("20261001_003", False, "SAFE TO ADOPT TO 20261001_004", 0),
-    ("20261001_004", False, "ADOPTION COMPLETE AT 20261001_004", 0),
-    ("20261001_004", True, "ADOPTION BLOCKED", 1),
+    ("20260908_001", False, "SAFE TO ADOPT TO 20261002_005", 0),
+    ("20260909_001", False, "SAFE TO ADOPT TO 20261002_005", 0),
+    ("20261001_001", False, "SAFE TO ADOPT TO 20261002_005", 0),
+    ("20261001_002", False, "SAFE TO ADOPT TO 20261002_005", 0),
+    ("20261001_003", False, "SAFE TO ADOPT TO 20261002_005", 0),
+    ("20261001_004", False, "SAFE TO ADOPT TO 20261002_005", 0),
+    ("20261002_005", False, "ADOPTION COMPLETE AT 20261002_005", 0),
+    ("20261002_005", True, "ADOPTION BLOCKED", 1),
     ("unknown", False, "ADOPTION BLOCKED", 1),
 ])
 def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
@@ -363,7 +364,7 @@ def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
 def test_adoption_20260908_reconcile_present(engine):
     _set_version(engine, "20260908_001")
     res = inspect_adoption(engine, Base)
-    assert res.status == "SAFE TO ADOPT TO 20261001_004"
+    assert res.status == "SAFE TO ADOPT TO 20261002_005"
 
 
 def test_adoption_20260907_missing_knowledge_points(engine):
@@ -496,7 +497,7 @@ def test_adoption_no_revision_blocks(engine):
 
 def test_adoption_multiple_revisions_blocks(engine):
     _set_version(engine, "20260908_001")
-    _set_version(engine, "20261001_004")
+    _set_version(engine, "20261002_005")
     assert inspect_adoption(engine, Base).status == "ADOPTION BLOCKED"
 
 
@@ -507,7 +508,7 @@ def test_adoption_bad_graph_blocks(engine, monkeypatch):
         raise ValueError("invalid graph")
 
     monkeypatch.setattr(adoption_inspector, "migration_chain", invalid)
-    _set_version(engine, "20261001_004")
+    _set_version(engine, "20261002_005")
     assert inspect_adoption(engine, Base).status == "ADOPTION BLOCKED"
 
 
@@ -517,17 +518,17 @@ def test_adoption_ambiguous_profiles_blocks(engine, monkeypatch):
     monkeypatch.setattr(adoption_inspector, "load_profiles", lambda _: {
         "20260908_001": Base, "20260909_001": Base,
     })
-    _set_version(engine, "20261001_004")
+    _set_version(engine, "20261002_005")
     assert inspect_adoption(engine, Base).status == "ADOPTION BLOCKED"
 
 
 def test_tools_only_issue_read_statements(engine):
     from sqlalchemy import event
 
-    _set_version(engine, "20261001_004")
+    _set_version(engine, "20261002_005")
     statements = []
     event.listen(engine, "before_cursor_execute", lambda c, cur, sql, p, ctx, many: statements.append(sql))
     assert check_drift(engine, Base).exit_code == 0
-    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261001_004"
+    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261002_005"
     assert statements
     assert all(sql.lstrip().upper().startswith(("SELECT", "PRAGMA")) for sql in statements)

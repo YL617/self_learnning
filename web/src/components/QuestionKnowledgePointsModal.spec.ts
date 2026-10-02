@@ -46,6 +46,7 @@ function kp(id: number, name: string): KnowledgePoint {
     description: null,
     status: 'active',
     source: 'admin',
+    node_type: 'concept',
     created_at: '2026-10-01T00:00:00',
     updated_at: '2026-10-01T00:00:00',
   }

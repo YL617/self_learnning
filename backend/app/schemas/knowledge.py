@@ -9,6 +9,10 @@ from app.schemas.common import ORMModel
 # 全项目只允许这一套（三方一致性由 tests/test_schema_tools.py 断言）。
 KnowledgePointDifficulty = Literal["easy", "medium", "hard"]
 
+# 节点类型词表（大阶段 4 P0）：与 KnowledgePointService.KP_NODE_TYPES、
+# DB ck_knowledge_points_node_type 同源。
+KnowledgePointNodeType = Literal["container", "concept"]
+
 ALIAS_MAX_ITEMS = 20
 ALIAS_MAX_LENGTH = 100
 
@@ -46,6 +50,8 @@ class KnowledgePointCreate(BaseModel):
     description: str | None = None
     status: Literal["active", "pending", "disabled"] = "active"
     source: Literal["system", "admin", "ai"] = "admin"
+    # ---- 大阶段 4 P0：节点类型（缺省 concept，与 DB server_default 一致）----
+    node_type: KnowledgePointNodeType = "concept"
     # ---- 大阶段 4 M1：知识库内容元数据（全部可选）----
     code: str | None = Field(default=None, max_length=64)
     aliases: list[str] | None = None
@@ -64,6 +70,8 @@ class KnowledgePointUpdate(BaseModel):
     parent_id: int | None = None
     description: str | None = None
     status: Literal["active", "pending", "disabled"] | None = None
+    # 显式传 null 表示不修改类型（类型非空，不存在"清空"语义）。
+    node_type: KnowledgePointNodeType | None = None
     # 显式传 null 表示清空该字段（服务层按 model_fields_set 判断）。
     code: str | None = Field(default=None, max_length=64)
     aliases: list[str] | None = None
@@ -85,6 +93,7 @@ class KnowledgePointRead(ORMModel):
     description: str | None = None
     status: str
     source: str
+    node_type: str
     code: str | None = None
     aliases: list[str] | None = None
     difficulty: str | None = None

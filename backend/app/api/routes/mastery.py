@@ -54,18 +54,10 @@ def mastery_summary(
     db: Annotated[Session, Depends(get_db)],
 ) -> MasterySummary:
     service = MasteryService(db)
-    total = db.scalar(
-        select(func.count(UserKnowledgePointMastery.id)).where(
-            UserKnowledgePointMastery.user_id == current_user.id
-        )
-    ) or 0
-    weak_count = db.scalar(
-        select(func.count(UserKnowledgePointMastery.id)).where(
-            UserKnowledgePointMastery.user_id == current_user.id,
-            UserKnowledgePointMastery.attempt_count >= 1,
-            UserKnowledgePointMastery.mastery_score < WEAK_THRESHOLD,
-        )
-    ) or 0
+    # 读取层防御（P0）：目录节点（container）永远不计入掌握度总数/薄弱数；
+    # 写入侧已由「题目关联只允许 concept」的关口拦截，这里只防历史脏数据。
+    total = service.count_for_user(current_user.id)
+    weak_count = service.count_weak(current_user.id)
     today_review_count = db.scalar(
         select(func.count(WrongBookItem.id)).where(
             WrongBookItem.user_id == current_user.id,

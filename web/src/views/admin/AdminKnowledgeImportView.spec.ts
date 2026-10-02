@@ -46,6 +46,8 @@ function row(overrides: Partial<KnowledgeImportPreviewRow> = {}): KnowledgeImpor
     aliases: ['堆栈'],
     difficulty: 'medium',
     estimated_minutes: 20,
+    node_type: 'concept',
+    node_type_source: '知识点行',
     action: 'create',
     existing_kp_id: null,
     issues: [],
@@ -63,9 +65,12 @@ function preview(overrides: Partial<KnowledgeImportPreview> = {}): KnowledgeImpo
     error_rows: 0,
     warning_rows: 1,
     parse_notes: ['已剔除 1 个空行'],
-    planned: { create: 32, skip: 4, update_empty: 2, create_parent: 6 },
+    planned: { create: 32, create_concept: 32, create_container: 6, skip: 4, update_empty: 2, create_parent: 6 },
     new_subjects: [],
     parent_paths_to_create: ['线性表'],
+    auto_parent_nodes: [
+      { name: '线性表', path: '线性表', node_type: 'container', node_type_source: '由层级路径自动推导' },
+    ],
     rows: [row(), row({ row: 3, name: '队列', issues: [] })],
     truncated: false,
     conflict_strategy: 'skip',
@@ -244,32 +249,41 @@ describe('AdminKnowledgeImportView', () => {
     await withPreview(wrapper, preview())
 
     expect(statValue(wrapper, '总行数')).toBe('4')
-    expect(statValue(wrapper, '将创建')).toBe('32')
+    expect(statValue(wrapper, '将创建知识点')).toBe('32')
+    expect(statValue(wrapper, '将自动创建目录')).toBe('6')
     expect(statValue(wrapper, '将跳过')).toBe('4')
     expect(statValue(wrapper, '将补空')).toBe('2')
-    expect(statValue(wrapper, '自动创建父节点')).toBe('6')
     expect(statValue(wrapper, '错误数')).toBe('0')
     expect(statValue(wrapper, '警告数')).toBe('1')
     expect(wrapper.text()).toContain('已剔除 1 个空行')
   })
 
-  it('逐行表格展示要求的十列', async () => {
+  it('逐行表格展示要求的十一列（含类型）', async () => {
     const wrapper = await setup()
     await withPreview(wrapper, preview())
 
     const header = wrapper.find('.imp-th').findAll('span').map((el: any) => el.text())
     expect(header).toEqual([
-      '行号', '学科', '层级路径', '名称', '别名', '难度', '预计学时', '编码', '动作', '校验结论',
+      '行号', '学科', '层级路径', '名称', '类型', '别名', '难度', '预计学时', '编码', '动作', '校验结论',
     ])
 
     const first = bodyRows(wrapper)[0]
     expect(first.text()).toContain('数据结构')
     expect(first.text()).toContain('线性表')
+    expect(first.text()).toContain('知识点')
     expect(first.text()).toContain('堆栈')
     expect(first.text()).toContain('中等')
     expect(first.text()).toContain('20')
     expect(first.text()).toContain('DS.LINEAR.STACK')
     expect(first.text()).toContain('新建')
+  })
+
+  it('预览列出将自动创建的目录节点及其类型来源', async () => {
+    const wrapper = await setup()
+    await withPreview(wrapper, preview())
+
+    expect(wrapper.text()).toContain('将自动创建 1 个目录节点')
+    expect(wrapper.find('.imp-autoparent').text()).toContain('由层级路径自动推导')
   })
 
   it('error 行明显高亮，且与 warning 行可区分', async () => {
@@ -374,10 +388,10 @@ describe('AdminKnowledgeImportView', () => {
     await flushPromises()
 
     const message = confirmMock.mock.calls[0][0] as string
-    expect(message).toContain('新增 32')
+    expect(message).toContain('新增知识点 32')
+    expect(message).toContain('新增目录 6')
     expect(message).toContain('跳过 4')
     expect(message).toContain('补空 2')
-    expect(message).toContain('自动创建父节点 6')
     expect(message).toContain('是否确认？')
   })
 
@@ -416,6 +430,8 @@ describe('AdminKnowledgeImportView', () => {
         conflict_strategy: 'skip',
         total_rows: 32,
         created_count: 30,
+        created_concept_count: 30,
+        created_container_count: 6,
         updated_count: 2,
         skipped_count: 4,
         failed_count: 0,
@@ -431,10 +447,10 @@ describe('AdminKnowledgeImportView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('导入完成（批次 #12）')
-    expect(statValue(wrapper, '新增')).toBe('30')
+    expect(statValue(wrapper, '新增知识点')).toBe('30')
+    expect(statValue(wrapper, '新增目录')).toBe('6')
     expect(statValue(wrapper, '补空')).toBe('2')
     expect(statValue(wrapper, '跳过')).toBe('4')
-    expect(statValue(wrapper, '自动创建父节点')).toBe('6')
     expect(statValue(wrapper, '耗时')).toBe('180 ms')
 
     await buttonByText(wrapper, '批次历史')!.trigger('click')

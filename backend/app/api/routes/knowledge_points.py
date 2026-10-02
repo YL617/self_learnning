@@ -25,6 +25,7 @@ from app.schemas.prerequisite import (
 from app.schemas.question import QuestionOut
 from app.services.knowledge_point_service import (
     DuplicateKnowledgePoint,
+    InvalidNodeType,
     InvalidParent,
     KnowledgePointHasChildren,
     KnowledgePointInUse,
@@ -44,6 +45,9 @@ from app.services.prerequisite import (
 )
 from app.services.prerequisite import (
     KnowledgePointNotFound as PrerequisiteKnowledgePointNotFound,
+)
+from app.services.prerequisite import (
+    NotLearnableNode as PrerequisiteNotLearnableNode,
 )
 from app.services.prerequisite_suggest import suggest_prerequisites
 from app.services.question_knowledge_point_service import (
@@ -67,8 +71,16 @@ def list_knowledge_points(
     subject: str | None = Query(default=None),
     parent_id: int | None = Query(default=None),
     q: str | None = Query(default=None),
+    node_type: str | None = Query(default=None, pattern="^(container|concept)$"),
 ) -> list[KnowledgePoint]:
-    return _service(db).list_all(subject=subject, parent_id=parent_id, query=q)
+    """列出知识点。
+
+    `node_type` 可选过滤（服务端真过滤）：管理员知识树不传 → 返回全部；
+    选择器 / 前置编辑器传 `concept` → 只返回可学习知识点。
+    """
+    return _service(db).list_all(
+        subject=subject, parent_id=parent_id, query=q, node_type=node_type
+    )
 
 
 @router.get("/{knowledge_point_id}", response_model=KnowledgePointRead)
@@ -124,12 +136,13 @@ def create_knowledge_point(
             description=data.description,
             status=data.status,
             source=data.source,
+            node_type=data.node_type,
             code=data.code,
             aliases=data.aliases,
             difficulty=data.difficulty,
             estimated_minutes=data.estimated_minutes,
         )
-    except (ValueError, InvalidParent, ParentCycleError) as exc:
+    except (ValueError, InvalidParent, InvalidNodeType, ParentCycleError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except DuplicateKnowledgePoint as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
@@ -150,7 +163,7 @@ def update_knowledge_point(
         item = service.update(knowledge_point_id, data)
     except KnowledgePointNotFound as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except (ValueError, InvalidParent, ParentCycleError) as exc:
+    except (ValueError, InvalidParent, InvalidNodeType, ParentCycleError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except DuplicateKnowledgePoint as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
@@ -261,6 +274,8 @@ def add_prerequisite(
         )
     except PrerequisiteKnowledgePointNotFound as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except PrerequisiteNotLearnableNode as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except (SelfLoopPrerequisite, PrerequisiteCycle) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except DuplicatePrerequisite as exc:
@@ -333,7 +348,10 @@ def suggest_prerequisite_candidates(
 ) -> PrerequisiteSuggestOut:
     """让 LLM 提议前置关系。**只提议，不落库**，必须由管理员显式确认。"""
     knowledge_point = _require_knowledge_point(db, knowledge_point_id)
-    suggestions, note = suggest_prerequisites(db, knowledge_point_id)
+    try:
+        suggestions, note = suggest_prerequisites(db, knowledge_point_id)
+    except PrerequisiteNotLearnableNode as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return PrerequisiteSuggestOut(
         knowledge_point=_brief(knowledge_point),
         suggestions=[PrerequisiteSuggestion(**item) for item in suggestions],

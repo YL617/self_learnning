@@ -17,6 +17,7 @@ function kp(
     description: null,
     status: 'active',
     source: 'admin',
+    node_type: 'concept',
     created_at: '2026-10-01T00:00:00',
     updated_at: '2026-10-01T00:00:00',
     ...overrides,
@@ -75,6 +76,18 @@ describe('buildRows', () => {
   it('无匹配时返回空数组', () => {
     expect(buildRows(items, { query: '不存在的知识点' })).toEqual([])
   })
+
+  // P0：目录 / 知识点本地筛选。
+  it('nodeType 筛选只保留对应类型', () => {
+    const mixed = [
+      kp(1, '数据结构目录', { node_type: 'container' }),
+      kp(2, '栈', { node_type: 'concept' }),
+      kp(3, '队列', { node_type: 'concept' }),
+    ]
+    expect(buildRows(mixed, { nodeType: 'container' }).map((row) => row.id)).toEqual([1])
+    expect(buildRows(mixed, { nodeType: 'concept' }).map((row) => row.id)).toEqual([2, 3])
+    expect(buildRows(mixed, { nodeType: 'all' })).toHaveLength(3)
+  })
 })
 
 describe('parentCandidates', () => {
@@ -101,6 +114,20 @@ describe('parentCandidates', () => {
 
   it('学科为空时返回空数组', () => {
     expect(parentCandidates(items, '   ', null)).toEqual([])
+  })
+
+  // P0：container 只能挂在 container 之下；concept 的父级可以是两者之一。
+  it('子节点为目录时，父级候选只保留目录节点', () => {
+    const mixed = [
+      kp(1, '数据结构', { node_type: 'container' }),
+      kp(2, '线性表', { node_type: 'container', parent_id: 1 }),
+      kp(3, '栈', { node_type: 'concept', parent_id: 2 }),
+    ]
+    const containerParents = parentCandidates(mixed, '数据结构', null, 'container').map((i) => i.id)
+    expect(containerParents).toEqual([1, 2])
+
+    const conceptParents = parentCandidates(mixed, '数据结构', null, 'concept').map((i) => i.id)
+    expect(conceptParents).toEqual([1, 2, 3])
   })
 })
 
