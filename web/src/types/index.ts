@@ -110,7 +110,50 @@ export interface AdminQuestion {
   stem: string
   source: string
   is_favorite: boolean
+  // M4：难度（easy/medium/hard，可空）与可见性（private/shared）。
+  difficulty?: string | null
+  visibility?: string
   created_at: string
+}
+
+// M4：管理员创建题目载荷（POST /admin/questions）。
+export interface AdminQuestionCreatePayload {
+  subject: string
+  knowledge_point: string
+  question_type: 'choice' | 'fill' | 'short_answer'
+  stem: string
+  options?: string[]
+  answer: string
+  analysis?: string | null
+  difficulty?: 'easy' | 'medium' | 'hard' | null
+  visibility?: 'private' | 'shared'
+  // 可选：创建时一并绑定知识点（仅 concept；第一个作为 primary）。
+  knowledge_point_ids?: number[]
+}
+
+// M4：题目详情（全字段 + 结构化知识点关联）。
+export interface AdminQuestionDetail extends AdminQuestion {
+  options_json?: string | null
+  answer: string
+  analysis?: string | null
+  knowledge_points: QuestionKnowledgePoint[]
+}
+
+// M4：知识覆盖统计（只统计 concept；container 永不计入）。
+export interface KnowledgeCoverageItem {
+  subject: string
+  concept_total: number
+  covered: number
+  uncovered: number
+  question_total: number
+}
+
+export interface KnowledgeCoverage {
+  concept_total: number
+  covered: number
+  uncovered: number
+  question_total: number
+  items: KnowledgeCoverageItem[]
 }
 
 export interface TokenResponse {
@@ -267,6 +310,9 @@ export interface Question {
   analysis?: string | null
   source: string
   is_favorite: boolean
+  // M4：难度（easy/medium/hard，可空）与可见性（private/shared，默认 private）。
+  difficulty?: string | null
+  visibility?: string
 }
 
 // Phase 2：题目 ↔ 知识点结构化关联。

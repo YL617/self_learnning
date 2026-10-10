@@ -2,10 +2,14 @@ import { http } from './http'
 import type {
   ActivationCode,
   AdminQuestion,
+  AdminQuestionCreatePayload,
+  AdminQuestionDetail,
   AdminUser,
   AiMonitorState,
   Course,
   DocumentItem,
+  KnowledgeCoverage,
+  QuestionKnowledgePoint,
   StatsOverview,
 } from '@/types'
 
@@ -37,6 +41,17 @@ export const adminApi = {
     http.post<ActivationCode>(`/admin/activation-codes/${id}/revoke`),
   questions: () => http.get<AdminQuestion[]>('/admin/questions'),
   deleteQuestion: (id: number) => http.delete<void>(`/admin/questions/${id}`),
+  // M4：管理员题库管理。
+  createQuestion: (data: AdminQuestionCreatePayload) =>
+    http.post<AdminQuestion>('/admin/questions', data),
+  getQuestion: (id: number) =>
+    http.get<AdminQuestionDetail>(`/admin/questions/${id}`),
+  attachQuestionKnowledgePoint: (
+    id: number,
+    data: { knowledge_point_id: number; role: 'primary' | 'secondary' },
+  ) =>
+    http.post<QuestionKnowledgePoint>(`/admin/questions/${id}/knowledge-points`, data),
+  knowledgeCoverage: () => http.get<KnowledgeCoverage>('/admin/knowledge-coverage'),
   documents: () => http.get<DocumentItem[]>('/admin/documents'),
   deleteDocument: (id: number) => http.delete<void>(`/admin/documents/${id}`),
   courses: () => http.get<Course[]>('/admin/courses'),

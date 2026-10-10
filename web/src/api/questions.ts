@@ -21,8 +21,18 @@ export interface QuestionKnowledgePointReplacePayload {
   items: QuestionKnowledgePointAttachPayload[]
 }
 
+export interface QuestionBankParams {
+  subject?: string
+  difficulty?: 'easy' | 'medium' | 'hard'
+  knowledge_point_id?: number
+  limit?: number
+}
+
 export const questionsApi = {
   list: () => http.get<Question[]>('/questions'),
+  // M4：共享题库（visibility='shared'），对全部登录用户开放浏览/作答。
+  questionBank: (params?: QuestionBankParams) =>
+    http.get<Question[]>('/question-bank', { params }),
   generate: (data: QuestionGeneratePayload) =>
     http.post<Question[]>('/questions/generate', data),
   setFavorite: (questionId: number, isFavorite: boolean) =>

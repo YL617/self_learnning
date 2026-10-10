@@ -56,6 +56,11 @@ const router = createRouter({
           name: 'questions',
           component: () => import('@/views/QuestionsView.vue'),
         },
+        {
+          path: 'knowledge',
+          name: 'knowledge',
+          component: () => import('@/views/KnowledgeExploreView.vue'),
+        },
         { path: 'files', name: 'files', component: () => import('@/views/FilesView.vue') },
         { path: 'focus', name: 'focus', component: () => import('@/views/FocusView.vue') },
         { path: 'pet', name: 'pet', component: () => import('@/views/PetView.vue') },
