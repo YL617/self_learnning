@@ -43,9 +43,9 @@ from app.models import (
     WrongBookItem,
 )
 from app.services.knowledge_point_service import (
-    KP_NODE_TYPES,
     KP_NODE_TYPE_CONCEPT,
     KP_NODE_TYPE_CONTAINER,
+    KP_NODE_TYPES,
     InvalidNodeType,
     KnowledgePointService,
 )
@@ -405,7 +405,7 @@ def test_list_questions_for_container_returns_empty():
     )
 
     with SessionLocal() as db:
-        user = _mk_user(db)
+        _mk_user(db)
         container = _mk_kp(db, "树与二叉树", node_type=KP_NODE_TYPE_CONTAINER)
         db.commit()
         assert QuestionKnowledgePointService(db).list_question_ids_for_knowledge_point(

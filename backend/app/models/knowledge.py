@@ -155,6 +155,13 @@ class KnowledgePoint(Base):
             "node_type IN ('container', 'concept')",
             name="ck_knowledge_points_node_type",
         ),
+        # M4：(id, node_type) 唯一，作为 question_knowledge_points 复合外键的
+        # 引用目标（DB 级 container 禁令，见 learning.QuestionKnowledgePoint）。
+        UniqueConstraint(
+            "id",
+            "node_type",
+            name="uq_knowledge_points_id_node_type",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)

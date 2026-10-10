@@ -37,7 +37,7 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
                 assert result.exit_code == 0
                 assert result.errors == []
                 assert result.unknown_warnings == []
-                assert adoption.status == "ADOPTION COMPLETE AT 20261002_005"
+                assert adoption.status == "ADOPTION COMPLETE AT 20261010_006"
     finally:
         engine.dispose()
 
@@ -92,7 +92,7 @@ def test_real_sqlite_downgrade_upgrade_roundtrip(tmp_path):
         result = check_drift(engine, Base)
         assert result.errors == []
         assert result.unknown_warnings == []
-        assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261002_005"
+        assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261010_006"
     finally:
         engine.dispose()
 
@@ -107,9 +107,9 @@ def test_manifest_delta_and_historical_ownership():
         assert not {c["name"] for c in columns} & {c["name"] for c in before[table]["columns"]}
     assert manifest["added_indexes"]["course_recommendations"][0]["name"] == "ix_course_recommendations_status"
     chain = migration_chain()
-    assert len(chain) == len(set(chain)) == 21
+    assert len(chain) == len(set(chain)) == 22
     assert manifest["revision"] in chain
-    assert chain[-1] == "20261002_005"
+    assert chain[-1] == "20261010_006"
 
 
 def test_phase2_profile_added_without_overwriting_history():
@@ -230,3 +230,61 @@ def test_node_type_added_without_overwriting_history():
     assert "node_type" not in old_columns
     # 表数量不变（只加列，不建表）。
     assert len(profiles["20261001_004"]) == 36
+
+
+def test_m4_question_bank_profile_added_without_overwriting_history():
+    """M4：006 只给 questions 加两列、给 qkp 加一列 + 复合外键；历史合同逐字节不变。"""
+    from app.core.schema_profiles import PROFILE_PATH
+
+    profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    assert "20261010_006" in profiles
+
+    # questions：只追加 difficulty / visibility，不重排历史列。
+    new_q = [c["name"] for c in profiles["20261010_006"]["questions"]["columns"]]
+    old_q = [c["name"] for c in profiles["20261002_005"]["questions"]["columns"]]
+    assert set(new_q) - set(old_q) == {"difficulty", "visibility"}
+    assert new_q[: len(old_q)] == old_q
+    visibility = next(
+        c for c in profiles["20261010_006"]["questions"]["columns"]
+        if c["name"] == "visibility"
+    )
+    assert visibility["nullable"] is False
+    assert visibility["default"] == "'private'"
+
+    # question_knowledge_points：只追加 kp_node_type + 复合外键。
+    new_qkp = [c["name"] for c in
+               profiles["20261010_006"]["question_knowledge_points"]["columns"]]
+    old_qkp = [c["name"] for c in
+               profiles["20261002_005"]["question_knowledge_points"]["columns"]]
+    assert set(new_qkp) - set(old_qkp) == {"kp_node_type"}
+    assert new_qkp[: len(old_qkp)] == old_qkp
+    kp_node_type = next(
+        c for c in profiles["20261010_006"]["question_knowledge_points"]["columns"]
+        if c["name"] == "kp_node_type"
+    )
+    assert kp_node_type["nullable"] is False
+    assert kp_node_type["default"] == "'concept'"
+    fk_columns = {
+        tuple(fk["constrained_columns"])
+        for fk in profiles["20261010_006"]["question_knowledge_points"]["fks"]
+    }
+    assert ("knowledge_point_id", "kp_node_type") in fk_columns
+    old_fk_columns = {
+        tuple(fk["constrained_columns"])
+        for fk in profiles["20261002_005"]["question_knowledge_points"]["fks"]
+    }
+    assert ("knowledge_point_id", "kp_node_type") not in old_fk_columns
+
+    # knowledge_points：新增 (id, node_type) 唯一约束（复合外键引用目标）。
+    uniques = {u["name"] for u in profiles["20261010_006"]["knowledge_points"]["unique"]}
+    assert "uq_knowledge_points_id_node_type" in uniques
+    old_uniques = {
+        u["name"] for u in profiles["20261002_005"]["knowledge_points"]["unique"]
+    }
+    assert "uq_knowledge_points_id_node_type" not in old_uniques
+
+    # 历史合同（005）不含新列（历史合同不可覆盖）；表数量不变（只加列）。
+    assert "visibility" not in old_q
+    assert "kp_node_type" not in old_qkp
+    assert len(profiles["20261002_005"]) == 36
+    assert len(profiles["20261010_006"]) == 36

@@ -1584,10 +1584,14 @@ TEMPLATE_HEADER = "学科,层级路径,知识点名,别名,难度,预计学时,�
 # 因此不会触发 E12「同名同时被作为目录与知识点」的类型冲突。
 TEMPLATE_SAMPLE_ROWS = (
     "数据结构,线性表,顺序表,linear list|sequential list,easy,30,DS.LINEAR.SEQUENTIAL",
-    "数据结构,线性表>链表,单链表,singly linked list|linked list,medium,40,"
-    "DS.LINEAR.LINKED_LIST.SINGLE",
-    "数据结构,树与二叉树>二叉树遍历,先序遍历,preorder traversal,medium,40,"
-    "DS.TREE.BINARY.TRAVERSAL.PREORDER",
+    (
+        "数据结构,线性表>链表,单链表,singly linked list|linked list,medium,40,"
+        "DS.LINEAR.LINKED_LIST.SINGLE"
+    ),
+    (
+        "数据结构,树与二叉树>二叉树遍历,先序遍历,preorder traversal,medium,40,"
+        "DS.TREE.BINARY.TRAVERSAL.PREORDER"
+    ),
 )
 
 

@@ -2,9 +2,11 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
     String,
     Text,
@@ -72,7 +74,25 @@ class PlanAdjustmentLog(Base):
 
 
 class Question(Base):
+    """题目。M4 之前题目全部由用户 AI 生成（owner-only）；M4 起管理员可建
+    ``visibility='shared'`` 的共享题库题（全部登录用户可见可做），存量题与
+    用户私题行为不变（visibility 默认 'private'）。
+
+    ``difficulty`` 为可空：NULL 时由 ``evaluation.resolve_difficulty()`` 按题型
+    映射（choice=easy / fill=medium / short_answer=hard），与 M4 之前完全一致。
+    """
+
     __tablename__ = "questions"
+    __table_args__ = (
+        CheckConstraint(
+            "difficulty IS NULL OR difficulty IN ('easy', 'medium', 'hard')",
+            name="ck_questions_difficulty",
+        ),
+        CheckConstraint(
+            "visibility IN ('private', 'shared')",
+            name="ck_questions_visibility",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
@@ -90,6 +110,11 @@ class Question(Base):
     analysis: Mapped[str | None] = mapped_column(Text)
     source: Mapped[str] = mapped_column(String(32), default="ai")
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
+    # ---- M4：题库字段 ----
+    difficulty: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    visibility: Mapped[str] = mapped_column(
+        String(16), default="private", server_default="private"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
@@ -98,6 +123,11 @@ class QuestionKnowledgePoint(Base):
 
     每道题最多一个 role=primary（由 Service 层保证）；
     同一 (question, knowledge_point) 组合唯一。
+
+    M4 起携带 ``kp_node_type``（恒为 'concept'）并参与复合外键
+    ``(knowledge_point_id, kp_node_type) → knowledge_points (id, node_type)``：
+    数据库层物理拒绝 container 关联，与 Service 层关口（NotLearnableNode）
+    构成双保险。
     """
 
     __tablename__ = "question_knowledge_points"
@@ -106,6 +136,15 @@ class QuestionKnowledgePoint(Base):
             "question_id",
             "knowledge_point_id",
             name="uq_question_knowledge_points_pair",
+        ),
+        CheckConstraint(
+            "kp_node_type IN ('container', 'concept')",
+            name="ck_qkp_kp_node_type",
+        ),
+        ForeignKeyConstraint(
+            ["knowledge_point_id", "kp_node_type"],
+            ["knowledge_points.id", "knowledge_points.node_type"],
+            name="fk_qkp_kp_concept",
         ),
     )
 
@@ -118,6 +157,9 @@ class QuestionKnowledgePoint(Base):
     )
     role: Mapped[str] = mapped_column(String(16), default="primary", server_default="primary")
     source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
+    kp_node_type: Mapped[str] = mapped_column(
+        String(16), default="concept", server_default="concept"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

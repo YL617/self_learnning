@@ -113,11 +113,29 @@ def test_question_knowledge_points_index_and_constraint_contract():
     assert "ix_question_knowledge_points_knowledge_point_id" in index_names
 
     # FK 动作：题目删除级联清理关联；知识点删除由 RESTRICT 兜底（Service 已预检）。
-    fks = {fk.parent.name: fk for fk in table.foreign_keys}
-    assert fks["question_id"].target_fullname == "questions.id"
-    assert fks["question_id"].ondelete == "CASCADE"
-    assert fks["knowledge_point_id"].target_fullname == "knowledge_points.id"
-    assert fks["knowledge_point_id"].ondelete == "RESTRICT"
+    # M4 复合外键 (knowledge_point_id, kp_node_type) → knowledge_points(id, node_type)：
+    # DB 级 container 禁令（与 Service 层关口互为双保险）。
+    # knowledge_point_id 现在有两个 FK 声明（单列 RESTRICT + M4 复合约束成员），逐一断言。
+    question_fks = [
+        fk for fk in table.foreign_keys
+        if fk.parent.name == "question_id" and fk.target_fullname == "questions.id"
+    ]
+    assert len(question_fks) == 1 and question_fks[0].ondelete == "CASCADE"
+    kp_id_fks = [
+        fk for fk in table.foreign_keys
+        if fk.parent.name == "knowledge_point_id"
+        and fk.target_fullname == "knowledge_points.id"
+    ]
+    # 一个来自单列 FK（RESTRICT），一个来自复合约束 fk_qkp_kp_concept（无 ondelete）。
+    assert {fk.ondelete for fk in kp_id_fks} == {None, "RESTRICT"}
+    composite = [
+        fk for fk in table.foreign_keys
+        if fk.constraint is not None and fk.constraint.name == "fk_qkp_kp_concept"
+    ]
+    assert {(fk.parent.name, fk.target_fullname) for fk in composite} == {
+        ("knowledge_point_id", "knowledge_points.id"),
+        ("kp_node_type", "knowledge_points.node_type"),
+    }
 
 
 def test_user_knowledge_point_mastery_contract():
@@ -320,16 +338,16 @@ def test_drift_duplicate_unique_objects(engine):
     assert any("DUPLICATE UNIQUE users" in e for e in result.errors)
 
 
-def test_adoption_complete_20261002_005(engine):
-    _set_version(engine, "20261002_005")
+def test_adoption_complete_20261010_006(engine):
+    _set_version(engine, "20261010_006")
     res = inspect_adoption(engine, Base)
-    assert res.status == "ADOPTION COMPLETE AT 20261002_005"
-    assert res.revision == "20261002_005"
-    assert any("schema_matches=20261002_005" in line for line in res.info)
+    assert res.status == "ADOPTION COMPLETE AT 20261010_006"
+    assert res.revision == "20261010_006"
+    assert any("schema_matches=20261010_006" in line for line in res.info)
 
 
 def test_adoption_target_revision_with_drift_blocks(engine):
-    _set_version(engine, "20261002_005")
+    _set_version(engine, "20261010_006")
     _drop_column(engine, "users", "hashed_password")
     res = inspect_adoption(engine, Base)
     assert res.status == "ADOPTION BLOCKED"
@@ -337,14 +355,15 @@ def test_adoption_target_revision_with_drift_blocks(engine):
 
 
 @pytest.mark.parametrize("revision,drift,expected,exit_code", [
-    ("20260908_001", False, "SAFE TO ADOPT TO 20261002_005", 0),
-    ("20260909_001", False, "SAFE TO ADOPT TO 20261002_005", 0),
-    ("20261001_001", False, "SAFE TO ADOPT TO 20261002_005", 0),
-    ("20261001_002", False, "SAFE TO ADOPT TO 20261002_005", 0),
-    ("20261001_003", False, "SAFE TO ADOPT TO 20261002_005", 0),
-    ("20261001_004", False, "SAFE TO ADOPT TO 20261002_005", 0),
-    ("20261002_005", False, "ADOPTION COMPLETE AT 20261002_005", 0),
-    ("20261002_005", True, "ADOPTION BLOCKED", 1),
+    ("20260908_001", False, "SAFE TO ADOPT TO 20261010_006", 0),
+    ("20260909_001", False, "SAFE TO ADOPT TO 20261010_006", 0),
+    ("20261001_001", False, "SAFE TO ADOPT TO 20261010_006", 0),
+    ("20261001_002", False, "SAFE TO ADOPT TO 20261010_006", 0),
+    ("20261001_003", False, "SAFE TO ADOPT TO 20261010_006", 0),
+    ("20261001_004", False, "SAFE TO ADOPT TO 20261010_006", 0),
+    ("20261002_005", False, "SAFE TO ADOPT TO 20261010_006", 0),
+    ("20261010_006", False, "ADOPTION COMPLETE AT 20261010_006", 0),
+    ("20261010_006", True, "ADOPTION BLOCKED", 1),
     ("unknown", False, "ADOPTION BLOCKED", 1),
 ])
 def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
@@ -364,7 +383,7 @@ def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
 def test_adoption_20260908_reconcile_present(engine):
     _set_version(engine, "20260908_001")
     res = inspect_adoption(engine, Base)
-    assert res.status == "SAFE TO ADOPT TO 20261002_005"
+    assert res.status == "SAFE TO ADOPT TO 20261010_006"
 
 
 def test_adoption_20260907_missing_knowledge_points(engine):
@@ -525,10 +544,10 @@ def test_adoption_ambiguous_profiles_blocks(engine, monkeypatch):
 def test_tools_only_issue_read_statements(engine):
     from sqlalchemy import event
 
-    _set_version(engine, "20261002_005")
+    _set_version(engine, "20261010_006")
     statements = []
     event.listen(engine, "before_cursor_execute", lambda c, cur, sql, p, ctx, many: statements.append(sql))
     assert check_drift(engine, Base).exit_code == 0
-    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261002_005"
+    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261010_006"
     assert statements
     assert all(sql.lstrip().upper().startswith(("SELECT", "PRAGMA")) for sql in statements)
