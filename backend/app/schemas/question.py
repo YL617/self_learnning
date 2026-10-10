@@ -28,6 +28,8 @@ class QuestionOut(ORMModel):
     analysis: str | None = None
     source: str
     is_favorite: bool = False
+    difficulty: str | None = None
+    visibility: str = "private"
 
 
 class QuestionFavoriteUpdate(BaseModel):

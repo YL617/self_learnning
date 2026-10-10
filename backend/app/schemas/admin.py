@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field
 
 from app.schemas.common import ORMModel
+from app.schemas.question import QuestionKnowledgePointRead
 
 
 class AdminUserOut(ORMModel):
@@ -77,7 +78,68 @@ class AdminQuestionOut(ORMModel):
     stem: str
     source: str
     is_favorite: bool = False
+    difficulty: str | None = None
+    visibility: str = "private"
     created_at: datetime
+
+
+class AdminQuestionCreate(BaseModel):
+    """M4：管理员创建题目（共享题库 / 私题均可）。"""
+
+    subject: str = Field(min_length=1, max_length=100)
+    knowledge_point: str = Field(min_length=1, max_length=200)
+    question_type: str = Field(default="choice", pattern="^(choice|fill|short_answer)$")
+    stem: str = Field(min_length=1, max_length=4000)
+    options: list[str] = Field(default_factory=list, max_length=10)
+    answer: str = Field(min_length=1, max_length=2000)
+    analysis: str | None = Field(default=None, max_length=4000)
+    difficulty: str | None = Field(default=None, pattern="^(easy|medium|hard)$")
+    visibility: str = Field(default="shared", pattern="^(private|shared)$")
+    # 可选：创建时一并绑定知识点（仅 concept；第一个作为 primary）。
+    knowledge_point_ids: list[int] = Field(default_factory=list, max_length=20)
+
+
+class AdminQuestionKnowledgePointAttach(BaseModel):
+    knowledge_point_id: int
+    role: str = Field(default="primary", pattern="^(primary|secondary)$")
+
+
+class AdminQuestionDetailOut(ORMModel):
+    """M4：题目详情（全字段 + 结构化知识点关联）。"""
+
+    id: int
+    user_id: int
+    subject: str
+    knowledge_point: str
+    question_type: str
+    stem: str
+    options_json: str | None = None
+    answer: str
+    analysis: str | None = None
+    source: str
+    is_favorite: bool = False
+    difficulty: str | None = None
+    visibility: str = "private"
+    created_at: datetime
+    knowledge_points: list[QuestionKnowledgePointRead] = Field(default_factory=list)
+
+
+class KnowledgeCoverageItem(BaseModel):
+    subject: str
+    concept_total: int
+    covered: int
+    uncovered: int
+    question_total: int
+
+
+class KnowledgeCoverageOut(BaseModel):
+    """M4：知识覆盖情况（只统计 concept；container 永不计入）。"""
+
+    concept_total: int
+    covered: int
+    uncovered: int
+    question_total: int
+    items: list[KnowledgeCoverageItem] = Field(default_factory=list)
 
 
 class CourseChapterIn(BaseModel):

@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models import KnowledgePoint, Question, QuestionKnowledgePoint
@@ -129,7 +129,7 @@ class QuestionKnowledgePointService:
         return list(self.db.scalars(statement).all())
 
     def list_question_ids_for_knowledge_point(
-        self, knowledge_point_id: int, owner_id: int | None
+        self, knowledge_point_id: int, owner_id: int | None, include_shared: bool = True
     ) -> list[int]:
         # 读取路径放宽：目录节点按契约不可能有题目，直接返回空列表，
         # 避免管理端遍历知识树时被 4xx 打断（不加"可学习"约束）。
@@ -145,7 +145,16 @@ class QuestionKnowledgePointService:
             .order_by(QuestionKnowledgePoint.id)
         )
         if owner_id is not None:
-            statement = statement.where(Question.user_id == owner_id)
+            # M4：普通用户可见 = 自己的题 ∪ 共享题库题（visibility='shared'）；
+            # 他人私题仍然不可见（owner 语义不变，仅扩大 shared）。
+            statement = statement.where(
+                or_(
+                    Question.user_id == owner_id,
+                    Question.visibility == "shared",
+                )
+                if include_shared
+                else Question.user_id == owner_id
+            )
         return list(self.db.scalars(statement).all())
 
     # ---- 变更 ----
@@ -178,6 +187,8 @@ class QuestionKnowledgePointService:
             knowledge_point_id=knowledge_point_id,
             role=role,
             source=source,
+            # M4：显式盖章（复合外键要求恒为 concept；列默认同值，双保险）。
+            kp_node_type=KP_NODE_TYPE_CONCEPT,
         )
         self.db.add(item)
         self.db.flush()
@@ -238,6 +249,7 @@ class QuestionKnowledgePointService:
                     knowledge_point_id=knowledge_point_id,
                     role=role,
                     source=source,
+                    kp_node_type=KP_NODE_TYPE_CONCEPT,
                 )
                 self.db.add(row)
             else:

@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -54,6 +54,36 @@ from app.services.review import (
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 wrong_book_router = APIRouter(prefix="/wrong-book", tags=["wrong-book"])
+# M4：共享题库（visibility='shared' 的题目，对全部登录用户开放浏览/作答）。
+question_bank_router = APIRouter(prefix="/question-bank", tags=["question-bank"])
+
+
+@question_bank_router.get("", response_model=list[QuestionOut])
+def list_question_bank(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    subject: str | None = Query(default=None),
+    difficulty: str | None = Query(default=None, pattern="^(easy|medium|hard)$"),
+    knowledge_point_id: int | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=200),
+) -> list[Question]:
+    """共享题库列表：只返回 visibility='shared'，不含任何人的私题。"""
+    del current_user
+    statement = select(Question).where(Question.visibility == "shared")
+    if subject:
+        statement = statement.where(Question.subject == subject)
+    if difficulty:
+        statement = statement.where(Question.difficulty == difficulty)
+    if knowledge_point_id is not None:
+        statement = statement.join(
+            QuestionKnowledgePoint,
+            QuestionKnowledgePoint.question_id == Question.id,
+        ).where(QuestionKnowledgePoint.knowledge_point_id == knowledge_point_id)
+    return list(
+        db.scalars(
+            statement.order_by(Question.created_at.desc()).limit(limit)
+        ).all()
+    )
 
 
 def _save_questions(
@@ -439,6 +469,25 @@ def _apply_learning_state(
         apply_review_outcome(existing, correct=False, today=today)
 
 
+def _resolve_answerable_question(
+    db: Session, question_id: int, current_user: User
+) -> Question:
+    """可作答题目：owner、管理员、或共享题库题（visibility='shared'）。
+
+    M4 语义：他人私题仍然 404（不泄漏存在性）；shared 题对全部登录用户开放。
+    """
+    question = db.get(Question, question_id)
+    if question is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
+    if (
+        question.user_id != current_user.id
+        and current_user.role != "admin"
+        and question.visibility != "shared"
+    ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
+    return question
+
+
 @router.post("/{question_id}/answers", response_model=AnswerOut, status_code=status.HTTP_201_CREATED)
 def submit_answer(
     question_id: int,
@@ -446,9 +495,7 @@ def submit_answer(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> AnswerRecord:
-    question = db.get(Question, question_id)
-    if question is None or question.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
+    question = _resolve_answerable_question(db, question_id, current_user)
 
     is_correct = check_answer(question, data.user_answer)
     record = AnswerRecord(

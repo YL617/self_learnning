@@ -101,12 +101,12 @@ def list_questions_for_knowledge_point(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> list:
-    """反查关联题目：普通用户仅可见自己的题目，管理员可见全部。"""
+    """反查关联题目：普通用户可见自己的题 + 共享题库题，管理员可见全部。"""
     service = QuestionKnowledgePointService(db)
     owner_id = None if current_user.role == "admin" else current_user.id
     try:
         question_ids = service.list_question_ids_for_knowledge_point(
-            knowledge_point_id, owner_id
+            knowledge_point_id, owner_id, include_shared=True
         )
     except QuestionKpNotFound as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

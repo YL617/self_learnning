@@ -1,3 +1,4 @@
+import json
 import secrets
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -21,29 +22,45 @@ from app.models import (
     Document,
     FileAnalyzeResult,
     KnowledgeChunk,
+    KnowledgePoint,
     Question,
+    QuestionKnowledgePoint,
     StudyPlan,
     User,
     WrongBookItem,
 )
 from app.schemas.admin import (
+    AdminQuestionCreate,
+    AdminQuestionDetailOut,
+    AdminQuestionKnowledgePointAttach,
     AdminQuestionOut,
     AdminUserOut,
     AdminUserUpdate,
     AiMonitorOut,
     CourseCreate,
     CourseUpdate,
+    KnowledgeCoverageItem,
+    KnowledgeCoverageOut,
     StatsOverviewOut,
 )
 from app.schemas.billing import ActivationCodeCreate, ActivationCodeOut
 from app.schemas.file import DocumentOut
 from app.schemas.ops import CourseOut
+from app.schemas.question import QuestionKnowledgePointRead
 from app.services.ai_monitor import (
     can_refresh,
     get_monitor_state,
     refresh_deepseek_monitor,
 )
 from app.services.course_recommender import check_catalog_health
+from app.services.knowledge_point_service import KP_NODE_TYPE_CONCEPT
+from app.services.question_knowledge_point_service import (
+    AssociationNotFound,
+    KnowledgePointNotFound,
+    QuestionKnowledgePointError,
+    QuestionKnowledgePointService,
+    QuestionNotFound,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 settings = get_settings()
@@ -237,6 +254,163 @@ def list_admin_questions(
 ) -> list[Question]:
     return list(
         db.scalars(select(Question).order_by(Question.created_at.desc()).limit(limit)).all()
+    )
+
+
+@router.post("/questions", response_model=AdminQuestionOut, status_code=status.HTTP_201_CREATED)
+def create_admin_question(
+    data: AdminQuestionCreate,
+    current_admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> Question:
+    """M4：管理员创建题目（默认共享题库）。
+
+    可选携带 knowledge_point_ids 一并绑定（仅 concept，由
+    QuestionKnowledgePointService 关口保证）；第一个作为 primary，
+    其余为 secondary。创建 + 绑定在同一事务内，任一失败整体回滚。
+    """
+    question = Question(
+        user_id=current_admin.id,
+        subject=data.subject,
+        knowledge_point=data.knowledge_point,
+        question_type=data.question_type,
+        stem=data.stem,
+        options_json=json.dumps(data.options, ensure_ascii=False) if data.options else None,
+        answer=data.answer,
+        analysis=data.analysis,
+        source="admin",
+        difficulty=data.difficulty,
+        visibility=data.visibility,
+    )
+    db.add(question)
+    db.flush()
+    try:
+        if data.knowledge_point_ids:
+            service = QuestionKnowledgePointService(db)
+            for index, knowledge_point_id in enumerate(data.knowledge_point_ids):
+                service.attach(
+                    question.id,
+                    knowledge_point_id,
+                    role="primary" if index == 0 else "secondary",
+                    source="manual",
+                    owner_id=None,
+                )
+    except QuestionKnowledgePointError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    db.refresh(question)
+    return question
+
+
+@router.get("/questions/{question_id}", response_model=AdminQuestionDetailOut)
+def get_admin_question(
+    question_id: int,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> AdminQuestionDetailOut:
+    """M4：题目详情（全字段 + 结构化知识点关联）。"""
+    question = db.get(Question, question_id)
+    if question is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
+    payload = AdminQuestionDetailOut.model_validate(question)
+    payload.knowledge_points = [
+        QuestionKnowledgePointRead.model_validate(row)
+        for row in QuestionKnowledgePointService(db).list_for_question(
+            question_id, owner_id=None
+        )
+    ]
+    return payload
+
+
+@router.post(
+    "/questions/{question_id}/knowledge-points",
+    response_model=QuestionKnowledgePointRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def attach_admin_question_knowledge_point(
+    question_id: int,
+    data: AdminQuestionKnowledgePointAttach,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> QuestionKnowledgePoint:
+    """M4：管理员给题目绑定知识点（与用户端同一服务关口：container 一律拒绝）。"""
+    service = QuestionKnowledgePointService(db)
+    try:
+        item = service.attach(
+            question_id,
+            data.knowledge_point_id,
+            role=data.role,
+            source="manual",
+            owner_id=None,
+        )
+    except QuestionKnowledgePointError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+                if isinstance(exc, (QuestionNotFound, KnowledgePointNotFound, AssociationNotFound))
+                else status.HTTP_400_BAD_REQUEST
+            ),
+            detail=str(exc),
+        ) from exc
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.get("/knowledge-coverage", response_model=KnowledgeCoverageOut)
+def admin_knowledge_coverage(
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> KnowledgeCoverageOut:
+    """M4：知识覆盖情况。只统计 concept（container 永不计入）；
+    covered = 至少有一道题（任意可见性）通过 qkp 关联的 concept 数。
+    """
+    concept_rows = db.execute(
+        select(KnowledgePoint.subject, KnowledgePoint.id).where(
+            KnowledgePoint.node_type == KP_NODE_TYPE_CONCEPT
+        )
+    ).all()
+    covered_ids = set(
+        db.scalars(select(QuestionKnowledgePoint.knowledge_point_id).distinct())
+    )
+    question_counts: dict[str, int] = dict(
+        db.execute(
+            select(Question.subject, func.count(Question.id)).group_by(Question.subject)
+        ).all()
+    )
+
+    by_subject: dict[str, dict[str, int]] = {}
+    for subject, kp_id in concept_rows:
+        bucket = by_subject.setdefault(
+            subject, {"concept_total": 0, "covered": 0, "question_total": 0}
+        )
+        bucket["concept_total"] += 1
+        if kp_id in covered_ids:
+            bucket["covered"] += 1
+    for subject, count in question_counts.items():
+        bucket = by_subject.setdefault(
+            subject, {"concept_total": 0, "covered": 0, "question_total": 0}
+        )
+        bucket["question_total"] = count
+
+    items = [
+        KnowledgeCoverageItem(
+            subject=subject,
+            concept_total=bucket["concept_total"],
+            covered=bucket["covered"],
+            uncovered=bucket["concept_total"] - bucket["covered"],
+            question_total=bucket["question_total"],
+        )
+        for subject, bucket in sorted(by_subject.items())
+    ]
+    return KnowledgeCoverageOut(
+        concept_total=sum(item.concept_total for item in items),
+        covered=sum(item.covered for item in items),
+        uncovered=sum(item.uncovered for item in items),
+        question_total=sum(item.question_total for item in items),
+        items=items,
     )
 
 
