@@ -13,7 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY requirements.txt requirements-ai.txt constraints-prod.lock ./
 RUN pip install --no-cache-dir \
-    -i https://mirrors.aliyun.com/pypi/simple \
+    -i https://repo.huaweicloud.com/repository/pypi/simple \
     --timeout 180 --retries 8 \
     --constraint constraints-prod.lock \
     -r requirements.txt -r requirements-ai.txt \
