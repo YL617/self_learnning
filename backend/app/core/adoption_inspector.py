@@ -14,7 +14,7 @@ from app.core.schema_reconciliation_manifest import (
     reconciliation_manifest,
 )
 
-TARGET = "20261010_006"
+TARGET = "20261010_007"
 RECONCILIATION_REVISION = "20260909_001"
 MIGRATION_DIR = Path(__file__).resolve().parents[2] / "alembic"
 
@@ -88,10 +88,14 @@ def inspect_adoption(engine, base):
             comparisons[candidate] = drift
             if not drift.errors:
                 matches.append(candidate)
-        if len(matches) != 1:
+        if not matches:
             return blocked(f"Expected one trusted schema match; got {matches}",
                            *comparisons[TARGET].errors)
-        matched = matches[0]
+        # 结构等价的多个 revision 会同时匹配同一实际 schema：例如仅收紧 CHECK 约束、
+        # 未改动结构快照（表/列/主键/外键/唯一/索引）的 revision，其 frozen contract
+        # 与前一版本逐字节相同，属合法情形而非歧义。此时取链上最新的匹配版本，
+        # 交由下方「落后 / 版本不一致」检查裁决（与旧版本记录 + head 结构的既有语义一致）。
+        matched = max(matches, key=chain.index)
         info.append(f"schema_matches={matched}; historical effects verified against frozen contract")
         if chain.index(matched) < chain.index(revision):
             return blocked("Schema is behind recorded revision")

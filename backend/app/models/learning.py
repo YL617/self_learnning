@@ -138,7 +138,7 @@ class QuestionKnowledgePoint(Base):
             name="uq_question_knowledge_points_pair",
         ),
         CheckConstraint(
-            "kp_node_type IN ('container', 'concept')",
+            "kp_node_type = 'concept'",
             name="ck_qkp_kp_node_type",
         ),
         ForeignKeyConstraint(

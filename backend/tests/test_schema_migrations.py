@@ -37,7 +37,7 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
                 assert result.exit_code == 0
                 assert result.errors == []
                 assert result.unknown_warnings == []
-                assert adoption.status == "ADOPTION COMPLETE AT 20261010_006"
+                assert adoption.status == "ADOPTION COMPLETE AT 20261010_007"
     finally:
         engine.dispose()
 
@@ -92,7 +92,7 @@ def test_real_sqlite_downgrade_upgrade_roundtrip(tmp_path):
         result = check_drift(engine, Base)
         assert result.errors == []
         assert result.unknown_warnings == []
-        assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261010_006"
+        assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261010_007"
     finally:
         engine.dispose()
 
@@ -107,9 +107,9 @@ def test_manifest_delta_and_historical_ownership():
         assert not {c["name"] for c in columns} & {c["name"] for c in before[table]["columns"]}
     assert manifest["added_indexes"]["course_recommendations"][0]["name"] == "ix_course_recommendations_status"
     chain = migration_chain()
-    assert len(chain) == len(set(chain)) == 22
+    assert len(chain) == len(set(chain)) == 23
     assert manifest["revision"] in chain
-    assert chain[-1] == "20261010_006"
+    assert chain[-1] == "20261010_007"
 
 
 def test_phase2_profile_added_without_overwriting_history():
@@ -288,3 +288,15 @@ def test_m4_question_bank_profile_added_without_overwriting_history():
     assert "kp_node_type" not in old_qkp
     assert len(profiles["20261002_005"]) == 36
     assert len(profiles["20261010_006"]) == 36
+
+
+
+def test_m4_hotfix_007_profile_identical_except_revision():
+    """007 只收紧 ck_qkp_kp_node_type（CHECK 不在合同追踪范围）：
+    合同应与 006 完全一致；历史 006 逐字节不变。"""
+    from app.core.schema_profiles import PROFILE_PATH
+
+    profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    assert "20261010_007" in profiles
+    assert profiles["20261010_007"] == profiles["20261010_006"]
+    assert len(profiles["20261010_007"]) == 36

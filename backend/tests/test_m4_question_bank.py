@@ -266,6 +266,59 @@ def test_db_level_composite_fk_rejects_container():
         engine.dispose()
 
 
+def test_db_level_check_rejects_explicit_container_value():
+    """20261010_007 收紧后的第二路径：显式写 kp_node_type='container' 的裸 SQL。
+
+    006 的复合外键只校验 (id, node_type) 对存在性，显式写 'container' 时
+    container 行天然满足 (id, 'container')，曾可绕过；007 把
+    ck_qkp_kp_node_type 收紧为 kp_node_type='concept' 后此路径被 CHECK 封堵。
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import sessionmaker
+
+    engine = create_engine("sqlite://")
+
+    @event.listens_for(engine, "connect")
+    def _fk_on(dbapi_conn, _):  # pragma: no cover - 每个新连接都要开
+        dbapi_conn.execute("PRAGMA foreign_keys=ON")
+
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine)
+    db = session_factory()
+    try:
+        user = User(email="fk2@test.com", username="fkuser2", hashed_password="x")
+        db.add(user)
+        db.flush()
+        container = KnowledgePoint(
+            name="树与二叉树",
+            normalized_name="树与二叉树",
+            subject="数据结构",
+            normalized_subject="数据结构",
+            node_type="container",
+        )
+        db.add(container)
+        db.flush()
+        question = Question(
+            user_id=user.id, subject="数据结构", knowledge_point="树",
+            stem="s", answer="a", source="admin",
+        )
+        db.add(question)
+        db.flush()
+        # 显式写 'container'：CHECK kp_node_type='concept' 必须拒绝。
+        association = QuestionKnowledgePoint(
+            question_id=question.id,
+            knowledge_point_id=container.id,
+            kp_node_type="container",
+        )
+        db.add(association)
+        with pytest.raises(IntegrityError):
+            db.flush()
+        db.rollback()
+    finally:
+        db.close()
+        engine.dispose()
+
+
 # ---------- 3. visibility：共享可见性 ----------
 
 
