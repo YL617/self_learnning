@@ -39,6 +39,12 @@ const router = createRouter({
       component: () => import('@/layouts/DefaultLayout.vue'),
       children: [
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
+        // M5 Step 1：用户端「我的学习计划」页（今日推荐 + 学习状态，只读）。
+        {
+          path: 'my-plan',
+          name: 'my-plan',
+          component: () => import('@/views/MyPlanView.vue'),
+        },
         { path: 'profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
         { path: 'plans', name: 'plans', component: () => import('@/views/PlansView.vue') },
         {

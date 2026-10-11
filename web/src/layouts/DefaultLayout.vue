@@ -15,6 +15,7 @@ import {
   PawPrint,
   Settings,
   Shield,
+  Target,
   Timer,
 } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
@@ -31,6 +32,7 @@ const navGroups = [
     label: '学习',
     items: [
       { label: '学习总览', to: '/', icon: LayoutDashboard },
+      { label: '我的学习计划', to: '/my-plan', icon: Target },
       { label: '学习计划', to: '/plans', icon: CalendarDays },
       { label: '对话规划', to: '/plans/chat', icon: MessageSquareText },
       { label: '智能练习', to: '/questions', icon: FileQuestion },

@@ -74,4 +74,23 @@ describe('router 后台访问控制', () => {
     expect(record?.path).toBe('/admin/knowledge-import')
     expect(record?.components?.default).toBeTruthy()
   })
+
+  // ------------------------------------------------ M5 Step 1：我的学习计划页
+  it('未登录时无法进入我的学习计划页', async () => {
+    const route = await go('/my-plan')
+    expect(route.name).toBe('login')
+  })
+
+  it('登录用户可以进入我的学习计划页', async () => {
+    loginAs({ id: 1, username: 'student', role: 'user' })
+    const route = await go('/my-plan')
+    expect(route.name).toBe('my-plan')
+    expect(route.path).toBe('/my-plan')
+  })
+
+  it('我的学习计划页已注册在默认布局下', () => {
+    const record = router.getRoutes().find((item) => item.name === 'my-plan')
+    expect(record?.path).toBe('/my-plan')
+    expect(record?.components?.default).toBeTruthy()
+  })
 })
