@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FileQuestion, Sparkles } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { knowledgePointsApi, toKnowledgePointNameMap } from '@/api/knowledgePoints'
 import { masteryApi } from '@/api/mastery'
@@ -25,6 +26,8 @@ const form = ref({
   count: 5,
   question_type: 'choice' as 'choice' | 'fill' | 'short_answer',
 })
+// M5 Step 3：从推荐/学习计划页带过来的知识点上下文（/questions?knowledge_point_id=xxx）。
+const route = useRoute()
 const questions = ref<Question[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -199,7 +202,38 @@ function onAssociationsUpdated(questionId: number, associations: QuestionKnowled
   }
 }
 
-onMounted(load)
+// M5 Step 3：消费 /questions?knowledge_point_id=xxx
+// 预填结构化知识点筛选，并复用既有只读接口拉取该知识点已关联的题目。
+// 不生成新题、不写库、不改答题逻辑；无 query 时既有行为完全不变。
+async function applyRouteQuery() {
+  const raw = route.query.knowledge_point_id
+  const value = Array.isArray(raw) ? raw[0] : raw
+  const id = Number(value)
+  if (!value || !Number.isFinite(id) || id <= 0) return
+
+  form.value.knowledge_point_id = id
+  const [kpRes, questionsRes] = await Promise.allSettled([
+    knowledgePointsApi.get(id),
+    knowledgePointsApi.questions(id),
+  ])
+  // 对齐学科，保证下拉筛选器能命中该知识点（否则 option 不存在）。
+  if (kpRes.status === 'fulfilled') {
+    form.value.subject = kpRes.value.data.subject || form.value.subject
+    form.value.knowledge_point = kpRes.value.data.name
+  }
+  if (questionsRes.status === 'fulfilled') {
+    questions.value = questionsRes.value.data
+    await loadKpNames()
+    await loadAssociations(questions.value.map((item) => item.id))
+  }
+  // 掌握度与前置提示（接口失败各自静默降级）。
+  await loadMastery()
+}
+
+onMounted(async () => {
+  await load()
+  await applyRouteQuery()
+})
 </script>
 
 <template>

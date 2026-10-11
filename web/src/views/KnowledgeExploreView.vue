@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { BookOpenText, ChevronDown, ChevronRight, Network } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { knowledgePointsApi } from '@/api/knowledgePoints'
 import { masteryApi } from '@/api/mastery'
@@ -10,6 +11,7 @@ import type { KnowledgePoint, KnowledgePointMastery, Question } from '@/types'
 import { buildRows, nodeTypeIcon, type KnowledgePointRow } from '@/utils/knowledgePoints'
 
 // 全量加载（含 container + concept），前端按学科过滤并展示层级树。
+const route = useRoute()
 const allItems = ref<KnowledgePoint[]>([])
 const subject = ref('')
 const error = ref('')
@@ -92,6 +94,35 @@ function onAnswered() {
   if (selected.value) loadDetail()
 }
 
+// M5 Step 3：消费 /knowledge?knowledge_point_id=xxx —— 自动展开祖先并定位选中该知识点。
+function expandAncestors(id: number) {
+  const byId = new Map(allItems.value.map((item) => [item.id, item]))
+  const next = new Set(collapsed.value)
+  let cursor = byId.get(id)?.parent_id ?? null
+  const seen = new Set<number>([id])
+  while (cursor !== null && byId.has(cursor) && !seen.has(cursor)) {
+    next.delete(cursor)
+    seen.add(cursor)
+    cursor = byId.get(cursor)!.parent_id ?? null
+  }
+  collapsed.value = next
+}
+
+function applyRouteQuery() {
+  const raw = route.query.knowledge_point_id
+  const value = Array.isArray(raw) ? raw[0] : raw
+  const id = Number(value)
+  // 非法 query（缺省 / 非数字 / 非正数）直接忽略，既有默认行为不变。
+  if (!value || !Number.isFinite(id) || id <= 0) return
+  // 在未按学科过滤的全量行中查找，避免目标不在当前学科时定位失败。
+  const row = buildRows(allItems.value).find((item) => item.id === id)
+  // container 不可进详情（前端双保险；后端另有 DB 级禁令）。
+  if (!row || row.node_type !== 'concept') return
+  if (row.subject && subject.value !== row.subject) subject.value = row.subject
+  expandAncestors(id)
+  selectConcept(row)
+}
+
 async function load() {
   loading.value = true
   error.value = ''
@@ -101,6 +132,7 @@ async function load() {
     if (!subject.value && subjects.value.length) {
       subject.value = subjects.value.includes('数据结构') ? '数据结构' : subjects.value[0]
     }
+    applyRouteQuery()
   } catch (err: any) {
     error.value = err?.response?.data?.detail || '知识点加载失败'
   } finally {

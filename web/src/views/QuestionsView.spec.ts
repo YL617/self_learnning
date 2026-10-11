@@ -9,9 +9,15 @@ import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
 import QuestionCard from '@/components/QuestionCard.vue'
 import QuestionsView from './QuestionsView.vue'
 
+// M5 Step 3：页面新增 useRoute()，测试用可变 query 驱动（默认空 → 既有行为不变）。
+const { routeQuery } = vi.hoisted(() => ({ routeQuery: { value: {} as Record<string, unknown> } }))
+vi.mock('vue-router', () => ({ useRoute: () => ({ query: routeQuery.value }) }))
+
 vi.mock('@/api/knowledgePoints', () => ({
   knowledgePointsApi: {
     list: vi.fn(),
+    get: vi.fn(),
+    questions: vi.fn(),
     prerequisites: vi.fn(),
     addPrerequisite: vi.fn(),
     removePrerequisite: vi.fn(),
@@ -115,7 +121,10 @@ function mountView() {
 describe('QuestionsView（Phase 2 集成）', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    routeQuery.value = {}
     vi.mocked(knowledgePointsApi.list).mockResolvedValue({ data: [kp(1, '栈')] } as any)
+    vi.mocked(knowledgePointsApi.get).mockResolvedValue({ data: kp(1, '栈') } as any)
+    vi.mocked(knowledgePointsApi.questions).mockResolvedValue({ data: [] } as any)
     vi.mocked(questionsApi.list).mockResolvedValue({ data: stQuestions } as any)
     vi.mocked(questionsApi.getQuestionKnowledgePoints).mockImplementation(
       async (questionId: number) => ({ data: questionId === 101 ? [assoc(101, 1, 'primary')] : [] }) as any,
@@ -286,5 +295,61 @@ describe('QuestionsView（Phase 2 集成）', () => {
 
     expect(wrapper.find('.prereq-hint').exists()).toBe(false)
     expect(wrapper.find('.mastery-bar').text()).toContain('72%')
+  })
+
+  // ------------------------------------- M5 Step 3：消费 ?knowledge_point_id
+  it('带 ?knowledge_point_id 预填筛选、拉取该知识点题目并展示掌握度', async () => {
+    routeQuery.value = { knowledge_point_id: '1' }
+    vi.mocked(knowledgePointsApi.questions).mockResolvedValue({ data: [stQuestions[1]] } as any)
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    // 复用既有只读接口：只列该知识点已关联的题目（1 道），不是全部题目
+    expect(knowledgePointsApi.questions).toHaveBeenCalledWith(1)
+    expect(wrapper.findAll('.question-card')).toHaveLength(1)
+    // 掌握度已按预填的知识点加载
+    expect(masteryApi.get).toHaveBeenCalledWith(1)
+    expect(wrapper.find('.mastery-bar').text()).toContain('72%')
+
+    // 生成题目时携带结构化知识点 id（闭环：知识点 → 题目）
+    const genButton = wrapper.findAll('button').find((b) => b.text().includes('生成题目'))
+    await genButton!.trigger('click')
+    await flushPromises()
+    const payload = vi.mocked(questionsApi.generate).mock.calls[0][0]
+    expect(payload.knowledge_point_id).toBe(1)
+    expect(payload.knowledge_point).toBe('栈')
+  })
+
+  it('无 ?knowledge_point_id 时保持既有行为（不拉取知识点题目）', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(knowledgePointsApi.questions).not.toHaveBeenCalled()
+    expect(wrapper.findAll('.question-card')).toHaveLength(2)
+    expect(wrapper.find('.mastery-bar').exists()).toBe(false)
+  })
+
+  it('?knowledge_point_id 为非法值时静默忽略', async () => {
+    routeQuery.value = { knowledge_point_id: 'abc' }
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(knowledgePointsApi.questions).not.toHaveBeenCalled()
+    expect(wrapper.findAll('.question-card')).toHaveLength(2)
+    expect(wrapper.find('.mastery-bar').exists()).toBe(false)
+  })
+
+  it('知识点明细接口失败时仍保留预填并静默降级', async () => {
+    routeQuery.value = { knowledge_point_id: '1' }
+    vi.mocked(knowledgePointsApi.get).mockRejectedValue(new Error('boom'))
+    vi.mocked(knowledgePointsApi.questions).mockRejectedValue(new Error('boom'))
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.findAll('.question-card')).toHaveLength(2)
+    expect(wrapper.text()).not.toContain('生成失败')
   })
 })

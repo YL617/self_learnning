@@ -7,6 +7,7 @@ import { knowledgePointsApi } from '@/api/knowledgePoints'
 import { masteryApi, masteryLevel } from '@/api/mastery'
 import { actionTone, recommendationsApi } from '@/api/recommendations'
 import LearningPathTimeline from '@/components/LearningPathTimeline.vue'
+import RecommendationReason from '@/components/RecommendationReason.vue'
 import type { LearningPath, MasterySummary, RecommendationItem } from '@/types'
 
 // M5 Step 1：用户端「我的学习计划」页。
@@ -143,7 +144,7 @@ function goKnowledgePoint(item: RecommendationItem) {
                   {{ item.subject }} · 约 {{ item.estimated_minutes }} 分钟
                 </span>
               </div>
-              <p class="plan-rec-reason">推荐理由：{{ item.reason }}</p>
+              <RecommendationReason class="plan-rec-reason" :item="item" />
               <div class="muted plan-rec-score">推荐分数 {{ item.score }}</div>
             </div>
             <div class="row gap wrap plan-rec-actions">

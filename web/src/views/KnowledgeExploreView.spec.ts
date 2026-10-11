@@ -6,6 +6,10 @@ import { masteryApi } from '@/api/mastery'
 import type { KnowledgePoint, Question } from '@/types'
 import KnowledgeExploreView from './KnowledgeExploreView.vue'
 
+// M5 Step 3：页面新增 useRoute()，测试用可变 query 驱动（默认空 → 既有行为不变）。
+const { routeQuery } = vi.hoisted(() => ({ routeQuery: { value: {} as Record<string, unknown> } }))
+vi.mock('vue-router', () => ({ useRoute: () => ({ query: routeQuery.value }) }))
+
 vi.mock('@/api/knowledgePoints', () => ({
   knowledgePointsApi: {
     list: vi.fn(),
@@ -75,6 +79,7 @@ function treeButton(wrapper: VueWrapper<any>, name: string) {
 describe('KnowledgeExploreView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    routeQuery.value = {}
     vi.mocked(masteryApi.get).mockRejectedValue({ response: { status: 404 } })
     vi.mocked(knowledgePointsApi.questions).mockResolvedValue({ data: [] } as any)
   })
@@ -140,5 +145,28 @@ describe('KnowledgeExploreView', () => {
     await treeButton(wrapper, '栈')!.trigger('click')
     await flushPromises()
     expect(wrapper.text()).toContain('暂无掌握度记录')
+  })
+
+  // ------------------------------------------- M5 Step 3：消费 ?knowledge_point_id
+  it('带 ?knowledge_point_id 进入时自动定位选中该 concept 并加载详情', async () => {
+    routeQuery.value = { knowledge_point_id: '3' }
+    const wrapper = await setup()
+
+    // 自动选中「顺序栈」→ 详情面板加载（无需手动点击树节点）
+    expect(wrapper.find('.tree-item.is-selected').text()).toContain('顺序栈')
+    expect(knowledgePointsApi.questions).toHaveBeenCalledWith(3)
+    expect(masteryApi.get).toHaveBeenCalledWith(3)
+  })
+
+  it('?knowledge_point_id 指向 container 或非法值时静默忽略（保持默认空态）', async () => {
+    routeQuery.value = { knowledge_point_id: '1' }
+    const wrapper = await setup()
+    expect(wrapper.find('.tree-item.is-selected').exists()).toBe(false)
+    expect(knowledgePointsApi.questions).not.toHaveBeenCalled()
+
+    routeQuery.value = { knowledge_point_id: 'abc' }
+    const another = await setup()
+    expect(another.find('.tree-item.is-selected').exists()).toBe(false)
+    expect(knowledgePointsApi.questions).not.toHaveBeenCalled()
   })
 })

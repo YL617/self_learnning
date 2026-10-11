@@ -255,4 +255,21 @@ describe('MyPlanView', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('目标：表达式求值')
   })
+
+  // ------------------------------------------- M5 Step 3：推荐理由增强
+  it('推荐理由以「推荐原因」形式逐条展示（多因子拆分）', async () => {
+    const wrapper = await setup([
+      item({ reason: '掌握度 45% 偏低；学会它可以解锁 2 个后续知识点' }),
+    ])
+    expect(wrapper.find('.plan-rec-reason').text()).toContain('推荐原因')
+    const lines = wrapper
+      .findAll('.plan-rec-reason .rec-reason-item')
+      .map((node) => node.text())
+    expect(lines).toEqual(['掌握度 45% 偏低', '学会它可以解锁 2 个后续知识点'])
+  })
+
+  it('推荐理由缺失时展示空态文案而非空白', async () => {
+    const wrapper = await setup([item({ reason: '' })])
+    expect(wrapper.find('.plan-rec-reason').text()).toContain('系统暂未给出推荐理由')
+  })
 })
