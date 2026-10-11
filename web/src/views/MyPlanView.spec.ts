@@ -1,9 +1,16 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { knowledgePointsApi } from '@/api/knowledgePoints'
 import { masteryApi } from '@/api/mastery'
 import { recommendationsApi } from '@/api/recommendations'
-import type { MasterySummary, RecommendationItem } from '@/types'
+import type {
+  KnowledgePointBrief,
+  LearningPath,
+  LearningPathStep,
+  MasterySummary,
+  RecommendationItem,
+} from '@/types'
 import MyPlanView from './MyPlanView.vue'
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }))
@@ -31,6 +38,10 @@ vi.mock('@/api/recommendations', () => ({
     }
     return map[action] ?? { tone: 'neutral', icon: '建议' }
   },
+}))
+
+vi.mock('@/api/knowledgePoints', () => ({
+  knowledgePointsApi: { learningPath: vi.fn() },
 }))
 
 function summary(overrides: Partial<MasterySummary> = {}): MasterySummary {
@@ -61,6 +72,48 @@ function item(overrides: Partial<RecommendationItem> = {}): RecommendationItem {
   }
 }
 
+function brief(id: number, name: string): KnowledgePointBrief {
+  return {
+    id,
+    name,
+    subject: '数据结构',
+    parent_id: null,
+    node_type: 'concept',
+    difficulty: 'easy',
+    estimated_minutes: 20,
+  }
+}
+
+function pathStep(overrides: Partial<LearningPathStep> = {}): LearningPathStep {
+  return {
+    order: 1,
+    knowledge_point: brief(1, '线性表'),
+    mastery_score: 80,
+    satisfied: true,
+    is_target: false,
+    ...overrides,
+  }
+}
+
+function learningPath(targetName = '表达式求值'): LearningPath {
+  return {
+    target: brief(9, targetName),
+    ready: false,
+    threshold: 70,
+    steps: [
+      pathStep({ order: 1, knowledge_point: brief(1, '线性表'), satisfied: true }),
+      pathStep({ order: 2, knowledge_point: brief(2, '栈'), satisfied: false, mastery_score: 40 }),
+      pathStep({
+        order: 3,
+        knowledge_point: brief(9, targetName),
+        satisfied: false,
+        mastery_score: null,
+        is_target: true,
+      }),
+    ],
+  }
+}
+
 function mockPlan(items: RecommendationItem[], sum: MasterySummary) {
   vi.mocked(masteryApi.summary).mockResolvedValue({ data: sum } as any)
   vi.mocked(recommendationsApi.today).mockResolvedValue({
@@ -78,6 +131,7 @@ async function setup(items: RecommendationItem[] = [item()], sum: MasterySummary
 describe('MyPlanView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(knowledgePointsApi.learningPath).mockResolvedValue({ data: learningPath() } as any)
   })
 
   it('渲染标题与区域 A 学习状态三指标', async () => {
@@ -131,7 +185,7 @@ describe('MyPlanView', () => {
   it('点击「去练习」「查看知识点」跳转并携带知识点上下文', async () => {
     const wrapper = await setup()
     const buttons = wrapper.findAll('button')
-    expect(buttons.map((btn) => btn.text())).toEqual(['去练习', '查看知识点'])
+    expect(buttons.map((btn) => btn.text())).toEqual(['去练习', '查看知识点', '查看路径'])
 
     await buttons[0].trigger('click')
     expect(push).toHaveBeenCalledWith({
@@ -144,5 +198,61 @@ describe('MyPlanView', () => {
       name: 'knowledge',
       query: { knowledge_point_id: 3 },
     })
+  })
+
+  // ------------------------------------------------ M5 Step 2：学习路径区域
+  it('区域 D 渲染学习路径时间线（默认目标 = 推荐第 1 条）', async () => {
+    const wrapper = await setup()
+    expect(wrapper.text()).toContain('我的学习路径')
+    expect(knowledgePointsApi.learningPath).toHaveBeenCalledWith(3)
+    expect(wrapper.findAll('.path-name').map((node) => node.text())).toEqual([
+      '线性表',
+      '栈',
+      '表达式求值',
+    ])
+    expect(wrapper.text()).toContain('目标：表达式求值')
+  })
+
+  it('点击某条推荐的「查看路径」切换路径目标', async () => {
+    const wrapper = await setup([
+      item({ knowledge_point_id: 3, order: 1 }),
+      item({ knowledge_point_id: 7, knowledge_point_name: '树', order: 2 }),
+    ])
+    // 默认加载第 1 条
+    expect(knowledgePointsApi.learningPath).toHaveBeenCalledWith(3)
+
+    const target = wrapper
+      .findAll('.plan-rec-item')[1]
+      .findAll('button')
+      .find((btn) => btn.text().includes('查看路径'))
+    await target!.trigger('click')
+    await flushPromises()
+    expect(knowledgePointsApi.learningPath).toHaveBeenCalledWith(7)
+  })
+
+  it('无推荐时不请求路径并展示空态', async () => {
+    const wrapper = await setup([])
+    expect(knowledgePointsApi.learningPath).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('暂无学习建议')
+    expect(wrapper.text()).toContain('暂无可展示的学习路径')
+  })
+
+  it('路径加载中展示加载态', async () => {
+    let resolvePath: ((value: unknown) => void) | undefined
+    vi.mocked(knowledgePointsApi.learningPath).mockReturnValue(
+      new Promise((resolve) => {
+        resolvePath = resolve
+      }) as any,
+    )
+    mockPlan([item()], summary())
+    const wrapper = mount(MyPlanView)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('正在加载学习路径')
+    expect(wrapper.text()).not.toContain('暂无可展示的学习路径')
+
+    resolvePath?.({ data: learningPath() })
+    await flushPromises()
+    expect(wrapper.text()).toContain('目标：表达式求值')
   })
 })

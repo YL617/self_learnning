@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { FileQuestion, Gauge, Layers, Network, TriangleAlert } from 'lucide-vue-next'
+import { FileQuestion, Gauge, Layers, Network, Route, TriangleAlert } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { knowledgePointsApi } from '@/api/knowledgePoints'
 import { masteryApi, masteryLevel } from '@/api/mastery'
 import { actionTone, recommendationsApi } from '@/api/recommendations'
-import type { MasterySummary, RecommendationItem } from '@/types'
+import LearningPathTimeline from '@/components/LearningPathTimeline.vue'
+import type { LearningPath, MasterySummary, RecommendationItem } from '@/types'
 
 // M5 Step 1：用户端「我的学习计划」页。
 // 数据全部来自既有只读接口（/mastery/summary、/recommendations/today），
@@ -14,6 +16,9 @@ const router = useRouter()
 
 const summary = ref<MasterySummary | null>(null)
 const recommendations = ref<RecommendationItem[]>([])
+const learningPath = ref<LearningPath | null>(null)
+const pathTargetId = ref<number | null>(null)
+const pathLoading = ref(false)
 const loading = ref(true)
 
 async function load() {
@@ -23,13 +28,33 @@ async function load() {
       recommendationsApi.today({ limit: 10 }),
     ])
     if (summaryRes.status === 'fulfilled') summary.value = summaryRes.value.data
-    if (recRes.status === 'fulfilled') recommendations.value = recRes.value.data.items
+    if (recRes.status === 'fulfilled') {
+      recommendations.value = recRes.value.data.items
+      // 默认目标 = 推荐第 1 条（order 最小）的知识点
+      const first = [...recommendations.value].sort((a, b) => a.order - b.order)[0]
+      if (first) void selectPath(first.knowledge_point_id)
+    }
   } finally {
     loading.value = false
   }
 }
 
 onMounted(load)
+
+// 学习路径：只读复用 GET /knowledge-points/{id}/path（不新增后端 API）
+async function selectPath(knowledgePointId: number) {
+  pathTargetId.value = knowledgePointId
+  pathLoading.value = true
+  try {
+    const res = await knowledgePointsApi.learningPath(knowledgePointId)
+    // 防止快速切换导致的乱序覆盖
+    if (pathTargetId.value === knowledgePointId) learningPath.value = res.data
+  } catch {
+    if (pathTargetId.value === knowledgePointId) learningPath.value = null
+  } finally {
+    if (pathTargetId.value === knowledgePointId) pathLoading.value = false
+  }
+}
 
 // 区域 A：掌握情况摘要（后端无记录时按 0 展示，不报错）
 const masteredCount = computed(() => summary.value?.total ?? 0)
@@ -130,9 +155,26 @@ function goKnowledgePoint(item: RecommendationItem) {
                 <Network :size="15" />
                 查看知识点
               </button>
+              <button
+                class="btn btn-ghost"
+                type="button"
+                @click="selectPath(item.knowledge_point_id)"
+              >
+                <Route :size="15" />
+                查看路径
+              </button>
             </div>
           </li>
         </ol>
+      </div>
+
+      <!-- 区域 D：我的学习路径（Step 2，复用 GET /knowledge-points/{id}/path） -->
+      <div class="card">
+        <div class="row space-between plan-rec-head">
+          <h2>我的学习路径</h2>
+          <span class="muted plan-rec-hint">按前置依赖排序：先学前置，再学目标</span>
+        </div>
+        <LearningPathTimeline :path="learningPath" :loading="pathLoading" />
       </div>
     </template>
   </section>
