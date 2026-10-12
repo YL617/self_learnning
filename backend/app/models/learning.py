@@ -80,6 +80,12 @@ class Question(Base):
 
     ``difficulty`` 为可空：NULL 时由 ``evaluation.resolve_difficulty()`` 按题型
     映射（choice=easy / fill=medium / short_answer=hard），与 M4 之前完全一致。
+
+    M5.5 P4-1 起采用「双轴」审核模型（D1=B1）：``visibility``（可见范围
+    private/shared）语义不变，新增 ``review_status``（生命周期）承载审核门禁。
+    **对他人可见的充要条件 = ``visibility='shared' AND review_status='approved'``**；
+    存量 8 行 ``visibility='private'`` → 无论 ``review_status`` 取何值都不对他人
+    可见，故新增列对既有查询/行为零影响。
     """
 
     __tablename__ = "questions"
@@ -91,6 +97,10 @@ class Question(Base):
         CheckConstraint(
             "visibility IN ('private', 'shared')",
             name="ck_questions_visibility",
+        ),
+        CheckConstraint(
+            "review_status IN ('draft', 'pending', 'approved', 'rejected', 'archived')",
+            name="ck_questions_review_status",
         ),
     )
 
@@ -115,6 +125,15 @@ class Question(Base):
     visibility: Mapped[str] = mapped_column(
         String(16), default="private", server_default="private"
     )
+    # ---- M5.5 P4-1：审核态与留痕（可见 = shared ∧ approved）----
+    review_status: Mapped[str] = mapped_column(
+        String(16), default="draft", server_default="draft"
+    )
+    reviewed_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

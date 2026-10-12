@@ -37,7 +37,7 @@ def test_real_empty_sqlite_upgrade_and_zero_drift(tmp_path):
                 assert result.exit_code == 0
                 assert result.errors == []
                 assert result.unknown_warnings == []
-                assert adoption.status == "ADOPTION COMPLETE AT 20261010_007"
+                assert adoption.status == "ADOPTION COMPLETE AT 20261012_008"
     finally:
         engine.dispose()
 
@@ -92,7 +92,25 @@ def test_real_sqlite_downgrade_upgrade_roundtrip(tmp_path):
         result = check_drift(engine, Base)
         assert result.errors == []
         assert result.unknown_warnings == []
-        assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261010_007"
+        assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261012_008"
+
+        # ---- 3) 008 层：questions 审核态 4 列（+索引 / CHECK / FK）----
+        def q_columns() -> set[str]:
+            return {c["name"] for c in inspect(engine).get_columns("questions")}
+
+        review_columns = {"review_status", "reviewed_by", "reviewed_at", "review_note"}
+        assert review_columns <= q_columns()
+        alembic("downgrade", "20261010_007")
+        assert not (review_columns & q_columns())
+        # 回退后必须是精确可信的 007：schema 停在 007、版本记录 007 →
+        # 唯一可信匹配恰为 007，要求继续升级到 008。
+        assert inspect_adoption(engine, Base).status == "UPGRADE REQUIRED FROM 20261010_007"
+        alembic("upgrade", "head")
+        assert review_columns <= q_columns()
+        result = check_drift(engine, Base)
+        assert result.errors == []
+        assert result.unknown_warnings == []
+        assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261012_008"
     finally:
         engine.dispose()
 
@@ -107,9 +125,9 @@ def test_manifest_delta_and_historical_ownership():
         assert not {c["name"] for c in columns} & {c["name"] for c in before[table]["columns"]}
     assert manifest["added_indexes"]["course_recommendations"][0]["name"] == "ix_course_recommendations_status"
     chain = migration_chain()
-    assert len(chain) == len(set(chain)) == 23
+    assert len(chain) == len(set(chain)) == 24
     assert manifest["revision"] in chain
-    assert chain[-1] == "20261010_007"
+    assert chain[-1] == "20261012_008"
 
 
 def test_phase2_profile_added_without_overwriting_history():
@@ -300,3 +318,55 @@ def test_m4_hotfix_007_profile_identical_except_revision():
     assert "20261010_007" in profiles
     assert profiles["20261010_007"] == profiles["20261010_006"]
     assert len(profiles["20261010_007"]) == 36
+
+
+def test_m5_5_review_status_added_without_overwriting_history():
+    """M5.5 P4-1：008 只给 questions 追加审核态 4 列（+CHECK/FK/索引）；
+    历史合同（007 及之前）逐字节不变；表数量不变（只加列，不建表）。"""
+    from app.core.schema_profiles import PROFILE_PATH
+
+    profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    assert "20261012_008" in profiles
+
+    new_q = [c["name"] for c in profiles["20261012_008"]["questions"]["columns"]]
+    old_q = [c["name"] for c in profiles["20261010_007"]["questions"]["columns"]]
+    added = {"review_status", "reviewed_by", "reviewed_at", "review_note"}
+    # 只追加审核态 4 列，且不重排历史列（迁移一律 op.add_column 追加在尾部）。
+    assert set(new_q) - set(old_q) == added
+    assert new_q[: len(old_q)] == old_q
+
+    review_status = next(
+        c for c in profiles["20261012_008"]["questions"]["columns"]
+        if c["name"] == "review_status"
+    )
+    assert review_status["nullable"] is False
+    assert review_status["type"] == "VARCHAR(16)"
+    assert review_status["default"] == "'draft'"
+    # 审核留痕列全部可空（无审核记录时不产生任何回填）。
+    for name in ("reviewed_by", "reviewed_at", "review_note"):
+        col = next(c for c in profiles["20261012_008"]["questions"]["columns"]
+                   if c["name"] == name)
+        assert col["nullable"] is True
+        assert col["default"] is None
+
+    # FK：reviewed_by → users.id，SET NULL（审核人账号删除后题目保留）。
+    fk = next(f for f in profiles["20261012_008"]["questions"]["fks"]
+              if f["constrained_columns"] == ["reviewed_by"])
+    assert fk["referred_table"] == "users"
+    assert fk["options"]["ondelete"] == "SET NULL"
+
+    # 索引：新增 reviewed_by 独立索引（兼作 MySQL FK 支撑索引）。
+    assert {i["name"] for i in profiles["20261012_008"]["questions"]["indexes"]} == {
+        "ix_questions_document_id",
+        "ix_questions_id",
+        "ix_questions_reviewed_by",
+        "ix_questions_user_id",
+    }
+    assert "ix_questions_reviewed_by" not in {
+        i["name"] for i in profiles["20261010_007"]["questions"]["indexes"]
+    }
+
+    # 历史合同（007）不含新列；表数量不变。
+    assert "review_status" not in old_q
+    assert len(profiles["20261010_007"]) == 36
+    assert len(profiles["20261012_008"]) == 36

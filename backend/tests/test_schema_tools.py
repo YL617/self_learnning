@@ -340,38 +340,42 @@ def test_drift_duplicate_unique_objects(engine):
     assert any("DUPLICATE UNIQUE users" in e for e in result.errors)
 
 
-def test_adoption_complete_20261010_007(engine):
-    _set_version(engine, "20261010_007")
+def test_adoption_complete_at_head(engine):
+    _set_version(engine, "20261012_008")
     res = inspect_adoption(engine, Base)
-    assert res.status == "ADOPTION COMPLETE AT 20261010_007"
-    assert res.revision == "20261010_007"
-    assert any("schema_matches=20261010_007" in line for line in res.info)
+    assert res.status == "ADOPTION COMPLETE AT 20261012_008"
+    assert res.revision == "20261012_008"
+    assert any("schema_matches=20261012_008" in line for line in res.info)
 
 
 def test_adoption_tolerates_contract_neutral_revisions(engine):
-    """007 仅收紧 CHECK 约束（不在结构快照追踪范围内），其 frozen contract 与 006
-    逐字节相同。两个 revision 会同时匹配同一实际 schema，adoption 必须视为合法
-    而非歧义，且不得把已记录的最新 revision 误判为「版本不一致」。"""
-    from app.core.schema_profiles import PROFILE_PATH
+    """006 与 007 仅 CHECK 约束不同（CHECK 不在结构快照追踪范围内），其 frozen
+    contract 逐字节相同，会同时匹配同一实际 schema。adoption 必须视为合法而非歧义，
+    并取链上最新的匹配版本（007）裁决——此时因 target 已推进到 008，应判定为需继续升级。
+
+    注意：head ORM（create_all）现在已是 008 形状，不能代表 007 合同；故本测试显式构建
+    一个 007 形状的真实库来验证「契约等价的一对 revision」容忍逻辑。"""
+    from app.core.schema_profiles import PROFILE_PATH, load_profiles
 
     profiles = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
     assert profiles["20261010_007"] == profiles["20261010_006"]
 
-    _set_version(engine, "20261010_007")
-    res = inspect_adoption(engine, Base)
-    assert res.status == "ADOPTION COMPLETE AT 20261010_007"
-    assert any("schema_matches=20261010_007" in line for line in res.info)
+    neutral = create_engine("sqlite://")
+    try:
+        load_profiles(Base)["20261010_007"].metadata.create_all(neutral)
+        assert check_drift(neutral, Base).errors  # 007 形状 ≠ 008 head ORM
 
-    # 版本记录为 006、结构已等价于 head：应判定为可安全升级，而非阻断。
-    with engine.begin() as conn:
-        conn.execute(text("DELETE FROM alembic_version"))
-    _set_version(engine, "20261010_006")
-    res = inspect_adoption(engine, Base)
-    assert res.status == "SAFE TO ADOPT TO 20261010_007"
+        _set_version(neutral, "20261010_007")
+        res = inspect_adoption(neutral, Base)
+        # 006 与 007 会同时匹配 → 取链上最新匹配 007（非歧义阻断）。
+        assert res.status == "UPGRADE REQUIRED FROM 20261010_007"
+        assert any("schema_matches=20261010_007" in line for line in res.info)
+    finally:
+        neutral.dispose()
 
 
 def test_adoption_target_revision_with_drift_blocks(engine):
-    _set_version(engine, "20261010_007")
+    _set_version(engine, "20261012_008")
     _drop_column(engine, "users", "hashed_password")
     res = inspect_adoption(engine, Base)
     assert res.status == "ADOPTION BLOCKED"
@@ -379,16 +383,17 @@ def test_adoption_target_revision_with_drift_blocks(engine):
 
 
 @pytest.mark.parametrize("revision,drift,expected,exit_code", [
-    ("20260908_001", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20260909_001", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20261001_001", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20261001_002", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20261001_003", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20261001_004", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20261002_005", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20261010_006", False, "SAFE TO ADOPT TO 20261010_007", 0),
-    ("20261010_007", False, "ADOPTION COMPLETE AT 20261010_007", 0),
-    ("20261010_007", True, "ADOPTION BLOCKED", 1),
+    ("20260908_001", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20260909_001", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261001_001", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261001_002", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261001_003", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261001_004", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261002_005", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261010_006", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261010_007", False, "SAFE TO ADOPT TO 20261012_008", 0),
+    ("20261012_008", False, "ADOPTION COMPLETE AT 20261012_008", 0),
+    ("20261012_008", True, "ADOPTION BLOCKED", 1),
     ("unknown", False, "ADOPTION BLOCKED", 1),
 ])
 def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
@@ -408,7 +413,7 @@ def test_adoption_cli_status_and_exit_code(engine, monkeypatch, capsys,
 def test_adoption_20260908_reconcile_present(engine):
     _set_version(engine, "20260908_001")
     res = inspect_adoption(engine, Base)
-    assert res.status == "SAFE TO ADOPT TO 20261010_007"
+    assert res.status == "SAFE TO ADOPT TO 20261012_008"
 
 
 def test_adoption_20260907_missing_knowledge_points(engine):
@@ -569,10 +574,10 @@ def test_adoption_ambiguous_profiles_blocks(engine, monkeypatch):
 def test_tools_only_issue_read_statements(engine):
     from sqlalchemy import event
 
-    _set_version(engine, "20261010_007")
+    _set_version(engine, "20261012_008")
     statements = []
     event.listen(engine, "before_cursor_execute", lambda c, cur, sql, p, ctx, many: statements.append(sql))
     assert check_drift(engine, Base).exit_code == 0
-    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261010_007"
+    assert inspect_adoption(engine, Base).status == "ADOPTION COMPLETE AT 20261012_008"
     assert statements
     assert all(sql.lstrip().upper().startswith(("SELECT", "PRAGMA")) for sql in statements)
