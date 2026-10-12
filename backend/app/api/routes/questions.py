@@ -46,6 +46,10 @@ from app.services.question_knowledge_point_service import (
     QuestionNotFound,
     SubjectMismatch,
 )
+from app.services.question_review import (
+    is_publicly_visible,
+    publicly_visible_filter,
+)
 from app.services.review import (
     apply_review_outcome,
     reset_for_relearn,
@@ -54,7 +58,7 @@ from app.services.review import (
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 wrong_book_router = APIRouter(prefix="/wrong-book", tags=["wrong-book"])
-# M4：共享题库（visibility='shared' 的题目，对全部登录用户开放浏览/作答）。
+# M5.5 P4-2.5：共享题库（对他人可见 = visibility='shared' ∧ review_status='approved'）。
 question_bank_router = APIRouter(prefix="/question-bank", tags=["question-bank"])
 
 
@@ -67,9 +71,14 @@ def list_question_bank(
     knowledge_point_id: int | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=200),
 ) -> list[Question]:
-    """共享题库列表：只返回 visibility='shared'，不含任何人的私题。"""
+    """共享题库列表：只返回**已发布**的共享题（``shared ∧ approved``）。
+
+    M5.5 P4-2.5：读侧门禁与写入侧状态机对齐——``shared`` 但未过审（draft/
+    pending/rejected）的题目对他人不可见，避免绕过 ``publish`` 直接置
+    ``visibility='shared'`` 造成的"未审核题外泄"。
+    """
     del current_user
-    statement = select(Question).where(Question.visibility == "shared")
+    statement = select(Question).where(publicly_visible_filter())
     if subject:
         statement = statement.where(Question.subject == subject)
     if difficulty:
@@ -472,9 +481,11 @@ def _apply_learning_state(
 def _resolve_answerable_question(
     db: Session, question_id: int, current_user: User
 ) -> Question:
-    """可作答题目：owner、管理员、或共享题库题（visibility='shared'）。
+    """可作答题目：owner、管理员、或**已发布**共享题（``shared ∧ approved``）。
 
     M4 语义：他人私题仍然 404（不泄漏存在性）；shared 题对全部登录用户开放。
+    M5.5 P4-2.5：shared 但未过审的题目对他人同样 404——``approved`` 是
+    外泄门禁，读侧必须与写入侧状态机（仅 publish 可置 shared）一致。
     """
     question = db.get(Question, question_id)
     if question is None:
@@ -482,7 +493,7 @@ def _resolve_answerable_question(
     if (
         question.user_id != current_user.id
         and current_user.role != "admin"
-        and question.visibility != "shared"
+        and not is_publicly_visible(question)
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
     return question

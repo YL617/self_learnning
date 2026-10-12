@@ -18,6 +18,7 @@ from app.services.knowledge_point_service import (
     KP_NODE_TYPE_CONCEPT,
     normalize_subject,
 )
+from app.services.question_review import publicly_visible_filter
 
 QKP_ROLE_PRIMARY = "primary"
 QKP_ROLE_SECONDARY = "secondary"
@@ -145,12 +146,13 @@ class QuestionKnowledgePointService:
             .order_by(QuestionKnowledgePoint.id)
         )
         if owner_id is not None:
-            # M4：普通用户可见 = 自己的题 ∪ 共享题库题（visibility='shared'）；
-            # 他人私题仍然不可见（owner 语义不变，仅扩大 shared）。
+            # M5.5 P4-2.5：普通用户可见 = 自己的题 ∪ **已发布**共享题
+            # （shared ∧ approved）；他人私题与未过审题一律不可见
+            # （owner 语义不变，仅扩大"已发布"的共享）。
             statement = statement.where(
                 or_(
                     Question.user_id == owner_id,
-                    Question.visibility == "shared",
+                    publicly_visible_filter(),
                 )
                 if include_shared
                 else Question.user_id == owner_id

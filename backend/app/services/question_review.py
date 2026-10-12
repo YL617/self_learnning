@@ -30,6 +30,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.models import Question
@@ -61,6 +62,29 @@ _TRANSITIONS: dict[str, tuple[frozenset[str], str]] = {
 
 # 编辑接口允许改动的题面字段（visibility 永不在此列）。
 EDITABLE_FIELDS = frozenset({"stem", "options", "answer", "analysis", "difficulty"})
+
+
+# ---- 读侧可见性单一定义（M5.5 P4-2.5）----
+#
+# 双轴模型的**唯一读侧判定源**：对他人可见 ⇔ ``shared ∧ approved``。
+# 所有面向"他人"的读取路径（共享题库列表、作答校验、知识点反查）
+# 一律复用本处谓词，禁止各自硬编码 ``visibility == 'shared'``，
+# 否则写入侧的状态机（仅 publish 可置 shared）会被读侧绕过。
+
+def publicly_visible_filter():
+    """SQL 谓词：对他人可见 ⇔ ``visibility='shared' AND review_status='approved'``。"""
+    return and_(
+        Question.visibility == VISIBILITY_SHARED,
+        Question.review_status == REVIEW_STATUS_APPROVED,
+    )
+
+
+def is_publicly_visible(question: Question) -> bool:
+    """Python 判定：对他人可见 ⇔ ``visibility='shared' AND review_status='approved'``。"""
+    return (
+        question.visibility == VISIBILITY_SHARED
+        and question.review_status == REVIEW_STATUS_APPROVED
+    )
 
 
 class QuestionReviewError(Exception):

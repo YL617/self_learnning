@@ -3,10 +3,15 @@
 关键路径覆盖（docs/M4设计方案.md §7）：
   1. 权限：普通用户不能管理题目；管理员可以。
   2. container 拒绝：服务层 400 + DB 层复合外键 IntegrityError（双保险）。
-  3. visibility：shared 题其他用户可见可答；他人私题仍 404。
-  4. 数据：shared 题作答 → AnswerRecord 正确生成 + mastery 更新。
+  3. visibility：**已发布**共享题（shared ∧ approved）其他用户可见可答；
+     shared 但未过审（draft）→ 404；他人私题仍 404。
+  4. 数据：已发布共享题作答 → AnswerRecord 正确生成 + mastery 更新。
   5. 隔离：知识点反查不被他人私题污染；导入功能回归由 test_knowledge_import 全量保证。
   6. 覆盖统计：concept 口径正确、container 不计入。
+
+M5.5 P4-2.5：读侧门禁收口后，"对他人可见"的充要条件由 `visibility='shared'`
+收紧为 `shared ∧ review_status='approved'`，故本文件中依赖"共享即可见"的用例
+一律先经 `_publish()` 走完 draft→pending→approved→publish。
 """
 
 import itertools
@@ -127,6 +132,21 @@ def _create_question(client, headers, **overrides) -> dict:
     return response.json()
 
 
+def _publish(client, headers, question_id: int) -> dict:
+    """draft → pending → approved → publish(shared)：把题推入共享池。
+
+    M5.5 P4-2.5 起"对他人可见 = shared ∧ approved"，新建题目默认 draft，
+    必须经此驱动才对他用户可见/可答。
+    """
+    response = None
+    for action in ("submit-review", "approve", "publish"):
+        response = client.post(
+            f"/api/v1/admin/questions/{question_id}/{action}", headers=headers
+        )
+        assert response.status_code == 200, response.text
+    return response.json()
+
+
 # ---------- 1. 权限 ----------
 
 
@@ -168,6 +188,8 @@ def test_admin_can_create_question_with_kp_binding(client):
     assert question["difficulty"] == "easy"
     assert question["visibility"] == "shared"
     assert question["source"] == "admin"
+    # M5.5：新建题一律 draft —— 即便 visibility=shared 也对他人不可见，需走审核。
+    assert question["review_status"] == "draft"
 
     detail = client.get(
         f"/api/v1/admin/questions/{question['id']}", headers=_headers(admin)
@@ -323,15 +345,17 @@ def test_db_level_check_rejects_explicit_container_value():
 
 
 def test_shared_question_visible_and_answerable_by_other_user(client):
+    """case 2：`shared ∧ approved`（已发布）→ 他用户可见、反查可见、可作答 200。"""
     admin = _admin(client)
     learner = _register(client, "m4learner@test.com", "m4learner")
     stack_id = _make_kp("栈")
     question = _create_question(client, _headers(admin), knowledge_point_ids=[stack_id])
+    _publish(client, _headers(admin), question["id"])  # draft → approved → shared
 
     # 共享题库列表可见
     bank = client.get("/api/v1/question-bank", headers=_headers(learner)).json()
     assert [item["id"] for item in bank] == [question["id"]]
-    # 知识点反查可见（普通用户 = 自己的题 ∪ shared）
+    # 知识点反查可见（普通用户 = 自己的题 ∪ 已发布共享）
     listing = client.get(
         f"/api/v1/knowledge-points/{stack_id}/questions", headers=_headers(learner)
     ).json()
@@ -344,6 +368,47 @@ def test_shared_question_visible_and_answerable_by_other_user(client):
     )
     assert response.status_code == 201
     assert response.json()["is_correct"] is True
+
+
+def test_shared_but_unapproved_question_hidden_from_other_user(client):
+    """case 1：`shared` 但未过审（draft）→ 他用户不可见、反查不可见、作答 404。
+
+    防绕过：即使有人直接 `UPDATE questions SET visibility='shared'`（或旧接口写
+    shared），只要 review_status 未达 approved，读侧门禁一律拦截。
+    """
+    admin = _admin(client)
+    learner = _register(client, "m4draft@test.com", "m4draft")
+    stack_id = _make_kp("栈")
+    # 建题默认 shared + draft（未走审核）
+    question = _create_question(client, _headers(admin), knowledge_point_ids=[stack_id])
+
+    # 共享题库不可见
+    assert client.get("/api/v1/question-bank", headers=_headers(learner)).json() == []
+    # 知识点反查不可见
+    assert (
+        client.get(
+            f"/api/v1/knowledge-points/{stack_id}/questions", headers=_headers(learner)
+        ).json()
+        == []
+    )
+    # 不能作答（404，不泄漏存在性）
+    assert (
+        client.post(
+            f"/api/v1/questions/{question['id']}/answers",
+            headers=_headers(learner),
+            json={"user_answer": "B"},
+        ).status_code
+        == 404
+    )
+    # owner（管理员本人）仍可作答自己的题 —— 门禁只作用于"他人"
+    assert (
+        client.post(
+            f"/api/v1/questions/{question['id']}/answers",
+            headers=_headers(admin),
+            json={"user_answer": "B"},
+        ).status_code
+        == 201
+    )
 
 
 def test_other_user_private_question_still_404(client):
@@ -378,19 +443,22 @@ def test_other_user_private_question_still_404(client):
 
 def test_question_bank_subject_and_difficulty_filters(client):
     admin = _admin(client)
-    _create_question(client, _headers(admin), difficulty="easy", subject="数据结构")
-    _create_question(
-        client, _headers(admin), difficulty="hard", subject="操作系统",
+    headers = _headers(admin)
+    easy = _create_question(client, headers, difficulty="easy", subject="数据结构")
+    hard = _create_question(
+        client, headers, difficulty="hard", subject="操作系统",
         knowledge_point="进程", stem="进程切换发生在？", answer="A",
     )
+    _publish(client, headers, easy["id"])
+    _publish(client, headers, hard["id"])
     bank = client.get(
         "/api/v1/question-bank",
-        headers=_headers(admin),
+        headers=headers,
         params={"difficulty": "hard"},
     ).json()
     assert len(bank) == 1 and bank[0]["subject"] == "操作系统"
     bank = client.get(
-        "/api/v1/question-bank", headers=_headers(admin), params={"subject": "数据结构"}
+        "/api/v1/question-bank", headers=headers, params={"subject": "数据结构"}
     ).json()
     assert len(bank) == 1 and bank[0]["difficulty"] == "easy"
 
@@ -403,6 +471,7 @@ def test_shared_question_answer_updates_mastery(client):
     learner = _register(client, "m4mastery@test.com", "m4mastery")
     stack_id = _make_kp("栈")
     question = _create_question(client, _headers(admin), knowledge_point_ids=[stack_id])
+    _publish(client, _headers(admin), question["id"])
 
     # 答对
     client.post(
@@ -452,6 +521,7 @@ def test_wrong_answer_creates_wrong_book_and_lowers_mastery(client):
     learner = _register(client, "m4wrong@test.com", "m4wrong")
     stack_id = _make_kp("栈")
     question = _create_question(client, _headers(admin), knowledge_point_ids=[stack_id])
+    _publish(client, _headers(admin), question["id"])
 
     client.post(
         f"/api/v1/questions/{question['id']}/answers",
@@ -477,6 +547,7 @@ def test_reverse_lookup_mixes_own_and_shared_only(client):
     owner = _register(client, "m4mix@test.com", "m4mix")
     stack_id = _make_kp("栈")
     shared = _create_question(client, _headers(admin), knowledge_point_ids=[stack_id])
+    _publish(client, _headers(admin), shared["id"])  # 只有已发布共享题对他用户可见
     # owner 的私题也绑定同一知识点（DB 直建 + 用户端绑定接口）
     private_id = _make_private_question(owner["user"]["id"])
     response = client.post(
