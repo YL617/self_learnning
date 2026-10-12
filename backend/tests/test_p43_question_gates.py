@@ -174,7 +174,7 @@ def test_g4_passes_for_unrelated_stem():
 
 
 # ---------------------------------------------------------------------------
-# G5 选项质量
+# G5 选项质量（P4-3.3.1：合法性阻断 / 长度均衡仅提示）
 # ---------------------------------------------------------------------------
 def test_g5_rejects_banned_option_patterns():
     for banned in ("C. 以上都对", "D. 全不选", "B. 以上均正确"):
@@ -182,19 +182,45 @@ def test_g5_rejects_banned_option_patterns():
             make_question(options=["A. 后进先出", "C. 先进先出", banned])
         )
         assert result["passed"] is False
+        assert result["severity"] == "fail"
         assert "禁用表述" in result["reason"]
 
 
-def test_g5_rejects_option_length_spread():
-    result = gates.gate_g5_option_quality(
-        make_question(options=["A. 短", "B. 这是一个非常非常长的选项文本内容啊"])
-    )
+def test_g5_rejects_empty_option_body():
+    result = gates.gate_g5_option_quality(make_question(options=["A. ", "B. 有内容的选项"]))
     assert result["passed"] is False
-    assert "极差比" in result["reason"]
+    assert "空选项" in result["reason"]
+
+
+def test_g5_quantitative_short_options_are_not_a_failure():
+    """P4-3.3.1 核心回归：``[e, 2e, n+e, n^2-e]`` 曾因极差比 5.0 被误判 FAIL。"""
+    numeric = make_question(options=["A. e", "B. 2e", "C. n+e", "D. n^2-e"], answer="D")
+    result = gates.gate_g5_option_quality(numeric)
+    assert result["passed"] is True
+    assert result["severity"] is None
+
+
+def test_g5_flags_conspicuously_long_correct_option_as_advisory_only():
+    leaky = make_question(
+        stem="关于栈的特性，下列说法中最准确的是哪一项？",
+        options=[
+            "A. 栈",
+            "B. 队列",
+            "C. 后进先出，只能在栈顶插入和删除元素，属于受限线性表",
+            "D. 图",
+        ],
+        answer="C",
+    )
+    result = gates.gate_g5_option_quality(leaky)
+    assert result["passed"] is True, "提示绝不能把题目判成不通过"
+    assert result["severity"] == "warning"
+    assert "显著长于" in result["reason"]
 
 
 def test_g5_passes_for_balanced_options():
-    assert gates.gate_g5_option_quality(make_question())["passed"] is True
+    result = gates.gate_g5_option_quality(make_question())
+    assert result["passed"] is True
+    assert result.get("severity") is None
 
 
 # ---------------------------------------------------------------------------
@@ -231,27 +257,43 @@ def test_g8_detects_offline_degradation():
 
 
 # ---------------------------------------------------------------------------
-# G5B 批内答案位置分布
+# G5B 批内答案位置分布（P4-3.3.1：纯批级 advisory，绝不逐题 FAIL）
 # ---------------------------------------------------------------------------
-def test_answer_distribution_balanced_passes():
+def test_answer_distribution_balanced_when_spread_evenly():
     report = gates.evaluate_answer_distribution({"A": 5, "B": 5, "C": 5, "D": 5})
-    assert report["passed"] is True
-    assert report["blocking"] is True
+    assert report["advisory"] is True
+    assert report["balanced"] is True
+    assert report["warning"] is None
 
 
-def test_answer_distribution_flags_skew_and_few_letters():
+def test_answer_distribution_skew_only_raises_advisory():
+    """批级不平衡只出结构化提示 —— 不再有 ``passed`` / ``blocking`` 语义。"""
     report = gates.evaluate_answer_distribution({"A": 20})
-    assert report["passed"] is False
-    assert report["blocking"] is True
+    assert report["balanced"] is False
+    assert "passed" not in report
+    assert "blocking" not in report
+    assert report["warning"]["type"] == "answer_distribution"
+    assert report["warning"]["suggestion"] == gates.SHUFFLE_SUGGESTION
     assert report["offenders"] == ["A"]
+    assert set(report["missing_letters"]) == {"B", "C", "D"}
+
     skewed = gates.evaluate_answer_distribution({"A": 8, "B": 8, "C": 4})
-    assert skewed["passed"] is False
+    assert skewed["balanced"] is False
     assert set(skewed["offenders"]) == {"A", "B"}
 
 
-def test_answer_distribution_is_advisory_below_sample():
+def test_answer_distribution_marks_small_sample_in_message():
     report = gates.evaluate_answer_distribution({"A": 10})
-    assert report["blocking"] is False
+    assert report["small_sample"] is True
+    assert report["balanced"] is False
+    assert "样本" in report["warning"]["message"]
+
+
+def test_answer_distribution_handles_empty_batch():
+    report = gates.evaluate_answer_distribution({})
+    assert report["balanced"] is True
+    assert report["warning"] is None
+    assert report["counts"] == {}
 
 
 # ---------------------------------------------------------------------------
@@ -370,25 +412,157 @@ def distinct_stem(index: int) -> str:
     return f"围绕{first}与{second}的相互关系，并结合{third}的适用场景，下列说法中正确的是哪一项？"
 
 
-def test_assemble_manifest_g5b_only_blocks_when_sample_is_large_enough():
-    small = [make_question(stem=distinct_stem(index)) for index in range(4)]
-    manifest = gates.assemble_manifest(
-        subject="数据结构",
-        entries=[_entry(19, "栈的定义与实现", small)],
-        generated_at="2026-10-12T00:00:00+00:00",
-    )
-    assert manifest["summary"]["answer_position"]["blocking"] is False
-    assert manifest["summary"]["passed"] == 4, manifest["questions"][0]["quality_check"]
-
+def test_assemble_manifest_answer_distribution_never_rejects_individual_questions():
+    """P4-3.3.1：20 题答案全为 "A"（最极端不平衡）也**不得**让任何一题变成 reject。"""
     large = [make_question(stem=distinct_stem(index)) for index in range(20)]
     manifest = gates.assemble_manifest(
         subject="数据结构",
         entries=[_entry(19, "栈的定义与实现", large)],
         generated_at="2026-10-12T00:00:00+00:00",
     )
-    assert manifest["summary"]["answer_position"]["blocking"] is True
-    assert manifest["summary"]["passed"] == 0
-    assert manifest["summary"]["by_gate"]["G5B"] == 20
+    summary = manifest["summary"]
+    assert summary["answer_position"]["balanced"] is False
+    assert summary["answer_position"]["warning"]["suggestion"] == gates.SHUFFLE_SUGGESTION
+    assert summary["answer_distribution_warning"]["type"] == "answer_distribution"
+    assert summary["passed"] == 20
+    assert summary["failed"] == 0
+    assert "G5B" not in summary["by_gate"]
+    assert all(row["quality_check"]["passed"] for row in manifest["questions"])
+    assert all(row["suggested_action"] != "reject" for row in manifest["questions"])
+
+
+def test_evaluate_separates_warnings_from_reasons():
+    leaky = make_question(
+        stem="关于栈的特性，下列说法中最准确的是哪一项？",
+        options=[
+            "A. 栈",
+            "B. 队列",
+            "C. 后进先出，只能在栈顶插入和删除元素，属于受限线性表",
+            "D. 图",
+        ],
+        answer="C",
+    )
+    verdict = gates.evaluate(leaky, expected_subject="数据结构", expected_concept_name="栈的定义与实现")
+    assert verdict["passed"] is True
+    assert verdict["reasons"] == []
+    assert verdict["warnings"] and "显著长于" in verdict["warnings"][0]
+    assert verdict["gates"]["G5"]["severity"] == "warning"
+
+
+def test_assemble_manifest_marks_advisory_questions_for_review_not_reject():
+    leaky = make_question(
+        stem="关于栈的特性，下列说法中最准确的是哪一项？",
+        options=[
+            "A. 栈",
+            "B. 队列",
+            "C. 后进先出，只能在栈顶插入和删除元素，属于受限线性表",
+            "D. 图",
+        ],
+        answer="C",
+    )
+    manifest = gates.assemble_manifest(
+        subject="数据结构",
+        entries=[_entry(19, "栈的定义与实现", [leaky])],
+        generated_at="2026-10-12T00:00:00+00:00",
+    )
+    row = manifest["questions"][0]
+    assert row["quality_check"]["passed"] is True
+    assert row["quality_check"]["warnings"]
+    assert row["suggested_action"] == "review"
+    assert manifest["summary"]["needs_review"] == 1
+    assert manifest["summary"]["failed"] == 0
+
+
+def test_assemble_manifest_records_options_shuffle_switch():
+    entries = lambda: [_entry(19, "栈的定义与实现", [make_question()])]
+    record = {"enabled": True, "algorithm": "sha256", "seed": "", "applied": 1}
+    manifest = gates.assemble_manifest(
+        subject="数据结构",
+        entries=entries(),
+        generated_at="2026-10-12T00:00:00+00:00",
+        options_shuffle=record,
+    )
+    assert manifest["options_shuffle"]["enabled"] is True
+    assert manifest["options_shuffle"]["applied"] == 1
+    # 缺省时明确记为「关闭」，杜绝"以为洗了其实没洗"
+    default = gates.assemble_manifest(
+        subject="数据结构",
+        entries=entries(),
+        generated_at="2026-10-12T00:00:00+00:00",
+    )
+    assert default["options_shuffle"]["enabled"] is False
+
+
+# ---------------------------------------------------------------------------
+# 选项洗牌（P4-3.3.1）
+# ---------------------------------------------------------------------------
+def test_shuffle_options_relabels_and_preserves_correct_body():
+    question = make_question()  # answer "A" → 正确项正文 "n/2 个"
+    correct_body = gates.option_body(question["options"][0])
+    shuffled = gates.shuffle_options(question)
+    letters = [gates.option_letter(option) for option in shuffled["options"]]
+    assert letters == ["A", "B", "C", "D"]
+    assert sorted(gates.option_body(o) for o in shuffled["options"]) == sorted(
+        gates.option_body(o) for o in question["options"]
+    )
+    answer_letter = gates.option_letter(shuffled["answer"])
+    assert gates.option_body(shuffled["options"][letters.index(answer_letter)]) == correct_body
+
+
+def test_shuffle_options_is_deterministic_and_seed_sensitive():
+    question = make_question()
+    assert gates.shuffle_options(question) == gates.shuffle_options(question)
+    orders = {tuple(gates.shuffle_options(question, seed=str(index))["options"]) for index in range(8)}
+    assert len(orders) > 1, "不同种子应能产生不同排列"
+
+
+def test_shuffle_options_keeps_text_answer_aligned_and_skips_non_choice():
+    text_answer = make_question(
+        options=["A. n/2 个", "B. n 个", "C. 固定 1 个", "D. 恰好 i 个"], answer="n 个"
+    )
+    shuffled = gates.shuffle_options(text_answer)
+    letters = [gates.option_letter(option) for option in shuffled["options"]]
+    answer_letter = gates.option_letter(shuffled["answer"])
+    assert gates.option_body(shuffled["options"][letters.index(answer_letter)]) == "n 个"
+
+    fill = make_question(question_type="fill", options=[], answer="后进先出")
+    assert gates.shuffle_options(fill) == fill
+
+
+def test_shuffle_options_spreads_answer_letters_across_questions():
+    letters = [
+        gates.option_letter(gates.shuffle_options(make_question(stem=distinct_stem(index)))["answer"])
+        for index in range(40)
+    ]
+    assert len(set(letters)) >= 3, f"洗牌后答案字母仍过于集中：{sorted(set(letters))}"
+
+
+def test_shuffle_entries_counts_applied_and_leaves_non_choice_alone():
+    entries = [
+        _entry(19, "栈的定义与实现", [make_question(), make_question(stem=distinct_stem(1))]),
+        _entry(9, "线性表的定义与基本操作", [make_question(question_type="fill", options=[], answer="栈顶")]),
+    ]
+    applied = gates.shuffle_entries(entries)
+    assert applied == 2
+    assert entries[1]["questions"][0]["options"] == []
+
+
+def test_plan_answer_positions_is_deterministic_and_even():
+    plan = gates.plan_answer_positions(20, seed="")
+    assert plan == gates.plan_answer_positions(20, seed="")
+    assert sorted(plan.count(index) for index in range(4)) == [5, 5, 5, 5]
+    assert gates.plan_answer_positions(0) == []
+
+
+def test_shuffle_entries_balances_answer_letters_across_batch():
+    """批内均衡：20 题 → 每字母恰好 5 次（优于"每题独立随机"的 40%+ 偏斜，实测 D=45%）。"""
+    questions = [make_question(stem=distinct_stem(index)) for index in range(20)]
+    entries = [_entry(19, "栈的定义与实现", questions)]
+    applied = gates.shuffle_entries(entries)
+    assert applied == 20
+    counts = gates.answer_letter_counts(entries[0]["questions"])
+    assert sorted(counts.values()) == [5, 5, 5, 5], counts
+    assert gates.evaluate_answer_distribution(counts)["balanced"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -483,6 +657,39 @@ def test_cli_replay_end_to_end(replay_workspace):
     names = {row["knowledge_point_name"] for row in manifest["questions"]}
     assert names == {"栈的定义与实现", "队列的定义与实现"}
     assert all(row["question_id"].startswith("P43-02-") for row in manifest["questions"])
+    # P4-3.3.1：默认开启选项洗牌，且洗牌后答案仍与选项对齐（G2 全过）
+    assert manifest["options_shuffle"]["enabled"] is True
+    assert manifest["options_shuffle"]["applied"] == 3
+    assert all(row["quality_check"]["gates"]["G2"]["passed"] for row in manifest["questions"])
+
+
+def test_cli_replay_shuffle_is_deterministic_and_can_be_disabled(replay_workspace):
+    targets, raw_dir, out = replay_workspace
+    other = out.parent / "manifest2.json"
+    assert run_cli("--targets", str(targets), "--raw-dir", str(raw_dir), "--out", str(out)).returncode == 0
+    assert run_cli("--targets", str(targets), "--raw-dir", str(raw_dir), "--out", str(other)).returncode == 0
+    first = json.loads(out.read_text(encoding="utf-8"))
+    second = json.loads(other.read_text(encoding="utf-8"))
+    # 种子取自题干 → 两次重放选项顺序与答案完全一致（可复现契约）
+    assert [row["options"] for row in first["questions"]] == [
+        row["options"] for row in second["questions"]
+    ]
+    assert [row["answer"] for row in first["questions"]] == [
+        row["answer"] for row in second["questions"]
+    ]
+    assert any(row["answer"] != "A" for row in first["questions"]), "洗牌应改变至少一题的答案字母"
+
+    plain = out.parent / "manifest_plain.json"
+    assert (
+        run_cli(
+            "--targets", str(targets), "--raw-dir", str(raw_dir), "--out", str(plain), "--no-shuffle-options"
+        ).returncode
+        == 0
+    )
+    unshuffled = json.loads(plain.read_text(encoding="utf-8"))
+    assert unshuffled["options_shuffle"]["enabled"] is False
+    assert unshuffled["options_shuffle"]["applied"] == 0
+    assert [row["answer"] for row in unshuffled["questions"]] == ["A", "A", "A"]
 
 
 def test_cli_replay_missing_raw_file_is_recorded_as_error(replay_workspace):

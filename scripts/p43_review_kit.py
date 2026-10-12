@@ -32,6 +32,9 @@
     答案 → 直接判错。G3/G4/G7 仅作提示（解析长度、措辞是审阅人的裁量）。
   - **最后一道门查重**：对全部"可入库"题的**最终内容**重跑 G4（对照现有题库 + 彼此），
     防止"两题各自通过、修订后撞车"。
+  - **提示与阻断分离**（P4-3.3.1）：``quality_check.warnings``（G5 长度均衡、G5B 批级
+    答案分布等）只以「提示：」展示在门禁列与批信息表，**永不**改变 PASS/FAIL，
+    也不要求人工写推翻理由 —— 避免把"批级/风格属性"变成人工负担。
   - **零写库**：本模块只读 manifest / 读写本地文件；不 import app、不联网、不碰数据库、
     不建 migration。
 
@@ -47,9 +50,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import re
 import sys
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -189,6 +194,65 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+# xlsx 的 zip 条目时间戳统一钉在 1980-01-01（DOS epoch）。
+ZIP_FIXED_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+CORE_PROPS_ENTRY = "docProps/core.xml"
+_CORE_MODIFIED_RE = re.compile(rb"(<dcterms:modified[^>]*>)([^<]*)(</dcterms:modified>)")
+
+
+def _w3cdtf(moment: Any) -> str:
+    """datetime → ``dcterms:W3CDTF`` 文本（与 openpyxl 的输出格式一致）。"""
+    if isinstance(moment, str):
+        return moment
+    if moment is None:
+        return "1980-01-01T00:00:00Z"
+    if getattr(moment, "tzinfo", None) is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _pin_core_modified(payload: bytes, stamp: str) -> bytes:
+    """把 ``docProps/core.xml`` 的 ``dcterms:modified`` 钉成 ``stamp``。
+
+    openpyxl 在 ``save()`` 时**无视** ``properties.modified``、一律写当前时间
+    （``properties.created`` 却被尊重）→ 产物仍带时间依赖。这里显式改回来。
+    """
+    return _CORE_MODIFIED_RE.sub(
+        lambda match: match.group(1) + stamp.encode("utf-8") + match.group(3), payload, count=1
+    )
+
+
+def save_workbook(workbook: Workbook, path: Path) -> None:
+    """把工作簿保存成**逐字节可复现**的 xlsx（产物只取决于内容）。
+
+    两处时间依赖都要治：
+
+    1. **zip 条目时间戳**：``Workbook.save`` 用当前时间写 zip 时间戳（DOS 2 秒粒度）
+       → 同一内容两次构建会差几个字节。这里按固定时间戳重新打包。
+    2. **``docProps/core.xml`` 的 ``dcterms:modified``**：openpyxl 保存时会用当前时间
+       覆盖 ``properties.modified``（``created`` 不受影响）→ 同样破坏可复现性。
+       这里在重新打包时按调用方设定的值钉死。
+
+    只有这样，"清单 SHA-256" 才真正等价于"清单内容"。
+    """
+    stamp = _w3cdtf(workbook.properties.modified or workbook.properties.created)
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(buffer) as source, zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as target:
+        for info in source.infolist():
+            data = source.read(info.filename)
+            if info.filename == CORE_PROPS_ENTRY:
+                data = _pin_core_modified(data, stamp)
+            fixed = zipfile.ZipInfo(info.filename, date_time=ZIP_FIXED_TIMESTAMP)
+            fixed.compress_type = info.compress_type
+            fixed.external_attr = info.external_attr
+            fixed.internal_attr = info.internal_attr
+            fixed.create_system = info.create_system
+            target.writestr(fixed, data)
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -272,7 +336,11 @@ def load_manifest(path: Path) -> dict[str, Any]:
 
 
 def gate_reason_text(question: dict[str, Any]) -> str:
-    """把各门禁的失败原因拼成一行，**带门禁代号**（人工一眼看出是哪条规则拦的）。"""
+    """门禁列文本：先列**阻断**原因（带门禁代号），再追加**提示**（前缀「提示：」）。
+
+    提示（``quality_check.warnings``）**不会**让 PASS 变成 FAIL —— 它只提醒审阅人
+    "这里有一条建议看一眼"（如"正确选项显著长于干扰项，可能泄露答案"）。
+    """
     quality = question.get("quality_check") or {}
     parts = [
         f"{code} {item.get('reason')}"
@@ -281,7 +349,24 @@ def gate_reason_text(question: dict[str, Any]) -> str:
     ]
     if not parts:
         parts = [str(reason) for reason in (quality.get("reasons") or [])]
+    parts.extend(f"提示：{warning}" for warning in (quality.get("warnings") or []))
     return "；".join(parts)
+
+
+def answer_distribution_text(manifest: dict[str, Any]) -> str:
+    """批信息表里的"批内答案分布提示"：均衡则写明无提示，否则给出建议原文。"""
+    summary = manifest.get("summary") or {}
+    warning = (summary.get("answer_position") or {}).get("warning")
+    if not warning:
+        return "均衡（无提示）"
+    return str(warning.get("message") or warning)
+
+
+def options_shuffle_text(manifest: dict[str, Any]) -> str:
+    shuffle = manifest.get("options_shuffle") or {}
+    if not shuffle.get("enabled"):
+        return "关"
+    return f"开（已洗牌 {shuffle.get('applied', 0)} 题）"
 
 
 def _question_row_values(question: dict[str, Any], option_headers: list[str]) -> dict[str, Any]:
@@ -398,6 +483,7 @@ def _write_guide_sheet(ws) -> None:
         ("   留空 = 未审核 → 回收决定时会阻断，杜绝「没审就入库」。", False),
         ("4. 门禁列是 P4-3.1 的 G1–G8 质量门禁结论。对门禁 FAIL 的题选「通过 / 修改后通过」，", False),
         ("   必须在「审核备注」写明推翻理由（会记入 overridden_gates 供审计）。", False),
+        ("   「提示：…」为**建议**（如「正确选项显著长于干扰项」），不影响 PASS/FAIL，无需推翻理由。", False),
         ("5. 审核要点（当前无教材 grounding，属模型先验出题，务必「实际解题」式复核）：", False),
         ("   · 题干是否只有一个正确答案？是否存在多解 / 关键条件缺失？", False),
         ("   · 选项是否同质可比？有没有明显错别字、幻觉事实、常识错误？", False),
@@ -434,12 +520,15 @@ def _write_batch_sheet(
         ("候选题数", summary.get("candidates")),
         ("门禁通过", summary.get("passed")),
         ("门禁拒绝", summary.get("failed")),
+        ("仅提示待留意", summary.get("needs_review")),
         ("生成失败 concept 数", summary.get("concepts_with_error")),
         ("命中门禁统计", json.dumps(summary.get("by_gate") or {}, ensure_ascii=False)),
+        ("选项洗牌", options_shuffle_text(manifest)),
         (
             "批内答案位置分布",
             json.dumps((summary.get("answer_position") or {}).get("counts") or {}, ensure_ascii=False),
         ),
+        ("批内答案分布提示", answer_distribution_text(manifest)),
         ("跨批查重参照数", summary.get("existing_references")),
     ]
     ws.column_dimensions["A"].width = 24
@@ -692,8 +781,13 @@ def _evaluate_row(
             revised_gate_check = {
                 "passed": verdict["passed"],
                 "reasons": verdict["reasons"],
+                "warnings": verdict["warnings"],
                 "gates": {
-                    code: {"passed": item["passed"], "reason": item.get("reason")}
+                    code: {
+                        "passed": item["passed"],
+                        "severity": item.get("severity"),
+                        "reason": item.get("reason"),
+                    }
                     for code, item in gate_map.items()
                 },
             }
@@ -713,6 +807,12 @@ def _evaluate_row(
                             f"修订后 {code} 提示：{gate_map[code]['reason']}",
                             severity="warning",
                         )
+                    )
+            # 门禁**内部**的提示（severity='warning'，如 G5 长度均衡）同样入告警、不阻断。
+            for code, item in gate_map.items():
+                if item.get("severity") == "warning" and item.get("reason"):
+                    errors.append(
+                        _err(sheet_row, qid, "E07", f"修订后 {code} 提示：{item['reason']}", severity="warning")
                     )
     elif key in {"reject", "defer"} and revision_diff:
         errors.append(
@@ -924,7 +1024,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
             manifest_name=args.manifest.name,
         )
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        workbook.save(args.out)
+        save_workbook(workbook, args.out)
     except ReviewKitError as exc:
         print(f"运行失败：{exc}", file=sys.stderr)
         return 3

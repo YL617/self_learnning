@@ -23,6 +23,10 @@
   - **不复用 ``generate_questions()``**：它只做精确 stem 去重，且 ``_normalize()``
     会对 <40 字解析自动补全（``_ensure_analysis``）——两者都会削弱门禁。本脚本
     改为直连 ``AIModelGateway`` + **自带归一化（不做补全）**，把原始解析留给 G3。
+  - **选项洗牌默认开启**（P4-3.3.1）：正确答案的字母位置由模型随机决定，会天然偏向
+    某个字母（批 1 实测 C=45%、D=0%）。洗牌把正确项均匀打散到 A–D，是"治本"；
+    种子取自 ``sha256(seed + 题干)``，故**重放可复现**（同一原始响应必得同一顺序）。
+    关闭请显式传 ``--no-shuffle-options``。洗牌只动选项顺序与答案字母，不改正文。
   - **--live 强制留档 --raw-dir**：每次真实生成都可重放，把"模型这次到底吐了什么"
     变成可审计证据（AIR：prompt 再详尽也会产重复题）。
   - **离线降级必须显式判错**：``AIModelGateway.chat()`` 在「无 Key」与「请求异常」
@@ -372,19 +376,37 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--batch", type=int, default=None, help="批次号（覆盖 targets 里的 batch）")
     parser.add_argument("--sleep", type=float, default=1.0, help="--live 每次调用间隔秒")
     parser.add_argument("--id-prefix", default="P43", help="临时题号前缀")
+    parser.add_argument(
+        "--no-shuffle-options",
+        action="store_true",
+        help="关闭选项洗牌（默认开启；洗牌使答案字母分布均衡且重放可复现）",
+    )
+    parser.add_argument(
+        "--shuffle-seed",
+        default="",
+        help="洗牌附加种子（默认空；实际种子 = sha256(shuffle_seed + 题干)）",
+    )
     return parser.parse_args(argv)
 
 
 def print_summary(manifest: dict[str, Any]) -> None:
     summary = manifest["summary"]
+    shuffle = manifest.get("options_shuffle") or {}
     print("=" * 62)
     print(f"batch={manifest['batch']}  subject={manifest['subject']}  schema={manifest['schema_version']}")
     print(
         f"concept={summary['concepts']}  候选={summary['candidates']}  "
         f"通过={summary['passed']}  拒绝={summary['failed']}  生成失败={summary['concepts_with_error']}"
     )
-    print(f"命中门禁：{summary['by_gate'] or '{}'}")
+    print(
+        f"选项洗牌：{'开' if shuffle.get('enabled') else '关'}"
+        f"（已洗牌 {shuffle.get('applied', 0)} 题）"
+    )
+    print(f"命中门禁（阻断）：{summary['by_gate'] or '{}'}")
     print(f"答案位置：{summary['answer_position']['counts']}")
+    warning = summary.get("answer_distribution_warning")
+    if warning:
+        print(f"  [提示 G5B] {warning['message']}")
     for error in manifest["errors"]:
         print(f"  [ERROR] {error['concept_name']}：{error['reason']}")
     print("=" * 62)
@@ -420,6 +442,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"运行失败：{exc}", file=sys.stderr)
         return 1
 
+    # 选项洗牌（默认开启）：把正确答案均匀打散到 A–D，替代"检测到不平衡就逐题 FAIL"。
+    # 种子 = sha256(shuffle_seed + 题干) → 同一原始响应重放必得同一顺序。
+    shuffle_enabled = not args.no_shuffle_options
+    applied = gates.shuffle_entries(entries, seed=args.shuffle_seed) if shuffle_enabled else 0
+    options_shuffle = {
+        "enabled": shuffle_enabled,
+        "algorithm": "sha256(shuffle_seed + stem) → Fisher-Yates（同步重算答案字母）",
+        "seed": args.shuffle_seed,
+        "applied": applied,
+    }
+
     manifest = gates.assemble_manifest(
         subject=subject,
         entries=entries,
@@ -427,6 +460,7 @@ def main(argv: list[str] | None = None) -> int:
         generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         batch=batch,
         id_prefix=args.id_prefix,
+        options_shuffle=options_shuffle,
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(

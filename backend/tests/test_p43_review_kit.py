@@ -15,6 +15,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -114,7 +115,7 @@ def build_checklist(tmp_path: Path, manifest, manifest_path: Path, *, lock: bool
         manifest_sha=kit.sha256_file(manifest_path),
         manifest_name=manifest_path.name,
     )
-    workbook.save(path)
+    kit.save_workbook(workbook, path)
     return path
 
 
@@ -271,17 +272,41 @@ def test_build_rejects_empty_manifest(tmp_path):
 
 
 def test_build_is_byte_deterministic(tmp_path):
+    """P4-3.3.1：改为经 ``save_workbook`` 落盘。
+
+    原实现直接 ``Workbook.save`` —— zip 条目时间戳取自**当前时间**（DOS 2 秒粒度），
+    且 openpyxl 保存时还会用当前时间覆盖 ``docProps/core.xml`` 的 ``dcterms:modified``；
+    同一内容两次构建会偶发差几个字节，该用例是**潜在 flaky**。``save_workbook`` 把
+    这两处时间依赖都钉死后，"逐字节可复现"才真正成立。
+    """
     manifest = default_manifest()
     manifest_path = write_manifest(tmp_path, manifest)
     first = build_checklist(tmp_path, manifest, manifest_path)
     second = tmp_path / "checklist2.xlsx"
-    kit.build_workbook(
-        manifest,
-        built_at=FIXED_TS,
-        manifest_sha=kit.sha256_file(manifest_path),
-        manifest_name=manifest_path.name,
-    ).save(second)
+    kit.save_workbook(
+        kit.build_workbook(
+            manifest,
+            built_at=FIXED_TS,
+            manifest_sha=kit.sha256_file(manifest_path),
+            manifest_name=manifest_path.name,
+        ),
+        second,
+    )
     assert first.read_bytes() == second.read_bytes()
+
+
+def test_save_workbook_pins_timestamps_and_core_modified(batch):
+    """回归：zip 条目时间戳与 ``docProps/core.xml`` 的 ``dcterms:modified`` 都必须固定。
+
+    两者都曾被"当前时间"污染（openpyxl 的 zip 时间戳 + save 时覆盖 ``modified``）→
+    SHA-256 不再等价于内容，该用例此前**潜在 flaky**。
+    """
+    expected = "2026-10-12T00:00:00Z"
+    with zipfile.ZipFile(batch["checklist_path"]) as archive:
+        assert {info.date_time for info in archive.infolist()} == {kit.ZIP_FIXED_TIMESTAMP}
+        core = archive.read(kit.CORE_PROPS_ENTRY).decode("utf-8")
+    # dcterms:created 与 dcterms:modified 都应是构建时刻（FIXED_TS）
+    assert core.count(expected) == 2, core
 
 
 # ---------------------------------------------------------------------------
@@ -507,6 +532,68 @@ def test_collect_final_dedup_uses_existing_snapshot(batch):
     existing = [{"id": 1, "stem": batch["manifest"]["questions"][0]["stem"]}]
     result = run_collect(batch["checklist_path"], batch["manifest_path"], existing=existing)
     assert "E20" in codes(result)
+
+
+# ---------------------------------------------------------------------------
+# 提示（advisory）呈现：只展示、不翻转 PASS/FAIL（P4-3.3.1）
+# ---------------------------------------------------------------------------
+def _advisory_manifest():
+    leaky = make_question(
+        stem="关于顺序表随机访问特性的说法，下列哪一项最准确？",
+        options=[
+            "A. 表",
+            "B. 链表",
+            "C. 可以按下标直接定位任意元素，时间复杂度为 O(1)，这依赖其连续存储结构",
+            "D. 树",
+        ],
+        answer="C",
+    )
+    return gates.assemble_manifest(
+        subject="数据结构",
+        entries=[make_entry([leaky])],
+        generated_at=FIXED_TS,
+        batch=9,
+        options_shuffle={"enabled": True, "applied": 1, "algorithm": "sha256", "seed": ""},
+    )
+
+
+def test_build_shows_advisory_without_flipping_gate(tmp_path):
+    manifest = _advisory_manifest()
+    path = write_manifest(tmp_path, manifest)
+    checklist = build_checklist(tmp_path, manifest, path)
+    sheet = load_workbook(checklist)[kit.CHECKLIST_SHEET]
+    index = header_index(checklist)
+    assert sheet.cell(row=2, column=index[kit.COL_GATE]).value == "PASS"
+    assert "提示：" in sheet.cell(row=2, column=index[kit.COL_GATE_REASON]).value
+    assert sheet.cell(row=2, column=index[kit.COL_SUGGEST]).value == "review"
+
+
+def test_batch_sheet_surfaces_distribution_hint_and_shuffle_state(tmp_path):
+    manifest = _advisory_manifest()
+    path = write_manifest(tmp_path, manifest)
+    checklist = build_checklist(tmp_path, manifest, path)
+    text = "\n".join(
+        str(cell.value)
+        for row in load_workbook(checklist)[kit.BATCH_SHEET].iter_rows()
+        for cell in row
+        if cell.value is not None
+    )
+    assert "批内答案分布提示" in text
+    assert "开（已洗牌 1 题）" in text
+
+
+def test_collect_approves_advisory_question_without_override_note(tmp_path):
+    manifest = _advisory_manifest()
+    path = write_manifest(tmp_path, manifest)
+    checklist = build_checklist(tmp_path, manifest, path)
+    qid = manifest["questions"][0]["question_id"]
+    edit_rows(checklist, {qid: {kit.COL_DECISION: kit.DECISION_APPROVE}})
+    result = run_collect(checklist, path)
+    assert result["errors"] == []
+    record = result["decisions"][0]
+    assert record["gate_passed"] is True
+    assert record["overridden_gates"] == []
+    assert record["ready_for_apply"] is True
 
 
 # ---------------------------------------------------------------------------
