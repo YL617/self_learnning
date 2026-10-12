@@ -80,6 +80,7 @@ class AdminQuestionOut(ORMModel):
     is_favorite: bool = False
     difficulty: str | None = None
     visibility: str = "private"
+    review_status: str = "draft"
     created_at: datetime
 
 
@@ -120,8 +121,47 @@ class AdminQuestionDetailOut(ORMModel):
     is_favorite: bool = False
     difficulty: str | None = None
     visibility: str = "private"
+    # M5.5 P4-1/P4-2：审核生命周期与留痕。
+    review_status: str = "draft"
+    reviewed_by: int | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
     created_at: datetime
     knowledge_points: list[QuestionKnowledgePointRead] = Field(default_factory=list)
+
+
+class QuestionUpdate(BaseModel):
+    """M5.5 P4-2：管理员编辑题目（仅 draft/rejected 状态可编辑）。
+
+    可编辑字段严格限定为题面内容：stem/options/answer/analysis/difficulty。
+
+    - **``visibility`` 不在可编辑字段内**：发布只能经 ``publish`` 状态转移端点，
+      禁止绕过审核直接改可见范围。
+    - ``subject``/``question_type`` 也不可改（避免与已绑定知识点的学科失配）。
+    """
+
+    stem: str | None = Field(default=None, min_length=1, max_length=4000)
+    options: list[str] | None = Field(default=None, max_length=10)
+    answer: str | None = Field(default=None, min_length=1, max_length=2000)
+    analysis: str | None = Field(default=None, max_length=4000)
+    difficulty: str | None = Field(default=None, pattern="^(easy|medium|hard)$")
+
+
+class QuestionReviewAction(BaseModel):
+    """M5.5 P4-2：审核动作入参（目前仅 reject 使用 note）。"""
+
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class QuestionReviewOut(ORMModel):
+    """M5.5 P4-2：审核状态与留痕快照（状态转移端点统一返回）。"""
+
+    id: int
+    review_status: str
+    visibility: str
+    reviewed_by: int | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
 
 
 class KnowledgeCoverageItem(BaseModel):

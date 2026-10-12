@@ -41,6 +41,9 @@ from app.schemas.admin import (
     CourseUpdate,
     KnowledgeCoverageItem,
     KnowledgeCoverageOut,
+    QuestionReviewAction,
+    QuestionReviewOut,
+    QuestionUpdate,
     StatsOverviewOut,
 )
 from app.schemas.billing import ActivationCodeCreate, ActivationCodeOut
@@ -60,6 +63,13 @@ from app.services.question_knowledge_point_service import (
     QuestionKnowledgePointError,
     QuestionKnowledgePointService,
     QuestionNotFound,
+)
+from app.services.question_review import (
+    IllegalTransition,
+    QuestionNotEditable,
+    QuestionReviewError,
+    QuestionReviewNotFound,
+    QuestionReviewService,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -251,10 +261,21 @@ def list_admin_questions(
     _: Annotated[User, Depends(get_current_admin)],
     db: Annotated[Session, Depends(get_db)],
     limit: int = Query(default=100, ge=1, le=500),
+    review_status: str | None = Query(
+        default=None, pattern="^(draft|pending|approved|rejected|archived)$"
+    ),
+    visibility: str | None = Query(default=None, pattern="^(private|shared)$"),
+    subject: str | None = Query(default=None),
 ) -> list[Question]:
-    return list(
-        db.scalars(select(Question).order_by(Question.created_at.desc()).limit(limit)).all()
-    )
+    """M5.5 P4-2：审核工作台列表，支持按审核态/可见性/学科筛选。"""
+    stmt = select(Question).order_by(Question.created_at.desc()).limit(limit)
+    if review_status:
+        stmt = stmt.where(Question.review_status == review_status)
+    if visibility:
+        stmt = stmt.where(Question.visibility == visibility)
+    if subject:
+        stmt = stmt.where(Question.subject == subject)
+    return list(db.scalars(stmt).all())
 
 
 @router.post("/questions", response_model=AdminQuestionOut, status_code=status.HTTP_201_CREATED)
@@ -303,6 +324,26 @@ def create_admin_question(
     return question
 
 
+def _map_review_errors(exc: Exception) -> HTTPException:
+    """审核域异常 → HTTP：不存在 404；非法状态转移/不可编辑 409。"""
+    if isinstance(exc, QuestionReviewNotFound):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, (IllegalTransition, QuestionNotEditable)):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+def _build_question_detail(db: Session, question: Question) -> AdminQuestionDetailOut:
+    payload = AdminQuestionDetailOut.model_validate(question)
+    payload.knowledge_points = [
+        QuestionKnowledgePointRead.model_validate(row)
+        for row in QuestionKnowledgePointService(db).list_for_question(
+            question.id, owner_id=None
+        )
+    ]
+    return payload
+
+
 @router.get("/questions/{question_id}", response_model=AdminQuestionDetailOut)
 def get_admin_question(
     question_id: int,
@@ -313,14 +354,121 @@ def get_admin_question(
     question = db.get(Question, question_id)
     if question is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="题目不存在")
-    payload = AdminQuestionDetailOut.model_validate(question)
-    payload.knowledge_points = [
-        QuestionKnowledgePointRead.model_validate(row)
-        for row in QuestionKnowledgePointService(db).list_for_question(
-            question_id, owner_id=None
+    return _build_question_detail(db, question)
+
+
+@router.patch("/questions/{question_id}", response_model=AdminQuestionDetailOut)
+def update_admin_question(
+    question_id: int,
+    data: QuestionUpdate,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> AdminQuestionDetailOut:
+    """M5.5 P4-2：编辑题面（仅 draft/rejected）；visibility 不可经此改。"""
+    service = QuestionReviewService(db)
+    try:
+        question = service.update(question_id, data.model_dump(exclude_unset=True))
+    except QuestionReviewError as exc:
+        db.rollback()
+        raise _map_review_errors(exc) from exc
+    db.commit()
+    db.refresh(question)
+    return _build_question_detail(db, question)
+
+
+@router.post(
+    "/questions/{question_id}/submit-review", response_model=QuestionReviewOut
+)
+def submit_admin_question_review(
+    question_id: int,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> QuestionReviewOut:
+    """M5.5 P4-2：draft|rejected → pending。"""
+    service = QuestionReviewService(db)
+    try:
+        question = service.submit_review(question_id)
+    except QuestionReviewError as exc:
+        db.rollback()
+        raise _map_review_errors(exc) from exc
+    db.commit()
+    db.refresh(question)
+    return QuestionReviewOut.model_validate(question)
+
+
+@router.post("/questions/{question_id}/approve", response_model=QuestionReviewOut)
+def approve_admin_question(
+    question_id: int,
+    current_admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> QuestionReviewOut:
+    """M5.5 P4-2：pending → approved（记录审核人与时间）。"""
+    service = QuestionReviewService(db)
+    try:
+        question = service.approve(question_id, current_admin.id)
+    except QuestionReviewError as exc:
+        db.rollback()
+        raise _map_review_errors(exc) from exc
+    db.commit()
+    db.refresh(question)
+    return QuestionReviewOut.model_validate(question)
+
+
+@router.post("/questions/{question_id}/reject", response_model=QuestionReviewOut)
+def reject_admin_question(
+    question_id: int,
+    current_admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+    data: QuestionReviewAction | None = None,
+) -> QuestionReviewOut:
+    """M5.5 P4-2：pending → rejected（可带驳回意见）。"""
+    service = QuestionReviewService(db)
+    try:
+        question = service.reject(
+            question_id, current_admin.id, data.note if data else None
         )
-    ]
-    return payload
+    except QuestionReviewError as exc:
+        db.rollback()
+        raise _map_review_errors(exc) from exc
+    db.commit()
+    db.refresh(question)
+    return QuestionReviewOut.model_validate(question)
+
+
+@router.post("/questions/{question_id}/publish", response_model=QuestionReviewOut)
+def publish_admin_question(
+    question_id: int,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> QuestionReviewOut:
+    """M5.5 P4-2：approved → shared（visibility 改 shared 的唯一入口）。"""
+    service = QuestionReviewService(db)
+    try:
+        question = service.publish(question_id)
+    except QuestionReviewError as exc:
+        db.rollback()
+        raise _map_review_errors(exc) from exc
+    db.commit()
+    db.refresh(question)
+    return QuestionReviewOut.model_validate(question)
+
+
+@router.post("/questions/{question_id}/archive", response_model=QuestionReviewOut)
+def archive_admin_question(
+    question_id: int,
+    _: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> QuestionReviewOut:
+    """M5.5 P4-2：approved|shared → archived（终态）。"""
+    service = QuestionReviewService(db)
+    try:
+        question = service.archive(question_id)
+    except QuestionReviewError as exc:
+        db.rollback()
+        raise _map_review_errors(exc) from exc
+    db.commit()
+    db.refresh(question)
+    return QuestionReviewOut.model_validate(question)
 
 
 @router.post(
