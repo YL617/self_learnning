@@ -113,6 +113,18 @@ _PUNCT_RE = re.compile(
     r"[\s\u3000，。、；：？！“”‘’（）《》〈〉【】〔〕…—－ー~～\-_/\\|,.!?;:'\"`()\[\]{}<>+=*&^%$#@]"
 )
 _OPTION_LETTER_RE = re.compile(r"^([A-Za-z])\s*[.、\)．:：]?\s*")
+_ANALYSIS_ANSWER_RE = re.compile(
+    r"((?:正确)?答案\s*(?:是|为|选(?:择)?)\s*)([A-Z])(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+_ANALYSIS_OPTION_AFTER_RE = re.compile(
+    r"(?<![A-Za-z0-9])([A-Z])(\s*(?:项|选项))",
+    re.IGNORECASE,
+)
+_ANALYSIS_OPTION_BEFORE_RE = re.compile(
+    r"(选项\s*)([A-Z])(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +255,16 @@ def gate_g3_analysis_quality(
     length = len(text)
     if length < MIN_ANALYSIS_CHARS:
         return _fail("G3", f"解析原始长度 {length} < {MIN_ANALYSIS_CHARS}")
+    if _question_type(question) == "choice":
+        answer_letter = option_letter(question.get("answer"))
+        declared_answers = {
+            match.group(2).upper() for match in _ANALYSIS_ANSWER_RE.finditer(text)
+        }
+        if answer_letter and declared_answers and declared_answers != {answer_letter}:
+            return _fail(
+                "G3",
+                f"解析声明答案 {sorted(declared_answers)} 与答案字段 {answer_letter} 不一致",
+            )
     return _pass("G3", raw_analysis_chars=length)
 
 
@@ -520,6 +542,24 @@ def _stable_seed(*parts: str) -> int:
     return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big")
 
 
+def relabel_analysis_options(analysis: Any, old_to_new: dict[str, str]) -> str:
+    """同步改写解析中的选项字母引用，避免洗牌后解析指向旧选项。"""
+    text = str(analysis or "")
+
+    def replace_answer(match: re.Match[str]) -> str:
+        return match.group(1) + old_to_new.get(match.group(2).upper(), match.group(2).upper())
+
+    def replace_after(match: re.Match[str]) -> str:
+        return old_to_new.get(match.group(1).upper(), match.group(1).upper()) + match.group(2)
+
+    def replace_before(match: re.Match[str]) -> str:
+        return match.group(1) + old_to_new.get(match.group(2).upper(), match.group(2).upper())
+
+    text = _ANALYSIS_ANSWER_RE.sub(replace_answer, text)
+    text = _ANALYSIS_OPTION_AFTER_RE.sub(replace_after, text)
+    return _ANALYSIS_OPTION_BEFORE_RE.sub(replace_before, text)
+
+
 def shuffle_options(question: dict[str, Any], *, position: int | None = None, seed: str = "") -> dict[str, Any]:
     """确定性重排选项并**同步重算答案字母**（纯函数，不改入参）。
 
@@ -555,6 +595,11 @@ def shuffle_options(question: dict[str, Any], *, position: int | None = None, se
             f"{option_label(slot_index)}. {bodies[index]}" for slot_index, index in enumerate(order)
         ],
     }
+    old_to_new = {
+        option_label(old_index): option_label(new_index)
+        for new_index, old_index in enumerate(order)
+    }
+    shuffled["analysis"] = relabel_analysis_options(question.get("analysis"), old_to_new)
     if correct is not None:
         new_letter = option_label(order.index(correct))
         answer_letter = option_letter(question.get("answer"))
@@ -588,7 +633,11 @@ def shuffle_entries(entries: Sequence[dict[str, Any]], *, seed: str = "") -> int
                 targets.append((entry, index, question))
     plan = plan_answer_positions(len(targets), seed=seed)
     for (entry, index, question), position in zip(targets, plan):
-        entry["questions"][index] = shuffle_options(question, position=position, seed=seed)
+        shuffled = shuffle_options(question, position=position, seed=seed)
+        entry["questions"][index] = shuffled
+        raw_analysis = entry.get("raw_analysis")
+        if isinstance(raw_analysis, dict) and index in raw_analysis:
+            raw_analysis[index] = shuffled.get("analysis")
     return len(targets)
 
 

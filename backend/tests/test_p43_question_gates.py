@@ -147,6 +147,17 @@ def test_g3_filler_fingerprint_beats_length():
     assert "补全指纹" in result["reason"]
 
 
+def test_g3_rejects_explicit_answer_that_conflicts_with_answer_field():
+    analysis = "正确答案为 B。" + GOOD_ANALYSIS
+    result = gates.gate_g3_analysis_quality(make_question(answer="A"), raw_analysis=analysis)
+    assert result["passed"] is False
+    assert "与答案字段 A 不一致" in result["reason"]
+
+
+def test_g3_allows_analysis_without_explicit_answer_letter():
+    assert gates.gate_g3_analysis_quality(make_question(), raw_analysis=GOOD_ANALYSIS)["passed"] is True
+
+
 # ---------------------------------------------------------------------------
 # G4 去重
 # ---------------------------------------------------------------------------
@@ -507,6 +518,18 @@ def test_shuffle_options_relabels_and_preserves_correct_body():
     )
     answer_letter = gates.option_letter(shuffled["answer"])
     assert gates.option_body(shuffled["options"][letters.index(answer_letter)]) == correct_body
+
+
+def test_shuffle_options_relabels_analysis_option_references():
+    question = make_question(
+        answer="A",
+        analysis="正确答案为A。A项正确，B 项错误，选项C也不成立，D选项属于干扰项。" + GOOD_ANALYSIS,
+    )
+    shuffled = gates.shuffle_options(question, position=2, seed="analysis-remap")
+    assert shuffled["answer"] == "C"
+    assert "正确答案为C" in shuffled["analysis"]
+    assert "C项正确" in shuffled["analysis"]
+    assert gates.gate_g3_analysis_quality(shuffled)["passed"] is True
 
 
 def test_shuffle_options_is_deterministic_and_seed_sensitive():
