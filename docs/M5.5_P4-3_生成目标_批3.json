@@ -1,0 +1,64 @@
+{
+  "subject": "数据结构",
+  "batch": 3,
+  "note": "M5.5 P4-3 批3：余下 3 个 + 排序族 4 个（破格）；顶层 count=10 按 concept 均分（余数给靠前者）",
+  "count": 10,
+  "target_knowledge_points": [
+    {
+      "id": 69,
+      "code": "DS.SORT.INSERTION.DIRECT",
+      "name": "直接插入排序",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 72,
+      "code": "DS.SORT.SWAP.BUBBLE",
+      "name": "冒泡排序",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 25,
+      "code": "DS.STACKQUEUE.QUEUE.BASIC",
+      "name": "队列的定义与实现",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 73,
+      "code": "DS.SORT.SWAP.QUICK",
+      "name": "快速排序",
+      "difficulty": "hard",
+      "count": 1,
+      "question_type": "choice"
+    },
+    {
+      "id": 76,
+      "code": "DS.SORT.SELECTION.HEAP",
+      "name": "堆排序",
+      "difficulty": "hard",
+      "count": 1,
+      "question_type": "choice"
+    },
+    {
+      "id": 77,
+      "code": "DS.SORT.MERGE",
+      "name": "归并排序",
+      "difficulty": "medium",
+      "count": 1,
+      "question_type": "choice"
+    },
+    {
+      "id": 70,
+      "code": "DS.SORT.INSERTION.SHELL",
+      "name": "希尔排序",
+      "difficulty": "medium",
+      "count": 1,
+      "question_type": "choice"
+    }
+  ]
+}

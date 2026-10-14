@@ -1,0 +1,352 @@
+[
+  {
+    "source_code": "DS.BASIC.CONCEPT",
+    "target_code": "DS.BASIC.ADT",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 抽象数据类型（ADT） ← 数据结构基本概念"
+  },
+  {
+    "source_code": "DS.LINEAR.CONCEPT",
+    "target_code": "DS.LINEAR.SEQUENTIAL",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 顺序表 ← 线性表的定义与基本操作"
+  },
+  {
+    "source_code": "DS.LINEAR.CONCEPT",
+    "target_code": "DS.LINEAR.LINKED_LIST.SINGLE",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 单链表 ← 线性表的定义与基本操作"
+  },
+  {
+    "source_code": "DS.LINEAR.CONCEPT",
+    "target_code": "DS.STACKQUEUE.STACK.BASIC",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 栈的定义与实现 ← 线性表的定义与基本操作"
+  },
+  {
+    "source_code": "DS.LINEAR.CONCEPT",
+    "target_code": "DS.STACKQUEUE.QUEUE.BASIC",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 队列的定义与实现 ← 线性表的定义与基本操作"
+  },
+  {
+    "source_code": "DS.LINEAR.LINKED_LIST.SINGLE",
+    "target_code": "DS.LINEAR.LINKED_LIST.DOUBLE",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 双向链表 ← 单链表"
+  },
+  {
+    "source_code": "DS.LINEAR.LINKED_LIST.SINGLE",
+    "target_code": "DS.LINEAR.LINKED_LIST.CIRCULAR",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 循环单链表 ← 单链表"
+  },
+  {
+    "source_code": "DS.STACKQUEUE.STACK.BASIC",
+    "target_code": "DS.STACKQUEUE.STACK.MATCHING",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 括号匹配 ← 栈的定义与实现"
+  },
+  {
+    "source_code": "DS.STACKQUEUE.STACK.BASIC",
+    "target_code": "DS.STACKQUEUE.STACK.EXPRESSION",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 表达式求值 ← 栈的定义与实现"
+  },
+  {
+    "source_code": "DS.STACKQUEUE.STACK.BASIC",
+    "target_code": "DS.STACKQUEUE.STACK.RECURSION",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 栈与递归 ← 栈的定义与实现"
+  },
+  {
+    "source_code": "DS.STACKQUEUE.QUEUE.BASIC",
+    "target_code": "DS.STACKQUEUE.QUEUE.CIRCULAR",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 循环队列 ← 队列的定义与实现"
+  },
+  {
+    "source_code": "DS.STRING.BASIC",
+    "target_code": "DS.STRING.BF",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 朴素模式匹配 ← 串的定义与存储结构"
+  },
+  {
+    "source_code": "DS.TREE.CONCEPT",
+    "target_code": "DS.TREE.BINARY.BASIC",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 二叉树的定义与性质 ← 树的基本概念与术语"
+  },
+  {
+    "source_code": "DS.TREE.BINARY.BASIC",
+    "target_code": "DS.TREE.BINARY.STORAGE",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 二叉树的存储结构 ← 二叉树的定义与性质"
+  },
+  {
+    "source_code": "DS.TREE.BINARY.BASIC",
+    "target_code": "DS.TREE.BINARY.TRAVERSAL",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 二叉树的遍历 ← 二叉树的定义与性质"
+  },
+  {
+    "source_code": "DS.TREE.BINARY.BASIC",
+    "target_code": "DS.TREE.HEAP",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 堆 ← 二叉树的定义与性质"
+  },
+  {
+    "source_code": "DS.TREE.BINARY.BASIC",
+    "target_code": "DS.SEARCH.BST",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 二叉排序树 ← 二叉树的定义与性质"
+  },
+  {
+    "source_code": "DS.TREE.BINARY.TRAVERSAL",
+    "target_code": "DS.TREE.BINARY.THREADED",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 线索二叉树 ← 二叉树的遍历"
+  },
+  {
+    "source_code": "DS.TREE.HEAP",
+    "target_code": "DS.TREE.PRIORITY_QUEUE",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 优先队列 ← 堆"
+  },
+  {
+    "source_code": "DS.GRAPH.CONCEPT",
+    "target_code": "DS.GRAPH.STORAGE",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 图的存储结构 ← 图的基本概念与术语"
+  },
+  {
+    "source_code": "DS.GRAPH.STORAGE",
+    "target_code": "DS.GRAPH.DFS",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 深度优先搜索 ← 图的存储结构"
+  },
+  {
+    "source_code": "DS.GRAPH.STORAGE",
+    "target_code": "DS.GRAPH.BFS",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 广度优先搜索 ← 图的存储结构"
+  },
+  {
+    "source_code": "DS.GRAPH.STORAGE",
+    "target_code": "DS.GRAPH.SHORTEST_PATH.DIJKSTRA",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | Dijkstra算法 ← 图的存储结构"
+  },
+  {
+    "source_code": "DS.GRAPH.DFS",
+    "target_code": "DS.GRAPH.TOPOLOGICAL_SORT",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 拓扑排序 ← 深度优先搜索"
+  },
+  {
+    "source_code": "DS.GRAPH.TOPOLOGICAL_SORT",
+    "target_code": "DS.GRAPH.CRITICAL_PATH",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 关键路径 ← 拓扑排序"
+  },
+  {
+    "source_code": "DS.SEARCH.BST",
+    "target_code": "DS.SEARCH.AVL",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-硬 | 平衡二叉树（AVL树） ← 二叉排序树"
+  },
+  {
+    "source_code": "DS.BASIC.ALGORITHM",
+    "target_code": "DS.BASIC.COMPLEXITY.TIME",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 时间复杂度分析 ← 算法的定义与特性"
+  },
+  {
+    "source_code": "DS.BASIC.ALGORITHM",
+    "target_code": "DS.BASIC.COMPLEXITY.SPACE",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 空间复杂度分析 ← 算法的定义与特性"
+  },
+  {
+    "source_code": "DS.LINEAR.SEQUENTIAL",
+    "target_code": "DS.LINEAR.COMPARISON",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 顺序存储与链式存储的比较 ← 顺序表"
+  },
+  {
+    "source_code": "DS.LINEAR.SEQUENTIAL",
+    "target_code": "DS.SEARCH.BINARY",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 折半查找 ← 顺序表"
+  },
+  {
+    "source_code": "DS.LINEAR.LINKED_LIST.SINGLE",
+    "target_code": "DS.LINEAR.COMPARISON",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 顺序存储与链式存储的比较 ← 单链表"
+  },
+  {
+    "source_code": "DS.TREE.CONCEPT",
+    "target_code": "DS.TREE.FOREST.CONVERSION",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 树、森林与二叉树的转换 ← 树的基本概念与术语"
+  },
+  {
+    "source_code": "DS.TREE.BINARY.TRAVERSAL",
+    "target_code": "DS.TREE.FOREST.TRAVERSAL",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 树与森林的遍历 ← 二叉树的遍历"
+  },
+  {
+    "source_code": "DS.TREE.BINARY.TRAVERSAL",
+    "target_code": "DS.TREE.HUFFMAN",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 哈夫曼树与哈夫曼编码 ← 二叉树的遍历"
+  },
+  {
+    "source_code": "DS.GRAPH.STORAGE",
+    "target_code": "DS.GRAPH.MST.PRIM",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | Prim算法 ← 图的存储结构"
+  },
+  {
+    "source_code": "DS.GRAPH.STORAGE",
+    "target_code": "DS.GRAPH.MST.KRUSKAL",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | Kruskal算法 ← 图的存储结构"
+  },
+  {
+    "source_code": "DS.GRAPH.STORAGE",
+    "target_code": "DS.GRAPH.SHORTEST_PATH.FLOYD",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | Floyd算法 ← 图的存储结构"
+  },
+  {
+    "source_code": "DS.SEARCH.BASIC",
+    "target_code": "DS.SEARCH.HASH",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P0-软 | 散列表 ← 查找的基本概念与平均查找长度"
+  },
+  {
+    "source_code": "DS.STRING.BF",
+    "target_code": "DS.STRING.KMP",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-硬 | KMP算法 ← 朴素模式匹配"
+  },
+  {
+    "source_code": "DS.TREE.HEAP",
+    "target_code": "DS.SORT.SELECTION.HEAP",
+    "strength": 90,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-硬 | 堆排序 ← 堆"
+  },
+  {
+    "source_code": "DS.SORT.INSERTION.DIRECT",
+    "target_code": "DS.SORT.INSERTION.SHELL",
+    "strength": 80,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-硬 | 希尔排序 ← 直接插入排序"
+  },
+  {
+    "source_code": "DS.BASIC.COMPLEXITY.TIME",
+    "target_code": "DS.STRING.KMP",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | KMP算法 ← 时间复杂度分析"
+  },
+  {
+    "source_code": "DS.BASIC.COMPLEXITY.TIME",
+    "target_code": "DS.SORT.COMPARISON",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 内部排序算法的比较与选择 ← 时间复杂度分析"
+  },
+  {
+    "source_code": "DS.LINEAR.SEQUENTIAL",
+    "target_code": "DS.SEARCH.SEQUENTIAL",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 顺序查找 ← 顺序表"
+  },
+  {
+    "source_code": "DS.SEARCH.BASIC",
+    "target_code": "DS.SEARCH.BINARY",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 折半查找 ← 查找的基本概念与平均查找长度"
+  },
+  {
+    "source_code": "DS.SORT.BASIC",
+    "target_code": "DS.SORT.INSERTION.DIRECT",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 直接插入排序 ← 排序的基本概念与稳定性"
+  },
+  {
+    "source_code": "DS.SORT.BASIC",
+    "target_code": "DS.SORT.SWAP.BUBBLE",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 冒泡排序 ← 排序的基本概念与稳定性"
+  },
+  {
+    "source_code": "DS.SORT.BASIC",
+    "target_code": "DS.SORT.SELECTION.SIMPLE",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 简单选择排序 ← 排序的基本概念与稳定性"
+  },
+  {
+    "source_code": "DS.SORT.BASIC",
+    "target_code": "DS.SORT.MERGE",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 归并排序 ← 排序的基本概念与稳定性"
+  },
+  {
+    "source_code": "DS.SORT.SWAP.BUBBLE",
+    "target_code": "DS.SORT.SWAP.QUICK",
+    "strength": 50,
+    "source": "manual",
+    "note": "M5 前置关系种子 | P1-软 | 快速排序 ← 冒泡排序"
+  }
+]

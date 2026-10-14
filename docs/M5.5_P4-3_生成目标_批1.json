@@ -1,0 +1,72 @@
+{
+  "subject": "数据结构",
+  "batch": 1,
+  "note": "M5.5 P4-3 批1：前置度>=4 的 8 个章节根/枢纽；顶层 count=20 按 concept 均分（余数给靠前者）",
+  "count": 20,
+  "target_knowledge_points": [
+    {
+      "id": 46,
+      "code": "DS.GRAPH.STORAGE",
+      "name": "图的存储结构",
+      "difficulty": "medium",
+      "count": 3,
+      "question_type": "choice"
+    },
+    {
+      "id": 34,
+      "code": "DS.TREE.BINARY.BASIC",
+      "name": "二叉树的定义与性质",
+      "difficulty": "medium",
+      "count": 3,
+      "question_type": "choice"
+    },
+    {
+      "id": 9,
+      "code": "DS.LINEAR.CONCEPT",
+      "name": "线性表的定义与基本操作",
+      "difficulty": "easy",
+      "count": 3,
+      "question_type": "choice"
+    },
+    {
+      "id": 11,
+      "code": "DS.LINEAR.SEQUENTIAL",
+      "name": "顺序表",
+      "difficulty": "easy",
+      "count": 3,
+      "question_type": "choice"
+    },
+    {
+      "id": 13,
+      "code": "DS.LINEAR.LINKED_LIST.SINGLE",
+      "name": "单链表",
+      "difficulty": "medium",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 19,
+      "code": "DS.STACKQUEUE.STACK.BASIC",
+      "name": "栈的定义与实现",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 36,
+      "code": "DS.TREE.BINARY.TRAVERSAL",
+      "name": "二叉树的遍历",
+      "difficulty": "medium",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 67,
+      "code": "DS.SORT.BASIC",
+      "name": "排序的基本概念与稳定性",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    }
+  ]
+}

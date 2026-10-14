@@ -1,0 +1,7 @@
+{
+  "concept": "二叉树的遍历",
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "user_prompt": "学科：数据结构\n知识点：二叉树的遍历\n题型：choice\n数量：2",
+  "raw_text": "[\n  {\n    \"subject\": \"数据结构\",\n    \"knowledge_point\": \"二叉树的遍历\",\n    \"question_type\": \"choice\",\n    \"stem\": \"已知一棵二叉树的先序遍历序列为 ABDECF，中序遍历序列为 DBEAFC，则该二叉树的后序遍历序列是（ ）。\",\n    \"options\": [\n      \"A. DEBFCA\",\n      \"B. DEBCFA\",\n      \"C. DBEFCA\",\n      \"D. EDBFCA\"\n    ],\n    \"answer\": \"A\",\n    \"analysis\": \"正确答案为A。由先序序列ABDECF可知根结点为A；在中序序列DBEAFC中，A左侧为DBE，右侧为FC，因此左子树中序为DBE、右子树中序为FC。左子树先序为BDE，根为B，中序DBE中B左侧为D、右侧为E，故左子树后序为DEB；右子树先序为CF，根为C，中序FC中C左侧为F，故右子树后序为FC。最终后序为DEB+F+C+A，即DEBFCA。错误选项B、C、D均是在左右子树划分或递归顺序上出现偏差，常见易错点是把先序根的位置与中序根的位置混淆，或忽略右子树只有一个结点时的顺序。复习建议：熟练掌握由两种遍历序列唯一确定二叉树的方法，并多做递归划分练习。\",\n    \"difficulty\": \"medium\"\n  },\n  {\n    \"subject\": \"数据结构\",\n    \"knowledge_point\": \"二叉树的遍历\",\n    \"question_type\": \"choice\",\n    \"stem\": \"某二叉树的后序遍历序列为 CDBGFEA，中序遍历序列为 CBDAGFE，则该二叉树的先序遍历序列是（ ）。\",\n    \"options\": [\n      \"A. ABCDEFG\",\n      \"B. ABDCEFG\",\n      \"C. ABDCFEG\",\n      \"D. ABDCEGF\"\n    ],\n    \"answer\": \"C\",\n    \"analysis\": \"正确答案为C。后序序列CDBGFEA的最后一个结点A为根；在中序序列CBDAGFE中，A左侧为CBD，右侧为GFE，故左子树中序CBD、右子树中序GFE。左子树后序为CDB，根为B，中序CBD中B左侧为C、右侧为D，故左子树先序为BCD；右子树后序为GFE，根为E，中序GFE中E左侧为GF，故右子树先序为EFG。整棵树先序为A+BCD+EFG，即ABDCEFG。错误选项A、B、D分别错在左右子树划分、结点顺序或右子树内部顺序。常见易错点是由后序确定根后，未正确利用中序划分左右子树。复习建议：牢记后序最后为根、中序根左为左子树、根右为右子树，并反复练习重建二叉树。\",\n    \"difficulty\": \"medium\"\n  }\n]"
+}

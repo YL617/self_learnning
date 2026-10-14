@@ -1,0 +1,104 @@
+{
+  "subject": "数据结构",
+  "batch": 2,
+  "note": "M5.5 P4-3 批2：前置度 2-3 的 12 个枢纽；顶层 count=20 按 concept 均分（余数给靠前者）",
+  "count": 20,
+  "target_knowledge_points": [
+    {
+      "id": 6,
+      "code": "DS.BASIC.COMPLEXITY.TIME",
+      "name": "时间复杂度分析",
+      "difficulty": "medium",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 38,
+      "code": "DS.TREE.HEAP",
+      "name": "堆",
+      "difficulty": "medium",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 4,
+      "code": "DS.BASIC.ALGORITHM",
+      "name": "算法的定义与特性",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 16,
+      "code": "DS.LINEAR.COMPARISON",
+      "name": "顺序存储与链式存储的比较",
+      "difficulty": "medium",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 29,
+      "code": "DS.STRING.BF",
+      "name": "朴素模式匹配",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 30,
+      "code": "DS.STRING.KMP",
+      "name": "KMP算法",
+      "difficulty": "hard",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 32,
+      "code": "DS.TREE.CONCEPT",
+      "name": "树的基本概念与术语",
+      "difficulty": "easy",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 48,
+      "code": "DS.GRAPH.DFS",
+      "name": "深度优先搜索",
+      "difficulty": "medium",
+      "count": 2,
+      "question_type": "choice"
+    },
+    {
+      "id": 57,
+      "code": "DS.GRAPH.TOPOLOGICAL_SORT",
+      "name": "拓扑排序",
+      "difficulty": "medium",
+      "count": 1,
+      "question_type": "choice"
+    },
+    {
+      "id": 60,
+      "code": "DS.SEARCH.BASIC",
+      "name": "查找的基本概念与平均查找长度",
+      "difficulty": "easy",
+      "count": 1,
+      "question_type": "choice"
+    },
+    {
+      "id": 62,
+      "code": "DS.SEARCH.BINARY",
+      "name": "折半查找",
+      "difficulty": "easy",
+      "count": 1,
+      "question_type": "choice"
+    },
+    {
+      "id": 63,
+      "code": "DS.SEARCH.BST",
+      "name": "二叉排序树",
+      "difficulty": "medium",
+      "count": 1,
+      "question_type": "choice"
+    }
+  ]
+}

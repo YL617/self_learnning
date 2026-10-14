@@ -1,0 +1,114 @@
+{
+  "generated_at": "2026-10-11T20:10:00+08:00",
+  "approved_at": "2026-10-11T20:26:00+08:00",
+  "stage": "M5 Step 5",
+  "purpose": "为生产现有 8 道题绑定 primary concept（题目↔知识点结构化关联），激活 答题→mastery 闭环",
+  "status": "APPROVED",
+  "approval": {
+    "D2_qkp_write": "APPROVED",
+    "D1_secondary": "NOT_DONE",
+    "D3_verify_answering": "APPROVED（测试账号；事后清理）",
+    "D4_backfill_history": "NOT_DONE",
+    "note": "8 条 primary concept 映射原样通过，不调整；不引入 secondary；不回填历史；不改算法/题面。"
+  },
+  "api": {
+    "method": "POST",
+    "path": "/api/v1/admin/questions/{question_id}/knowledge-points",
+    "auth": "管理员 token（uid=1）",
+    "body_schema": {
+      "knowledge_point_id": "int",
+      "role": "primary"
+    },
+    "note": "qkp 表无 note 列；source 由路由硬编码为 manual。回滚抓手=当前表为空+显式 pair 清单。"
+  },
+  "count": 8,
+  "rollback": {
+    "preferred": "DELETE /api/v1/questions/{question_id}/knowledge-points/{knowledge_point_id}（Bearer uid=1；管理员无 detach 端点，须用用户端 DELETE）",
+    "fallback": "DELETE FROM question_knowledge_points WHERE id IN (...)（绕过服务层，需单独批准）",
+    "baseline": "执行前 question_knowledge_points = 0 行"
+  },
+  "items": [
+    {
+      "seq": 1,
+      "question_id": 1,
+      "knowledge_point_id": 19,
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.BASIC",
+      "knowledge_point_name": "栈的定义与实现",
+      "role": "primary",
+      "memo": "链栈（带头结点单链表）入栈插入位置 → 栈的实现"
+    },
+    {
+      "seq": 2,
+      "question_id": 2,
+      "knowledge_point_id": 25,
+      "knowledge_point_code": "DS.STACKQUEUE.QUEUE.BASIC",
+      "knowledge_point_name": "队列的定义与实现",
+      "role": "primary",
+      "memo": "队列出队序列不可能项 → 队列 FIFO 基本性质"
+    },
+    {
+      "seq": 3,
+      "question_id": 3,
+      "knowledge_point_id": 26,
+      "knowledge_point_code": "DS.STACKQUEUE.QUEUE.CIRCULAR",
+      "knowledge_point_name": "循环队列",
+      "role": "primary",
+      "memo": "循环队列元素个数公式 (rear-front+cap)%cap"
+    },
+    {
+      "seq": 4,
+      "question_id": 4,
+      "knowledge_point_id": 22,
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.EXPRESSION",
+      "knowledge_point_name": "表达式求值",
+      "role": "primary",
+      "memo": "中缀转后缀（栈的经典应用）"
+    },
+    {
+      "seq": 5,
+      "question_id": 5,
+      "knowledge_point_id": 19,
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.BASIC",
+      "knowledge_point_name": "栈的定义与实现",
+      "role": "primary",
+      "memo": "出入栈序列与栈最大深度 → 栈的基本操作与性质"
+    },
+    {
+      "seq": 6,
+      "question_id": 6,
+      "knowledge_point_id": 19,
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.BASIC",
+      "knowledge_point_name": "栈的定义与实现",
+      "role": "primary",
+      "memo": "链栈出栈操作"
+    },
+    {
+      "seq": 7,
+      "question_id": 7,
+      "knowledge_point_id": 19,
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.BASIC",
+      "knowledge_point_name": "栈的定义与实现",
+      "role": "primary",
+      "memo": "链栈连续入栈后栈顶变化"
+    },
+    {
+      "seq": 8,
+      "question_id": 8,
+      "knowledge_point_id": 19,
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.BASIC",
+      "knowledge_point_name": "栈的定义与实现",
+      "role": "primary",
+      "memo": "链栈判空条件"
+    }
+  ],
+  "coverage": {
+    "distinct_knowledge_points": [19, 22, 25, 26],
+    "concept_total": 56,
+    "coverage_ratio": 0.0714
+  },
+  "excluded": {
+    "secondary": "本阶段不绑定 secondary（含 4 道链栈题到 单链表(13)），见审计报告 D1",
+    "difficulty": "未写 difficulty（题目 difficulty=NULL，effective 难度按 choice→easy 由 evaluation 解析）",
+    "question_content": "未修改任何题干/答案/解析"
+  }
+}
