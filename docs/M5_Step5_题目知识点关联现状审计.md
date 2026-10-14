@@ -127,7 +127,7 @@ user_knowledge_point_mastery 永远为 0
         ├─► 推荐 review_weak / practice 动作无法触发（mastery=0 无「薄弱」可复）
         ├─► 学习路径 step.satisfied = (mastery ≥ 70) 恒 False → 前置永远「未满足」
         └─► mastery/summary 恒为空
-  
+
 （对照事实：生产已有 4 条 answer_records，但 mastery = 0 —— 因为作答时 qkp 为空，提前 return 已发生。）
 ```
 

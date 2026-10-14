@@ -109,7 +109,7 @@
 | `GET /mastery/summary` | `{total:1, weak_count:1, average_score:42.0}` |
 | `user_knowledge_point_mastery` | kp19：`score=42, attempt=1, correct=0, streak=0, last_correct_at=NULL` |
 | `wrong_book_items` | 新增 1 条（Q1，`review_stage=1, review_count=0, mastered=0`） |
-| `coin_transactions` | 无 | 
+| `coin_transactions` | 无 |
 | `daily_stats` | 新建：`answered=1, correct=0, coins=0` |
 | `pets` | 新建：`exp=3` |
 

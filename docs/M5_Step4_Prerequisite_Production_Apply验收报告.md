@@ -1,7 +1,7 @@
 # M5 Step 4 · Prerequisite Production Apply 验收报告
 
-> 对象：生产 **ai-study**（https://yl617.xyz ｜ root@8.136.194.163 ｜ `/opt/ai-study`）  
-> 范围：将已人工审核通过的 **50 条**前置关系写入生产 `knowledge_point_prerequisites`（M5 首次写入影响学习逻辑的数据）。  
+> 对象：生产 **ai-study**（https://yl617.xyz ｜ root@8.136.194.163 ｜ `/opt/ai-study`）
+> 范围：将已人工审核通过的 **50 条**前置关系写入生产 `knowledge_point_prerequisites`（M5 首次写入影响学习逻辑的数据）。
 > 结论：**M5 STEP 4 PRODUCTION APPLY PASSED**
 
 ## 0. 预检（Step 0 · 只读）
