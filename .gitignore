@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .pytest_cache/
 .mypy_cache/
+.ptmp/
 *.egg-info/
 dist/
 build/
@@ -32,3 +33,7 @@ backend/vector_db/
 *.log
 .DS_Store
 Thumbs.db
+
+# 本地智能体记忆与 UI 验收截图
+.workbuddy/
+web/ui-*.png
