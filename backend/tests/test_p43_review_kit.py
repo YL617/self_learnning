@@ -13,6 +13,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import zipfile
@@ -332,6 +333,88 @@ def test_collect_clean_when_all_passing_approved(batch):
     assert approved["changed_fields"] == []
     assert approved["apply_hint"].startswith("submit_review")
     assert approved["final"]["stem"] == approved["original"]["stem"]
+
+
+def test_binary_tree_revision_preserves_original_and_blocks_unreviewed(tmp_path):
+    manifest_path = ROOT / "docs/M5.5_P4-3_题目供给清单_批1.json"
+    manifest = kit.load_manifest(manifest_path)
+    original_bytes = manifest_path.read_bytes()
+    checklist_path = build_checklist(tmp_path, manifest, manifest_path)
+    final_analysis = (
+        "正确答案为A。后序最后的A为根，中序以A分成CBD和GFE。"
+        "左子树后序CDB确定根B，C和D分别为其左右孩子，先序为BCD。"
+        "右子树根E，其左子树根F且F的左孩子为G，先序为EFG。"
+        "所以整树先序为A+BCD+EFG，即ABCDEFG，选择A；B、C、D的左子树顺序均错误。"
+    )
+    edit_rows(checklist_path, {"P43-01-018": {
+        kit.COL_ANSWER: "A",
+        kit.COL_ANALYSIS: final_analysis,
+        kit.COL_DECISION: kit.DECISION_REVISE,
+        kit.COL_NOTE: "AI 内容复核修订；非真人审核签字",
+    }})
+    result = run_collect(checklist_path, manifest_path)
+    record = next(row for row in result["decisions"] if row["question_id"] == "P43-01-018")
+    assert record["decision"] == "revise"
+    assert set(record["changed_fields"]) == {"answer", "analysis"}
+    assert record["original"]["answer"] == "C"
+    assert record["original"]["analysis"] != final_analysis
+    assert record["final"]["answer"] == "A"
+    assert record["final"]["options"][0] == "A. ABCDEFG"
+    assert record["final"]["analysis"] == final_analysis
+    assert record["ready_for_apply"] is True
+    assert record["revised_gate_check"]["passed"] is True
+    assert result["summary"]["unreviewed"] == 19
+    assert result["summary"]["blocking"] == 19
+    assert {error["code"] for error in result["errors"]} == {"E01"}
+    assert manifest_path.read_bytes() == original_bytes
+
+
+def test_batch1_ai_revision_v2_preserves_sources_and_review_barrier():
+    source = kit.load_manifest(ROOT / "docs/M5.5_P4-3_题目供给清单_批1.json")
+    path = ROOT / "docs/M5.5_P4-3.2_AI复核候选决定_批1_V2.json"
+    result = json.loads(path.read_text(encoding="utf-8"))
+    records = {row["question_id"]: row for row in result["decisions"]}
+    assert len(records) == 20
+    assert result["summary"]["revise"] == 13
+    assert result["summary"]["unreviewed"] == 7
+    assert result["summary"]["blocking"] == 7
+    assert result["summary"]["ready_for_apply"] == 13
+    assert len(result["errors"]) == 7
+    assert {error["code"] for error in result["errors"]} == {"E01"}
+    for original in source["questions"]:
+        row = records[original["question_id"]]
+        assert row["original"]["stem"] == original["stem"]
+        assert row["original"]["answer"] == original["answer"]
+        assert row["original"]["analysis"] == original["analysis"]
+        if row["decision"] == "revise":
+            assert row["changed_fields"] and row["revision_diff"]
+            assert "AI" in row["note"] and "非真人审核签字" in row["note"]
+            assert row["revised_gate_check"]["passed"] is True
+            assert not re.search(
+                rf"{row['final']['answer']}项(?:错误|不正确)", row["final"]["analysis"]
+            )
+        else:
+            assert row["decision"] is None
+            assert row["changed_fields"] == []
+            assert row["ready_for_apply"] is False
+
+
+@pytest.mark.parametrize("suffix, field, required, forbidden", [
+    ("010", "stem", "精确值", "约为"),
+    ("013", "stem", "不要求保持元素所在结点的地址身份", ""),
+    ("014", "options", "C. 计算线性表有效数据元素的个数时，必须将头结点计入", ""),
+    ("019", "stem", "将枢轴置于最终位置的分区法", "一定不具备"),
+    ("020", "stem", "不能保证对任意输入都稳定", "一定不能满足"),
+])
+def test_batch1_revision_semantic_scope_contract(suffix, field, required, forbidden):
+    """Checks reviewed artifact wording, not a general semantic correctness gate."""
+    path = ROOT / "docs/M5.5_P4-3.2_AI复核候选决定_批1_V2.json"
+    result = json.loads(path.read_text(encoding="utf-8"))
+    row = next(r for r in result["decisions"] if r["question_id"] == f"P43-01-{suffix}")
+    value = row["final"][field]
+    assert required in value
+    if forbidden:
+        assert forbidden not in value
 
 
 def test_collect_records_revision_diff(batch):

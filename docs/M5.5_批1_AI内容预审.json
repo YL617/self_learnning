@@ -1,0 +1,165 @@
+{
+  "task_id": "TASK-P43-BATCH1-AI-PRECHECK-001",
+  "date": "2026-10-17",
+  "baseline_commit": "d527192f63fac2e1a98b43dfaf2a650ea981258a",
+  "review_kind": "AI_PRECHECK_ONLY",
+  "notice": "AI预审不能替代人工审核。本文件不是审核决定，不含发布授权。正确候选仅表示本轮未发现明确缺陷，不保证无错误。",
+  "manifest_sha256": "1EA3E486A644E46956B4BE309AC9880BAB1AF51539F3CE3591ACF9918DB33599",
+  "checklist_sha256": "25E4C503B4B8136F4ABD43980BCC7BA754A1BF6A38EBB0368357ADA272D45042",
+  "categories": {"correct_candidate": 7, "confirmed_defect": 7, "needs_clarification": 5, "ai_revision_recorded": 1},
+  "classification_rule": "每题一个主类别；同题可同时有解析错误和题干歧义，细节见risks。confirmed_defect计未修订题，018单列已修订。",
+  "questions": [
+    {
+      "question_id": "P43-01-001", "category": "needs_clarification", "independent_answer": "C under stated assumptions", "risk_level": "medium",
+      "reasoning": "无自环、无重边的无权无向图中，每条边{u,v}对应A[u,v]与A[v,u]两个1，所以恰有2e个非零项。A=n+e、B=e、D=n²-e均不能一般成立，例如3点1边时非零项为2。",
+      "risks": "题干仅写无向图。自环若对角线记1则贡献1而非2；权图的零权边也破坏非零项计数。通常一词未明示约定。",
+      "suggested_revision": "明确为不含自环与重边的无权无向图，矩阵用1表示边、0表示无边。",
+      "human_judgment": "确认课程是否已统一简单无权图约定；easy难度合适。"
+    },
+    {
+      "question_id": "P43-01-002", "category": "correct_candidate", "independent_answer": "D", "risk_level": "low",
+      "reasoning": "常规出边邻接表按源顶点分组，顶点v的入度需要全表累计。逆邻接表按终点分组，其v链长度即indegree(v)。A矩阵扫描列需O(n)，额外空间O(n²)；B栈无关系；C按编号排序仍不能直接把各终点入边分组。D是给定选项中合理改进。",
+      "risks": "一次统计所有入度本可O(n+e)完成；额外入度计数器比逆邻接表更轻量，但不在选项中。不能宣传逆邻接表统计为无条件O(1)。",
+      "suggested_revision": "可说明用于多次查询入边或入度，避免将一次性统计描述得过度低效。",
+      "human_judgment": "medium可接受；确认仅在给定选项内比较。"
+    },
+    {
+      "question_id": "P43-01-003", "category": "correct_candidate", "independent_answer": "A", "risk_level": "low",
+      "reasoning": "矩阵查A[u,v]一次索引为O(1)。普通无序邻接链表需要扫描u的出边。无向图邻接表每边通常两项，B错误；矩阵O(n²)适合稠密图、邻接表O(n+e)适合稀疏图，C反向；D遗漏邻接表的边项且误述矩阵依赖。",
+      "risks": "最坏O(n)默认简单图；若允许多重边则应记O(deg(u))。哈希邻接集合不属本题普通链表约定。",
+      "suggested_revision": "解析优先写O(deg(u))，简单图下为O(n)。",
+      "human_judgment": "medium合理，需确认普通邻接表定义。"
+    },
+    {
+      "question_id": "P43-01-004", "category": "confirmed_defect", "independent_answer": "B", "risk_level": "high",
+      "reasoning": "二叉树每结点最多两个有位置区分的子树槽。单根反例否定A，单孩子反例否定D。度为2的普通有序树最大结点度为2，但单孩子没有固定左槽/右槽语义，因此C不是定义等价。",
+      "risks": "解析声称度为2的有序树并不要求每结点至多两子树，违背树的度等于最大结点度的定义。答案B正确不能抵消解释错误。",
+      "suggested_revision": "删除错误的度定义，改以唯一孩子是否明确为左/右孩子说明普通有序树与二叉树的区别。",
+      "human_judgment": "确认教材对二叉树与有序树的术语约定；easy合理。"
+    },
+    {
+      "question_id": "P43-01-005", "category": "confirmed_defect", "independent_answer": "B", "risk_level": "high",
+      "reasoning": "非空树有N-1条边，N=n0+n1+n2，又有边数n1+2n2，消去得n0=n2+1。单根树n0=1,n2=0也满足B并否定A/C/D。",
+      "risks": "解析先判B正确，随后说B、C、D均不符合，直接矛盾。",
+      "suggested_revision": "错误选项应为A、C、D，保留计数推导。",
+      "human_judgment": "公式推导题可定easy或medium，需与课程难度口径一致。"
+    },
+    {
+      "question_id": "P43-01-006", "category": "correct_candidate", "independent_answer": "B", "risk_level": "low",
+      "reasoning": "令叶子数x，N=x+5+10，边数5+2×10=25=N-1，得到x=11。A=9、C=15、D=10均不满足边数等式。总数26、边25可交叉验算。",
+      "risks": "未发现明确内容错误；直接代入同一公式，与005考点高度接近。",
+      "suggested_revision": "后续覆盖统计应识别005/006为相近能力，不把题数当作不同能力覆盖。",
+      "human_judgment": "medium可能偏高，建议按实际测试用户结果校准。"
+    },
+    {
+      "question_id": "P43-01-007", "category": "confirmed_defect", "independent_answer": "A", "risk_level": "high",
+      "reasoning": "线性序列内部元素只有一个直接前驱和后继，符合A。链式实现是B的反例，插入/删除改变长度否定C；逻辑结构与物理字节布局分层，D不能作为线性表的必要定义。",
+      "risks": "解析说A错误时实际解释D，又以C错误解释B、D错误解释C。答案后仍给出相反字母标注。关于顺序表可变空间的插入说明也易误导固定步长实现。",
+      "suggested_revision": "重写B/C/D逐项解释，不只替换首个答案字母；去掉混淆顺序表固定大小槽位的举例。",
+      "human_judgment": "明确课程所用同类数据元素定义，easy合理。"
+    },
+    {
+      "question_id": "P43-01-008", "category": "confirmed_defect", "independent_answer": "D", "risk_level": "high",
+      "reasoning": "插入位置i后原来i至n共n-i+1项后移，i=1需n项，i=n+1需0项。A=n-i是删除移动数，B=n-i-1在尾插时为-2不可能，C=i在尾插时也不为0。",
+      "risks": "解析说A、B、D均不正确，错误包含正确D；又声称B的n-i，但n-i实际属于A。",
+      "suggested_revision": "错误列表改A/B/C，删除公式的对照引用改A。",
+      "human_judgment": "medium可接受，建议保留首尾边界示例。"
+    },
+    {
+      "question_id": "P43-01-009", "category": "confirmed_defect", "independent_answer": "C", "risk_level": "high",
+      "reasoning": "常规单链表第k元素需逐链O(k)；已知操作位置及必要前驱时插入删除只改少量链接。A的连续预分配不是链表要求，B忽略链接域降低存储密度，D的随机存取错误。",
+      "risks": "解析A错误的解释对应D，C错误的解释对应B，D错误的解释对应A。另需说明定位成本，不能将所有链表删除统称O(1)。",
+      "suggested_revision": "重写A/B/D解释，并说明已知前驱位置后的链接修改才为O(1)。",
+      "human_judgment": "medium合理，确认题干插入删除方便只是定性比较。"
+    },
+    {
+      "question_id": "P43-01-010", "category": "needs_clarification", "independent_answer": "A", "risk_level": "low",
+      "reasoning": "n+1个等概率插入位置的移动数为n,n-1,...,0，和为n(n+1)/2，除n+1即n/2。n=5时(5+4+3+2+1+0)/6=2.5。删除平均移动数为(n-1)/2。",
+      "risks": "题干写约为使D=(n+1)/2也渐近近似n/2，单选精度不够明确。解析D常与删除平均值混淆可能让人误记删除公式。",
+      "suggested_revision": "删去约为，要求精确期望值；D解释直接说明与精确n/2相差1/2。",
+      "human_judgment": "medium合理；需要教师确认近似措辞是否应阻断。"
+    },
+    {
+      "question_id": "P43-01-011", "category": "correct_candidate", "independent_answer": "D", "risk_level": "low",
+      "reasoning": "固定大小元素的顺序表地址为base+(i-1)×size，故D为O(1)。A与连续存储定义相反；分配新连续块再拷贝否定B；头插必须移动n项否定C。",
+      "risks": "解析称插删效率低于链表缺少定位前提：链表先找前驱仍可能O(n)。这是适用条件提示，未推翻D。",
+      "suggested_revision": "把比较限定为已知位置、前驱且不计定位成本。",
+      "human_judgment": "easy合理，需确认元素固定步长约定。"
+    },
+    {
+      "question_id": "P43-01-012", "category": "correct_candidate", "independent_answer": "D", "risk_level": "low",
+      "reasoning": "删第4项后把原第5,6,7,8,9,10项前移，共6项，10-4=6。A=7多算被删项，B=4是位置而非计数，C=5少算一项。",
+      "risks": "未发现明确内容错误；与008、010相同顺序移动能力，难度medium可能偏高。",
+      "suggested_revision": "按课程基础训练定easy或以数据校准。",
+      "human_judgment": "难度为产品判断，不能由AI预审最终确定。"
+    },
+    {
+      "question_id": "P43-01-013", "category": "needs_clarification", "independent_answer": "B for logical insertion only", "risk_level": "high",
+      "reasoning": "原链q→p(x)→t，新结点s(y)。B先得q→p(x)→s(y)→t，交换后为q→p(y)→s(x)→t，值序列y,x正确，但s地址仍在p之后。A使p与s成环并丢失原后继；C确实把s放p之前但找前驱O(n)；D使s自环。",
+      "risks": "题干要求新结点s在p之前，B只满足值序列等价，不满足结点身份；复制/交换复杂数据也未必O(1)。解析A/C解释互换：A并没有遍历，C也没有丢后继。",
+      "suggested_revision": "题干改为在p所存元素之前逻辑插入新元素，允许交换固定大小数据域且不要求保持结点身份；同时重写A/C解释。若必须物理插入s，则现有选项无O(1)正确解。",
+      "human_judgment": "必须明确身份语义和数据域交换成本，不能直接签署B正确。"
+    },
+    {
+      "question_id": "P43-01-014", "category": "confirmed_defect", "independent_answer": "A intended; C wording ambiguous", "risk_level": "high",
+      "reasoning": "头结点h恒在首元素之前，头插/删首元素都改h.next，因此A成立且D错误。h.data可不用，否定B的一定存长度。C确实会多一个结点，却把结点空间说成数据元素空间，不能仅以它不属于有效元素就否定物理空间开销。",
+      "risks": "解析写A错误但解释B，B错误但解释D，D表述不严谨却讨论C。C也可能按相同结构结点空间理解而被判真。",
+      "suggested_revision": "重写解析映射；将C改成明确错误命题，如头结点计入线性表有效数据元素个数。",
+      "human_judgment": "确认C是否多解，修订前不建议发布；easy合理。"
+    },
+    {
+      "question_id": "P43-01-015", "category": "correct_candidate", "independent_answer": "C", "risk_level": "low",
+      "reasoning": "逐步栈为[]→[1]→[1,2]→[1]→[1,3]→[1,3,4]→[1,3,4,5]；top为-1,0,1,0,1,2,3，最大占用4不超过容量5。A保留了被pop的2；B丢失1；D反向。",
+      "risks": "未发现明确错误。top先增后存属于该top=-1的约定，不是所有栈实现的必然规定。",
+      "suggested_revision": "可以保留该题，教学说明限定当前top约定。",
+      "human_judgment": "medium可能偏高，建议easy或按学习数据校准。"
+    },
+    {
+      "question_id": "P43-01-016", "category": "correct_candidate", "independent_answer": "C", "risk_level": "low",
+      "reasoning": "无头结点链栈push设置s.next=top,top=s；pop保存top并更新top=top.next，常数指针修改。A尾删需找前驱；B把不满与非空混淆；D不带头结点的实现是其反例。",
+      "risks": "有限内存仍会分配失败，链栈不存在栈满是教材简化，解析中一般二字部分缓解。",
+      "suggested_revision": "补充不受固定容量限制但仍需处理内存分配失败。",
+      "human_judgment": "medium可接受，非内容缺陷最终认证。"
+    },
+    {
+      "question_id": "P43-01-017", "category": "confirmed_defect", "independent_answer": "A", "risk_level": "medium",
+      "reasoning": "先序根A，中序DBE|A|FC。左先序BDE、中序D|B|E得左后序DEB；右先序CF、中序F|C得右后序FC；整体DEB+FC+A=DEBFCA。B将左后序写DBE，C写EDB，D将右后序写CF，均不合。",
+      "risks": "解析错误选项写D、C、D重复且漏B；末尾提右子树只有一个结点，而A右子树实际有C与F两个。",
+      "suggested_revision": "错误选项改B/C/D并逐项解释；将一个结点表述限定为C的左子树只有F。",
+      "human_judgment": "medium合理；答案正确但解析必须修订。"
+    },
+    {
+      "question_id": "P43-01-018", "category": "ai_revision_recorded", "independent_answer": "A", "risk_level": "high",
+      "reasoning": "后序末A分出左CBD/右GFE；左后序CDB得根B、左C右D，先序BCD；右后序GFE得根E、左子树中序GF后序GF，根F左G，先序EFG；合并ABCDEFG。",
+      "risks": "原manifest答案C及解析均错，必须保持原始证据。审核清单final已修订A且解析自洽，TASK-P43-018-REV1获AI独立复验PASS，尚非真人签字。",
+      "suggested_revision": "保留现有修订diff，后续真人审核仅基于final内容作责任确认。",
+      "human_judgment": "最终责任审核尚未完成；medium合理。"
+    },
+    {
+      "question_id": "P43-01-019", "category": "needs_clarification", "independent_answer": "D under textbook pass conventions", "risk_level": "medium",
+      "reasoning": "插入排序反例[3,2,1]第一趟为[2,3,1]，与最终[1,2,3]逐位置均不相同，所以不保证每趟有元素就位。选择排序固定最小值、冒泡固定极值。Lomuto或枢轴最终定位式快排固定枢轴，但Hoare分区只保证左右分区，未必固定枢轴位置。",
+      "risks": "一定不具备混淆对所有输入无保证与每次一定失败；快排未限定分区实现，解析把所有快排分区都说成枢轴到最终位置。",
+      "suggested_revision": "问哪种算法不保证每趟至少一个元素到达最终位置；明确快排采用将枢轴定位的教材分区法。",
+      "human_judgment": "确认课程实现约定，medium合理；未限定前不可作严格普遍命题。"
+    },
+    {
+      "question_id": "P43-01-020", "category": "needs_clarification", "independent_answer": "B for cannot guarantee stability, not necessarily fails on this input", "risk_level": "high",
+      "reasoning": "对标识为5a、5b的输入[5a,3,5b,2]，常规最大堆、相等停止下沉可得[2,3,5b,5a]；允许相等时向右孩子下沉的另一合法堆排序可得[2,3,5a,5b]。两者都按关键字正确排序，因此一定不能保序不成立。常规稳定实现的冒泡仅大于时交换、插入仅大于时后移、归并相等取左，才能保证保序。",
+      "risks": "不稳定是存在反例，不是每个具体输入都逆序。当前题干未规定实现，B不是一定失败的普遍真命题；归并等算法稳定性也依赖相等处理。",
+      "suggested_revision": "改问采用通常实现、要求对任意输入保证相等关键字相对次序，哪种算法不能保证稳定性；去掉具体输入的一定不能措辞。",
+      "human_judgment": "题干须修订；easy可用于稳定性分类，当前歧义不应靠难度解释。"
+    }
+  ],
+  "independent_checks": {
+    "017": {"preorder": "ABDECF", "inorder": "DBEAFC", "computed_postorder": "DEBFCA"},
+    "018": {"postorder": "CDBGFEA", "inorder": "CBDAGFE", "computed_preorder": "ABCDEFG"},
+    "019": {"input": [3, 2, 1], "after_first_insertion_pass": [2, 3, 1], "sorted": [1, 2, 3], "positions_already_final": 0},
+    "020": {"input_labels": ["5a", "3", "5b", "2"], "heap_equal_stop_result": ["2", "3", "5b", "5a"], "heap_equal_descend_right_result": ["2", "3", "5a", "5b"], "both_valid_sorted_outputs": true}
+  },
+  "sources": [
+    {"title": "OpenDSA Binary Trees", "url": "https://opendsa-server.cs.vt.edu/ODSA/StandaloneModules/20251119180353/html/BinaryTreeIntro.html", "use": "教材主题与术语核查入口，具体答案以本报告推导为准"},
+    {"title": "Open Data Structures, Pat Morin", "url": "https://opendatastructures.org/ods-cpp.pdf", "use": "算法实现参考，稳定性结论需绑定具体相等关键字处理；本轮未逐页校核PDF，不作为逐题证明"}
+  ],
+  "unknowns": ["真人责任审核尚未执行", "课程对简单图、数据域身份与快排分区的统一约定未知", "实际学习者难度分布与推荐收益未知", "AI预审可能漏检"],
+  "mutations": "仅新增本报告；本任务未修改清单、候选决定、manifest、raw、archive或生产数据库。"
+}

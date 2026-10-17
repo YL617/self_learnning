@@ -1,0 +1,1253 @@
+{
+  "schema_version": "p4-3.2",
+  "tool": "p43_review_kit",
+  "collected_at": "2026-10-17T05:36:05+00:00",
+  "subject": "数据结构",
+  "batch": 1,
+  "manifest": {
+    "schema_version": "p4-3.1",
+    "generated_at": "2026-10-14T07:26:58+00:00",
+    "file": "M5.5_P4-3_题目供给清单_批1.json",
+    "sha256": "1ea3e486a644e46956b4be309ac9880bab1af51539f3ce3591acf9918db33599",
+    "recorded_sha256": "1ea3e486a644e46956b4be309ac9880bab1af51539f3ce3591acf9918db33599"
+  },
+  "checklist": {
+    "file": "M5.5_P4-3.2_审核清单_批1.xlsx"
+  },
+  "summary": {
+    "questions": 20,
+    "expected": 20,
+    "approve": 0,
+    "revise": 1,
+    "reject": 0,
+    "defer": 0,
+    "unreviewed": 19,
+    "ready_for_apply": 1,
+    "blocking": 19,
+    "warnings": 0
+  },
+  "decisions": [
+    {
+      "question_id": "P43-01-001",
+      "sheet_row": 2,
+      "knowledge_point_name": "图的存储结构",
+      "knowledge_point_code": "DS.GRAPH.STORAGE",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "对于一个含有 n 个顶点、e 条边的无向图，若采用邻接矩阵存储，则矩阵中非零元素的个数通常为（ ）。",
+        "options": [
+          "A. n+e",
+          "B. e",
+          "C. 2e",
+          "D. n^2-e"
+        ],
+        "answer": "C",
+        "analysis": "无向图的邻接矩阵关于主对角线对称，每条边会在矩阵中对应两个非零元素，因此非零元素个数为 2e。B 项只考虑了每条边一个元素，忽略了无向图的对称性；A 项和 D 项均不符合邻接矩阵中边与元素个数的对应关系。常见易错点是混淆有向图与无向图的邻接矩阵非零元素个数。复习建议：掌握邻接矩阵的空间复杂度 O(n^2) 以及无向图、有向图、带权图在矩阵中的表示差异。",
+        "difficulty": "easy"
+      },
+      "original": {
+        "stem": "对于一个含有 n 个顶点、e 条边的无向图，若采用邻接矩阵存储，则矩阵中非零元素的个数通常为（ ）。",
+        "options": [
+          "A. n+e",
+          "B. e",
+          "C. 2e",
+          "D. n^2-e"
+        ],
+        "answer": "C",
+        "analysis": "无向图的邻接矩阵关于主对角线对称，每条边会在矩阵中对应两个非零元素，因此非零元素个数为 2e。B 项只考虑了每条边一个元素，忽略了无向图的对称性；A 项和 D 项均不符合邻接矩阵中边与元素个数的对应关系。常见易错点是混淆有向图与无向图的邻接矩阵非零元素个数。复习建议：掌握邻接矩阵的空间复杂度 O(n^2) 以及无向图、有向图、带权图在矩阵中的表示差异。",
+        "difficulty": "easy"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 2,
+          "question_id": "P43-01-001",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-002",
+      "sheet_row": 3,
+      "knowledge_point_name": "图的存储结构",
+      "knowledge_point_code": "DS.GRAPH.STORAGE",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "采用邻接表存储有向图时，若要高效统计每个顶点的入度，最合适的改进方式是（ ）。",
+        "options": [
+          "A. 将邻接表改为邻接矩阵",
+          "B. 增加一个栈保存所有顶点",
+          "C. 将边表结点按顶点编号排序",
+          "D. 额外建立逆邻接表"
+        ],
+        "answer": "D",
+        "analysis": "邻接表便于统计出度，因为每个顶点的边表记录了它指向的邻接点；但统计入度需要遍历整个邻接表。建立逆邻接表后，每个顶点的边表记录的是指向该顶点的边，因此可以高效统计入度。A 项邻接矩阵虽然也能统计入度，但空间开销大且并非针对邻接表的改进；C 项排序不能直接得到入度；B 项栈与入度统计无关。常见易错点是把邻接表和逆邻接表的功能混淆。复习建议：理解邻接表、逆邻接表、十字链表和邻接多重表的适用场景。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "采用邻接表存储有向图时，若要高效统计每个顶点的入度，最合适的改进方式是（ ）。",
+        "options": [
+          "A. 将邻接表改为邻接矩阵",
+          "B. 增加一个栈保存所有顶点",
+          "C. 将边表结点按顶点编号排序",
+          "D. 额外建立逆邻接表"
+        ],
+        "answer": "D",
+        "analysis": "邻接表便于统计出度，因为每个顶点的边表记录了它指向的邻接点；但统计入度需要遍历整个邻接表。建立逆邻接表后，每个顶点的边表记录的是指向该顶点的边，因此可以高效统计入度。A 项邻接矩阵虽然也能统计入度，但空间开销大且并非针对邻接表的改进；C 项排序不能直接得到入度；B 项栈与入度统计无关。常见易错点是把邻接表和逆邻接表的功能混淆。复习建议：理解邻接表、逆邻接表、十字链表和邻接多重表的适用场景。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 3,
+          "question_id": "P43-01-002",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-003",
+      "sheet_row": 4,
+      "knowledge_point_name": "图的存储结构",
+      "knowledge_point_code": "DS.GRAPH.STORAGE",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "关于图的存储结构，下列说法正确的是（ ）。",
+        "options": [
+          "A. 邻接矩阵判断任意两顶点间是否有边的时间复杂度为 O(1)，邻接表通常需要遍历边表",
+          "B. 邻接表存储无向图时，每条边只需存储一次",
+          "C. 邻接矩阵适合存储稀疏图，邻接表适合存储稠密图",
+          "D. 邻接矩阵的空间复杂度与边数有关，邻接表的空间复杂度与顶点数有关"
+        ],
+        "answer": "A",
+        "analysis": "邻接矩阵可以直接通过下标访问判断两顶点之间是否有边，时间复杂度为 O(1)；邻接表需要遍历对应顶点的边表，最坏为 O(n)。C 项说反了，邻接矩阵更适合稠密图，邻接表更适合稀疏图；D 项错误，邻接矩阵空间复杂度为 O(n^2)，与边数无关，邻接表空间复杂度为 O(n+e)，与顶点数和边数都有关；B 项错误，无向图的每条边在邻接表中通常存储两次。常见易错点是混淆两种存储结构的适用场景和复杂度。复习建议：从空间、判断边、遍历邻接点等角度对比邻接矩阵和邻接表。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "关于图的存储结构，下列说法正确的是（ ）。",
+        "options": [
+          "A. 邻接矩阵判断任意两顶点间是否有边的时间复杂度为 O(1)，邻接表通常需要遍历边表",
+          "B. 邻接表存储无向图时，每条边只需存储一次",
+          "C. 邻接矩阵适合存储稀疏图，邻接表适合存储稠密图",
+          "D. 邻接矩阵的空间复杂度与边数有关，邻接表的空间复杂度与顶点数有关"
+        ],
+        "answer": "A",
+        "analysis": "邻接矩阵可以直接通过下标访问判断两顶点之间是否有边，时间复杂度为 O(1)；邻接表需要遍历对应顶点的边表，最坏为 O(n)。C 项说反了，邻接矩阵更适合稠密图，邻接表更适合稀疏图；D 项错误，邻接矩阵空间复杂度为 O(n^2)，与边数无关，邻接表空间复杂度为 O(n+e)，与顶点数和边数都有关；B 项错误，无向图的每条边在邻接表中通常存储两次。常见易错点是混淆两种存储结构的适用场景和复杂度。复习建议：从空间、判断边、遍历邻接点等角度对比邻接矩阵和邻接表。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 4,
+          "question_id": "P43-01-003",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-004",
+      "sheet_row": 5,
+      "knowledge_point_name": "二叉树的定义与性质",
+      "knowledge_point_code": "DS.TREE.BINARY.BASIC",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "下列关于二叉树的叙述中，正确的是（ ）。",
+        "options": [
+          "A. 二叉树中至少有一个结点的度为2",
+          "B. 二叉树中每个结点至多有两棵子树，且子树有左右之分",
+          "C. 度为2的有序树就是二叉树",
+          "D. 二叉树中任意结点的度只能为0或2"
+        ],
+        "answer": "B",
+        "analysis": "正确答案为B。二叉树的定义强调每个结点至多有两棵子树，并且左、右子树严格区分，次序不能颠倒。C项错误，度为2的有序树并不要求每个结点至多两棵子树，也不一定区分左右空子树，与二叉树定义不同。A项错误，二叉树可以只有一个根结点，所有结点的度都为0。D项错误，二叉树中允许存在度为1的结点。常见易错点是把普通有序树与二叉树混为一谈，忽略左右子树的有序性。复习时应紧扣二叉树的递归定义，并注意与度为2的树进行对比。",
+        "difficulty": "easy"
+      },
+      "original": {
+        "stem": "下列关于二叉树的叙述中，正确的是（ ）。",
+        "options": [
+          "A. 二叉树中至少有一个结点的度为2",
+          "B. 二叉树中每个结点至多有两棵子树，且子树有左右之分",
+          "C. 度为2的有序树就是二叉树",
+          "D. 二叉树中任意结点的度只能为0或2"
+        ],
+        "answer": "B",
+        "analysis": "正确答案为B。二叉树的定义强调每个结点至多有两棵子树，并且左、右子树严格区分，次序不能颠倒。C项错误，度为2的有序树并不要求每个结点至多两棵子树，也不一定区分左右空子树，与二叉树定义不同。A项错误，二叉树可以只有一个根结点，所有结点的度都为0。D项错误，二叉树中允许存在度为1的结点。常见易错点是把普通有序树与二叉树混为一谈，忽略左右子树的有序性。复习时应紧扣二叉树的递归定义，并注意与度为2的树进行对比。",
+        "difficulty": "easy"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 5,
+          "question_id": "P43-01-004",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-005",
+      "sheet_row": 6,
+      "knowledge_point_name": "二叉树的定义与性质",
+      "knowledge_point_code": "DS.TREE.BINARY.BASIC",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "一棵非空二叉树中，叶子结点数为n0，度为2的结点数为n2，则下列关系成立的是（ ）。",
+        "options": [
+          "A. n0 = n2 - 1",
+          "B. n0 = n2 + 1",
+          "C. n0 = n2",
+          "D. n0 = 2n2 + 1"
+        ],
+        "answer": "B",
+        "analysis": "正确答案为B。设二叉树结点总数为n，边数为e，则n = n0 + n1 + n2，且除根外每个结点对应一条入边，所以e = n - 1。又因为边数等于各结点度数之和，即e = n1 + 2n2，联立可得n0 = n2 + 1。B、C、D均不符合推导结果。常见易错点是把完全二叉树或满二叉树的性质误用到一般二叉树，或忽略度为1的结点对边数的贡献。复习时建议掌握结点数、边数与度数之间的计数关系，并会用该关系推导叶子结点公式。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "一棵非空二叉树中，叶子结点数为n0，度为2的结点数为n2，则下列关系成立的是（ ）。",
+        "options": [
+          "A. n0 = n2 - 1",
+          "B. n0 = n2 + 1",
+          "C. n0 = n2",
+          "D. n0 = 2n2 + 1"
+        ],
+        "answer": "B",
+        "analysis": "正确答案为B。设二叉树结点总数为n，边数为e，则n = n0 + n1 + n2，且除根外每个结点对应一条入边，所以e = n - 1。又因为边数等于各结点度数之和，即e = n1 + 2n2，联立可得n0 = n2 + 1。B、C、D均不符合推导结果。常见易错点是把完全二叉树或满二叉树的性质误用到一般二叉树，或忽略度为1的结点对边数的贡献。复习时建议掌握结点数、边数与度数之间的计数关系，并会用该关系推导叶子结点公式。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 6,
+          "question_id": "P43-01-005",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-006",
+      "sheet_row": 7,
+      "knowledge_point_name": "二叉树的定义与性质",
+      "knowledge_point_code": "DS.TREE.BINARY.BASIC",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "若一棵二叉树有10个度为2的结点，5个度为1的结点，则该二叉树的叶子结点个数为（ ）。",
+        "options": [
+          "A. 9",
+          "B. 11",
+          "C. 15",
+          "D. 10"
+        ],
+        "answer": "B",
+        "analysis": "正确答案为B。根据二叉树性质，叶子结点数n0与度为2的结点数n2满足n0 = n2 + 1。题中n2 = 10，因此n0 = 11。度为1的结点数5不影响叶子结点数的计算，只影响结点总数。A项误用n2 - 1，D项误认为叶子数等于度为2的结点数，C项把度为1的结点也计入。常见易错点是看到多个条件后乱用公式，或把总结点数与叶子结点数混淆。复习时应熟记n0 = n2 + 1，并明确该公式对任意非空二叉树都成立。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "若一棵二叉树有10个度为2的结点，5个度为1的结点，则该二叉树的叶子结点个数为（ ）。",
+        "options": [
+          "A. 9",
+          "B. 11",
+          "C. 15",
+          "D. 10"
+        ],
+        "answer": "B",
+        "analysis": "正确答案为B。根据二叉树性质，叶子结点数n0与度为2的结点数n2满足n0 = n2 + 1。题中n2 = 10，因此n0 = 11。度为1的结点数5不影响叶子结点数的计算，只影响结点总数。A项误用n2 - 1，D项误认为叶子数等于度为2的结点数，C项把度为1的结点也计入。常见易错点是看到多个条件后乱用公式，或把总结点数与叶子结点数混淆。复习时应熟记n0 = n2 + 1，并明确该公式对任意非空二叉树都成立。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 7,
+          "question_id": "P43-01-006",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-007",
+      "sheet_row": 8,
+      "knowledge_point_name": "线性表的定义与基本操作",
+      "knowledge_point_code": "DS.LINEAR.CONCEPT",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "下列关于线性表的叙述中，正确的是（ ）。",
+        "options": [
+          "A. 线性表中的元素之间是一对一的逻辑关系，除首尾元素外每个元素都有唯一前驱和唯一后继",
+          "B. 线性表只能采用顺序存储结构，不能采用链式存储结构",
+          "C. 线性表的长度一旦确定就不能再改变",
+          "D. 线性表中每个元素都必须占用相同大小的存储空间，否则不能称为线性表"
+        ],
+        "answer": "A",
+        "analysis": "正确答案是A。线性表是由n个数据元素组成的有限序列，其逻辑特征是元素之间为一对一关系，除第一个元素外每个元素有且仅有一个直接前驱，除最后一个元素外每个元素有且仅有一个直接后继。A错误，线性表只要求元素属于同一数据对象，并不要求各元素占用空间完全相同，例如顺序表中元素类型相同但逻辑上并不强制存储空间大小一致这一说法本身表述不当。C错误，线性表是逻辑结构，既可用顺序存储也可用链式存储。D错误，线性表长度可以动态变化，插入删除操作会改变表长。常见易错点是把逻辑结构与存储结构混为一谈，复习时应区分线性表的逻辑定义与两种实现方式。",
+        "difficulty": "easy"
+      },
+      "original": {
+        "stem": "下列关于线性表的叙述中，正确的是（ ）。",
+        "options": [
+          "A. 线性表中的元素之间是一对一的逻辑关系，除首尾元素外每个元素都有唯一前驱和唯一后继",
+          "B. 线性表只能采用顺序存储结构，不能采用链式存储结构",
+          "C. 线性表的长度一旦确定就不能再改变",
+          "D. 线性表中每个元素都必须占用相同大小的存储空间，否则不能称为线性表"
+        ],
+        "answer": "A",
+        "analysis": "正确答案是A。线性表是由n个数据元素组成的有限序列，其逻辑特征是元素之间为一对一关系，除第一个元素外每个元素有且仅有一个直接前驱，除最后一个元素外每个元素有且仅有一个直接后继。A错误，线性表只要求元素属于同一数据对象，并不要求各元素占用空间完全相同，例如顺序表中元素类型相同但逻辑上并不强制存储空间大小一致这一说法本身表述不当。C错误，线性表是逻辑结构，既可用顺序存储也可用链式存储。D错误，线性表长度可以动态变化，插入删除操作会改变表长。常见易错点是把逻辑结构与存储结构混为一谈，复习时应区分线性表的逻辑定义与两种实现方式。",
+        "difficulty": "easy"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 8,
+          "question_id": "P43-01-007",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-008",
+      "sheet_row": 9,
+      "knowledge_point_name": "线性表的定义与基本操作",
+      "knowledge_point_code": "DS.LINEAR.CONCEPT",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "在一个长度为n的顺序存储线性表中，若要在第i个位置（1≤i≤n+1）插入一个新元素，需要向后移动元素的个数为（ ）。",
+        "options": [
+          "A. n-i",
+          "B. n-i-1",
+          "C. i",
+          "D. n-i+1"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是D。顺序表在第i个位置插入元素时，原第i个到第n个元素都要后移一位，共移动n-i+1个元素。当i=n+1时表示在表尾插入，移动0个元素，代入公式得n-(n+1)+1=0，符合实际。A、B、D均不正确，其中B的n-i是删除第i个元素时需要移动的元素个数，容易与插入混淆。常见易错点在于插入与删除的移动次数公式记反，以及忽略表尾插入和表头插入这两种边界情况。复习建议是结合具体例子（如n=5，i=1和i=6）逐一验证公式，并区分插入与删除的移动规律。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "在一个长度为n的顺序存储线性表中，若要在第i个位置（1≤i≤n+1）插入一个新元素，需要向后移动元素的个数为（ ）。",
+        "options": [
+          "A. n-i",
+          "B. n-i-1",
+          "C. i",
+          "D. n-i+1"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是D。顺序表在第i个位置插入元素时，原第i个到第n个元素都要后移一位，共移动n-i+1个元素。当i=n+1时表示在表尾插入，移动0个元素，代入公式得n-(n+1)+1=0，符合实际。A、B、D均不正确，其中B的n-i是删除第i个元素时需要移动的元素个数，容易与插入混淆。常见易错点在于插入与删除的移动次数公式记反，以及忽略表尾插入和表头插入这两种边界情况。复习建议是结合具体例子（如n=5，i=1和i=6）逐一验证公式，并区分插入与删除的移动规律。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 9,
+          "question_id": "P43-01-008",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-009",
+      "sheet_row": 10,
+      "knowledge_point_name": "线性表的定义与基本操作",
+      "knowledge_point_code": "DS.LINEAR.CONCEPT",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "对于采用链式存储的线性表，与顺序存储相比，下列描述正确的是（ ）。",
+        "options": [
+          "A. 必须预先分配固定大小的连续存储空间",
+          "B. 存储密度高于顺序表，因此更节省空间",
+          "C. 不能随机存取，查找第k个元素需从头指针开始顺序访问，但插入删除方便",
+          "D. 可以随机存取表中任意元素，且插入删除不需要移动元素"
+        ],
+        "answer": "C",
+        "analysis": "正确答案是C。链式存储的线性表通过指针链接结点，访问第k个元素必须从表头开始沿指针逐个查找，属于顺序存取，不能随机存取；但插入删除只需修改指针，不需移动大量元素。A错误，链式存储不具备随机存取特性。C错误，链式存储每个结点需额外存储指针域，存储密度低于顺序表。D错误，链式存储不要求连续空间，也无需预先分配固定大小。常见易错点是误认为链表也能随机访问，或混淆存储密度与空间利用率。复习时应重点比较顺序表与链表在存取方式、插入删除效率、空间开销上的差异。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "对于采用链式存储的线性表，与顺序存储相比，下列描述正确的是（ ）。",
+        "options": [
+          "A. 必须预先分配固定大小的连续存储空间",
+          "B. 存储密度高于顺序表，因此更节省空间",
+          "C. 不能随机存取，查找第k个元素需从头指针开始顺序访问，但插入删除方便",
+          "D. 可以随机存取表中任意元素，且插入删除不需要移动元素"
+        ],
+        "answer": "C",
+        "analysis": "正确答案是C。链式存储的线性表通过指针链接结点，访问第k个元素必须从表头开始沿指针逐个查找，属于顺序存取，不能随机存取；但插入删除只需修改指针，不需移动大量元素。A错误，链式存储不具备随机存取特性。C错误，链式存储每个结点需额外存储指针域，存储密度低于顺序表。D错误，链式存储不要求连续空间，也无需预先分配固定大小。常见易错点是误认为链表也能随机访问，或混淆存储密度与空间利用率。复习时应重点比较顺序表与链表在存取方式、插入删除效率、空间开销上的差异。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 10,
+          "question_id": "P43-01-009",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-010",
+      "sheet_row": 11,
+      "knowledge_point_name": "顺序表",
+      "knowledge_point_code": "DS.LINEAR.SEQUENTIAL",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "在一个长度为 n 的顺序表中，若要在第 i 个位置（1 ≤ i ≤ n+1）插入一个新元素，在等概率情况下，平均需要移动的元素个数约为多少？",
+        "options": [
+          "A. n/2",
+          "B. n",
+          "C. n-1",
+          "D. (n+1)/2"
+        ],
+        "answer": "A",
+        "analysis": "正确答案是 A。顺序表插入元素时，若在第 i 个位置插入，需要将第 i 到第 n 个元素整体后移，移动次数为 n-i+1。等概率情况下 i 取 1 到 n+1，平均移动次数为 (1/(n+1))·Σ(n-i+1)=n/2。B 项 n 是最大移动次数，不是平均值；D 项 (n+1)/2 常与删除操作的平均移动次数混淆；C 项 n-1 没有理论依据。常见易错点是插入位置编号从 1 开始，且插入位置共有 n+1 种可能。复习建议：牢记插入平均移动 n/2、删除平均移动 (n-1)/2，并理解推导过程。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "在一个长度为 n 的顺序表中，若要在第 i 个位置（1 ≤ i ≤ n+1）插入一个新元素，在等概率情况下，平均需要移动的元素个数约为多少？",
+        "options": [
+          "A. n/2",
+          "B. n",
+          "C. n-1",
+          "D. (n+1)/2"
+        ],
+        "answer": "A",
+        "analysis": "正确答案是 A。顺序表插入元素时，若在第 i 个位置插入，需要将第 i 到第 n 个元素整体后移，移动次数为 n-i+1。等概率情况下 i 取 1 到 n+1，平均移动次数为 (1/(n+1))·Σ(n-i+1)=n/2。B 项 n 是最大移动次数，不是平均值；D 项 (n+1)/2 常与删除操作的平均移动次数混淆；C 项 n-1 没有理论依据。常见易错点是插入位置编号从 1 开始，且插入位置共有 n+1 种可能。复习建议：牢记插入平均移动 n/2、删除平均移动 (n-1)/2，并理解推导过程。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 11,
+          "question_id": "P43-01-010",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-011",
+      "sheet_row": 12,
+      "knowledge_point_name": "顺序表",
+      "knowledge_point_code": "DS.LINEAR.SEQUENTIAL",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "顺序表与链表相比，下列哪项描述是正确的？",
+        "options": [
+          "A. 顺序表在物理结构上一定采用链式存储",
+          "B. 顺序表的存储空间必须连续，因此无法实现动态扩容",
+          "C. 顺序表插入和删除元素时不需要移动数据，因此效率更高",
+          "D. 顺序表可以随机访问任意元素，时间复杂度为 O(1)"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是 D。顺序表采用连续存储，只要知道首地址和下标，就能通过地址公式直接定位元素，因此随机访问时间复杂度为 O(1)。C 项错误，顺序表插入删除通常需要移动大量元素，效率低于链表；B 项错误，顺序表虽然要求连续空间，但可以通过重新分配更大空间并复制元素实现动态扩容；A 项错误，顺序表是顺序存储结构，不是链式存储。常见易错点是把逻辑相邻与物理相邻混淆。复习建议：从存储方式、访问方式、插入删除效率、空间分配四个维度对比顺序表和链表。",
+        "difficulty": "easy"
+      },
+      "original": {
+        "stem": "顺序表与链表相比，下列哪项描述是正确的？",
+        "options": [
+          "A. 顺序表在物理结构上一定采用链式存储",
+          "B. 顺序表的存储空间必须连续，因此无法实现动态扩容",
+          "C. 顺序表插入和删除元素时不需要移动数据，因此效率更高",
+          "D. 顺序表可以随机访问任意元素，时间复杂度为 O(1)"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是 D。顺序表采用连续存储，只要知道首地址和下标，就能通过地址公式直接定位元素，因此随机访问时间复杂度为 O(1)。C 项错误，顺序表插入删除通常需要移动大量元素，效率低于链表；B 项错误，顺序表虽然要求连续空间，但可以通过重新分配更大空间并复制元素实现动态扩容；A 项错误，顺序表是顺序存储结构，不是链式存储。常见易错点是把逻辑相邻与物理相邻混淆。复习建议：从存储方式、访问方式、插入删除效率、空间分配四个维度对比顺序表和链表。",
+        "difficulty": "easy"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 12,
+          "question_id": "P43-01-011",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-012",
+      "sheet_row": 13,
+      "knowledge_point_name": "顺序表",
+      "knowledge_point_code": "DS.LINEAR.SEQUENTIAL",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "已知一个顺序表 L 中有 10 个元素，现要删除第 4 个元素，若不考虑边界检查，需要向前移动多少个元素？",
+        "options": [
+          "A. 7",
+          "B. 4",
+          "C. 5",
+          "D. 6"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是 D。顺序表删除第 i 个元素时，需要将第 i+1 到第 n 个元素依次前移，移动次数为 n-i。本题 n=10，i=4，因此移动次数为 10-4=6。B 项 4 误把删除位置当作移动个数；C 项 5 可能是把下标从 0 开始计算导致的偏差；A 项 7 没有正确套用公式。常见易错点是删除位置编号从 1 开始，而移动元素个数为 n-i。复习建议：熟记删除操作移动次数公式，并通过画图模拟元素移动过程加深理解。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "已知一个顺序表 L 中有 10 个元素，现要删除第 4 个元素，若不考虑边界检查，需要向前移动多少个元素？",
+        "options": [
+          "A. 7",
+          "B. 4",
+          "C. 5",
+          "D. 6"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是 D。顺序表删除第 i 个元素时，需要将第 i+1 到第 n 个元素依次前移，移动次数为 n-i。本题 n=10，i=4，因此移动次数为 10-4=6。B 项 4 误把删除位置当作移动个数；C 项 5 可能是把下标从 0 开始计算导致的偏差；A 项 7 没有正确套用公式。常见易错点是删除位置编号从 1 开始，而移动元素个数为 n-i。复习建议：熟记删除操作移动次数公式，并通过画图模拟元素移动过程加深理解。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 13,
+          "question_id": "P43-01-012",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-013",
+      "sheet_row": 14,
+      "knowledge_point_name": "单链表",
+      "knowledge_point_code": "DS.LINEAR.LINKED_LIST.SINGLE",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "在一个不带头结点的单链表中，已知指针 p 指向某个结点（非首结点、非尾结点），若要在 p 所指结点之前插入一个新结点 s，且要求时间复杂度为 O(1)，下列做法中正确的是（ ）。",
+        "options": [
+          "A. 令 s->next=p; p->next=s;",
+          "B. 令 s->next=p->next; p->next=s; 然后交换 p 与 s 的数据域",
+          "C. 先遍历找到 p 的前驱结点 q，再令 s->next=q->next; q->next=s;",
+          "D. 令 p->next=s; s->next=p->next;"
+        ],
+        "answer": "B",
+        "analysis": "正确答案是 B。在不带头结点的单链表中，若只给指向某结点的指针 p，要在 p 之前插入结点且要求 O(1)，常规做法无法直接找到前驱，因此可采用“偷梁换柱”法：把 s 插到 p 之后，再交换 p 与 s 的数据域，逻辑上等价于在 p 之前插入。A 需要遍历找前驱，时间复杂度为 O(n)，不符合要求；C 会使 p 的后继丢失，且插入位置错误；D 先执行 p->next=s 后，s->next=p->next 实际指向 s 自身，形成自环。常见易错点是忽略“不带头结点”和“O(1)”两个限制。复习建议：熟练掌握带头结点与不带头结点插入操作的差异，并理解数据域交换技巧。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "在一个不带头结点的单链表中，已知指针 p 指向某个结点（非首结点、非尾结点），若要在 p 所指结点之前插入一个新结点 s，且要求时间复杂度为 O(1)，下列做法中正确的是（ ）。",
+        "options": [
+          "A. 令 s->next=p; p->next=s;",
+          "B. 令 s->next=p->next; p->next=s; 然后交换 p 与 s 的数据域",
+          "C. 先遍历找到 p 的前驱结点 q，再令 s->next=q->next; q->next=s;",
+          "D. 令 p->next=s; s->next=p->next;"
+        ],
+        "answer": "B",
+        "analysis": "正确答案是 B。在不带头结点的单链表中，若只给指向某结点的指针 p，要在 p 之前插入结点且要求 O(1)，常规做法无法直接找到前驱，因此可采用“偷梁换柱”法：把 s 插到 p 之后，再交换 p 与 s 的数据域，逻辑上等价于在 p 之前插入。A 需要遍历找前驱，时间复杂度为 O(n)，不符合要求；C 会使 p 的后继丢失，且插入位置错误；D 先执行 p->next=s 后，s->next=p->next 实际指向 s 自身，形成自环。常见易错点是忽略“不带头结点”和“O(1)”两个限制。复习建议：熟练掌握带头结点与不带头结点插入操作的差异，并理解数据域交换技巧。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 14,
+          "question_id": "P43-01-013",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-014",
+      "sheet_row": 15,
+      "knowledge_point_name": "单链表",
+      "knowledge_point_code": "DS.LINEAR.LINKED_LIST.SINGLE",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "关于带头结点的单链表，下列说法中正确的是（ ）。",
+        "options": [
+          "A. 头结点使得在表头位置进行插入和删除时，可与普通位置的操作统一处理",
+          "B. 头结点的数据域一定存放链表的长度",
+          "C. 带头结点的单链表一定比不带头结点的单链表多占用一个数据元素的空间",
+          "D. 删除首元素结点时，需要修改头指针 head 本身的值"
+        ],
+        "answer": "A",
+        "analysis": "正确答案是 A。带头结点的单链表中，头结点不存放有效数据（或数据域可另作他用），其 next 指向首元素结点，这样在表头插入或删除时无需特殊修改头指针，能与普通位置统一处理。A 错误，头结点数据域并非必须存放长度；B 错误，删除首元素结点只需修改头结点的 next，头指针 head 本身不变；D 表述不严谨，头结点确实多占一个结点空间，但该结点不属于数据元素，且“数据元素的空间”说法易引起歧义。常见易错点是把头结点与首元素结点混淆。复习建议：明确头指针、头结点、首元素结点的区别与联系。",
+        "difficulty": "easy"
+      },
+      "original": {
+        "stem": "关于带头结点的单链表，下列说法中正确的是（ ）。",
+        "options": [
+          "A. 头结点使得在表头位置进行插入和删除时，可与普通位置的操作统一处理",
+          "B. 头结点的数据域一定存放链表的长度",
+          "C. 带头结点的单链表一定比不带头结点的单链表多占用一个数据元素的空间",
+          "D. 删除首元素结点时，需要修改头指针 head 本身的值"
+        ],
+        "answer": "A",
+        "analysis": "正确答案是 A。带头结点的单链表中，头结点不存放有效数据（或数据域可另作他用），其 next 指向首元素结点，这样在表头插入或删除时无需特殊修改头指针，能与普通位置统一处理。A 错误，头结点数据域并非必须存放长度；B 错误，删除首元素结点只需修改头结点的 next，头指针 head 本身不变；D 表述不严谨，头结点确实多占一个结点空间，但该结点不属于数据元素，且“数据元素的空间”说法易引起歧义。常见易错点是把头结点与首元素结点混淆。复习建议：明确头指针、头结点、首元素结点的区别与联系。",
+        "difficulty": "easy"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 15,
+          "question_id": "P43-01-014",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-015",
+      "sheet_row": 16,
+      "knowledge_point_name": "栈的定义与实现",
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.BASIC",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "某顺序栈初始时 top = -1，容量为 5。依次执行 push(1)、push(2)、pop()、push(3)、push(4)、push(5) 后，栈中从栈底到栈顶的元素序列是（ ）。",
+        "options": [
+          "A. 1, 2, 3, 4, 5",
+          "B. 3, 4, 5",
+          "C. 1, 3, 4, 5",
+          "D. 5, 4, 3, 1"
+        ],
+        "answer": "C",
+        "analysis": "正确答案为 C。push(1)、push(2) 后栈为 [1,2]；pop() 弹出栈顶 2，栈变为 [1]；再 push(3)、push(4)、push(5)，栈自底向顶为 1,3,4,5。A 项忽略了 pop 操作，B 项误认为 1 也被弹出，D 项把栈顶到栈底顺序当成了栈底到栈顶顺序。常见易错点是混淆栈顶与栈底方向、忘记后进先出规则。复习建议：动手画出 top 指针变化过程，明确顺序栈中 top 指向栈顶元素、入栈先加指针再存值、出栈先取值再减指针。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "某顺序栈初始时 top = -1，容量为 5。依次执行 push(1)、push(2)、pop()、push(3)、push(4)、push(5) 后，栈中从栈底到栈顶的元素序列是（ ）。",
+        "options": [
+          "A. 1, 2, 3, 4, 5",
+          "B. 3, 4, 5",
+          "C. 1, 3, 4, 5",
+          "D. 5, 4, 3, 1"
+        ],
+        "answer": "C",
+        "analysis": "正确答案为 C。push(1)、push(2) 后栈为 [1,2]；pop() 弹出栈顶 2，栈变为 [1]；再 push(3)、push(4)、push(5)，栈自底向顶为 1,3,4,5。A 项忽略了 pop 操作，B 项误认为 1 也被弹出，D 项把栈顶到栈底顺序当成了栈底到栈顶顺序。常见易错点是混淆栈顶与栈底方向、忘记后进先出规则。复习建议：动手画出 top 指针变化过程，明确顺序栈中 top 指向栈顶元素、入栈先加指针再存值、出栈先取值再减指针。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 16,
+          "question_id": "P43-01-015",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-016",
+      "sheet_row": 17,
+      "knowledge_point_name": "栈的定义与实现",
+      "knowledge_point_code": "DS.STACKQUEUE.STACK.BASIC",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "review",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "关于链栈的实现，下列说法正确的是（ ）。",
+        "options": [
+          "A. 链栈的入栈和出栈操作都在链表尾部进行，因此需要尾指针",
+          "B. 链栈不存在栈满情况，因此不需要判断空栈",
+          "C. 链栈通常让栈顶指针指向链表首结点，入栈和出栈均在表头进行，时间复杂度为 O(1)",
+          "D. 链栈必须设置头结点，且栈顶指针指向头结点"
+        ],
+        "answer": "C",
+        "analysis": "正确答案为 C。链栈用单链表实现时，通常把表头作为栈顶，栈顶指针指向首结点，入栈相当于头插，出栈相当于删除首结点，两者均为 O(1)。D 项错误，链栈可以不带头结点，栈顶指针直接指向首元素结点；A 项错误，若在尾部操作需遍历找前驱，效率低；B 项错误，链栈虽一般不会栈满，但出栈前必须判断栈空。常见易错点是把链栈与顺序栈的栈顶位置混为一谈。复习建议：对比顺序栈与链栈的 top 含义、判空条件和基本操作实现。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "关于链栈的实现，下列说法正确的是（ ）。",
+        "options": [
+          "A. 链栈的入栈和出栈操作都在链表尾部进行，因此需要尾指针",
+          "B. 链栈不存在栈满情况，因此不需要判断空栈",
+          "C. 链栈通常让栈顶指针指向链表首结点，入栈和出栈均在表头进行，时间复杂度为 O(1)",
+          "D. 链栈必须设置头结点，且栈顶指针指向头结点"
+        ],
+        "answer": "C",
+        "analysis": "正确答案为 C。链栈用单链表实现时，通常把表头作为栈顶，栈顶指针指向首结点，入栈相当于头插，出栈相当于删除首结点，两者均为 O(1)。D 项错误，链栈可以不带头结点，栈顶指针直接指向首元素结点；A 项错误，若在尾部操作需遍历找前驱，效率低；B 项错误，链栈虽一般不会栈满，但出栈前必须判断栈空。常见易错点是把链栈与顺序栈的栈顶位置混为一谈。复习建议：对比顺序栈与链栈的 top 含义、判空条件和基本操作实现。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 17,
+          "question_id": "P43-01-016",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-017",
+      "sheet_row": 18,
+      "knowledge_point_name": "二叉树的遍历",
+      "knowledge_point_code": "DS.TREE.BINARY.TRAVERSAL",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "已知一棵二叉树的先序遍历序列为 ABDECF，中序遍历序列为 DBEAFC，则该二叉树的后序遍历序列是（ ）。",
+        "options": [
+          "A. DEBFCA",
+          "B. DBEFCA",
+          "C. EDBFCA",
+          "D. DEBCFA"
+        ],
+        "answer": "A",
+        "analysis": "正确答案为A。由先序序列ABDECF可知根结点为A；在中序序列DBEAFC中，A左侧为DBE，右侧为FC，因此左子树中序为DBE、右子树中序为FC。左子树先序为BDE，根为B，中序DBE中B左侧为D、右侧为E，故左子树后序为DEB；右子树先序为CF，根为C，中序FC中C左侧为F，故右子树后序为FC。最终后序为DEB+F+C+A，即DEBFCA。错误选项D、C、D均是在左右子树划分或递归顺序上出现偏差，常见易错点是把先序根的位置与中序根的位置混淆，或忽略右子树只有一个结点时的顺序。复习建议：熟练掌握由两种遍历序列唯一确定二叉树的方法，并多做递归划分练习。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "已知一棵二叉树的先序遍历序列为 ABDECF，中序遍历序列为 DBEAFC，则该二叉树的后序遍历序列是（ ）。",
+        "options": [
+          "A. DEBFCA",
+          "B. DBEFCA",
+          "C. EDBFCA",
+          "D. DEBCFA"
+        ],
+        "answer": "A",
+        "analysis": "正确答案为A。由先序序列ABDECF可知根结点为A；在中序序列DBEAFC中，A左侧为DBE，右侧为FC，因此左子树中序为DBE、右子树中序为FC。左子树先序为BDE，根为B，中序DBE中B左侧为D、右侧为E，故左子树后序为DEB；右子树先序为CF，根为C，中序FC中C左侧为F，故右子树后序为FC。最终后序为DEB+F+C+A，即DEBFCA。错误选项D、C、D均是在左右子树划分或递归顺序上出现偏差，常见易错点是把先序根的位置与中序根的位置混淆，或忽略右子树只有一个结点时的顺序。复习建议：熟练掌握由两种遍历序列唯一确定二叉树的方法，并多做递归划分练习。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 18,
+          "question_id": "P43-01-017",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-018",
+      "sheet_row": 19,
+      "knowledge_point_name": "二叉树的遍历",
+      "knowledge_point_code": "DS.TREE.BINARY.TRAVERSAL",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": "修改后通过",
+      "decision": "revise",
+      "note": "AI 内容复核修订：原答案 C/解析拼接错误；非真人审核签字。原始生成记录保留。",
+      "changed_fields": [
+        "answer",
+        "analysis"
+      ],
+      "revision_diff": [
+        {
+          "field": "answer",
+          "before": "C",
+          "after": "A"
+        },
+        {
+          "field": "analysis",
+          "before": "正确答案为C。后序序列CDBGFEA的最后一个结点A为根；在中序序列CBDAGFE中，A左侧为CBD，右侧为GFE，故左子树中序CBD、右子树中序GFE。左子树后序为CDB，根为B，中序CBD中B左侧为C、右侧为D，故左子树先序为BCD；右子树后序为GFE，根为E，中序GFE中E左侧为GF，故右子树先序为EFG。整棵树先序为A+BCD+EFG，即ABDCEFG。错误选项A、B、D分别错在左右子树划分、结点顺序或右子树内部顺序。常见易错点是由后序确定根后，未正确利用中序划分左右子树。复习建议：牢记后序最后为根、中序根左为左子树、根右为右子树，并反复练习重建二叉树。",
+          "after": "正确答案为A。后序遍历CDBGFEA的最后一个结点A是根。中序遍历CBDAGFE以A划分为左子树CBD和右子树GFE，因此左子树后序为CDB，右子树后序为GFE。左子树根为B，中序CBD中C在B左侧、D在B右侧，左子树先序为BCD。右子树根为E，中序GFE中GF都在E左侧；该左子树后序为GF，根为F，G是F的左孩子，故右子树先序为EFG。整树先序为A+BCD+EFG，即ABCDEFG，与选项A一致。选项B、C、D均把左子树先序BCD错误写成BDC，选项C、D还改变了右子树的先序顺序。易错点是混淆中序和先序的结点顺序。复习时应先由后序确定根，再按中序划分子树并递归处理。"
+        }
+      ],
+      "overridden_gates": [],
+      "revised_gate_check": {
+        "passed": true,
+        "reasons": [],
+        "warnings": [],
+        "gates": {
+          "G1": {
+            "passed": true,
+            "severity": null,
+            "reason": null
+          },
+          "G2": {
+            "passed": true,
+            "severity": null,
+            "reason": null
+          },
+          "G3": {
+            "passed": true,
+            "severity": null,
+            "reason": null
+          },
+          "G4": {
+            "passed": true,
+            "severity": null,
+            "reason": null
+          },
+          "G5": {
+            "passed": true,
+            "severity": null,
+            "reason": null
+          },
+          "G6": {
+            "passed": true,
+            "severity": null,
+            "reason": null
+          },
+          "G7": {
+            "passed": true,
+            "severity": null,
+            "reason": null
+          }
+        }
+      },
+      "final": {
+        "stem": "某二叉树的后序遍历序列为 CDBGFEA，中序遍历序列为 CBDAGFE，则该二叉树的先序遍历序列是（ ）。",
+        "options": [
+          "A. ABCDEFG",
+          "B. ABDCEFG",
+          "C. ABDCFEG",
+          "D. ABDCEGF"
+        ],
+        "answer": "A",
+        "analysis": "正确答案为A。后序遍历CDBGFEA的最后一个结点A是根。中序遍历CBDAGFE以A划分为左子树CBD和右子树GFE，因此左子树后序为CDB，右子树后序为GFE。左子树根为B，中序CBD中C在B左侧、D在B右侧，左子树先序为BCD。右子树根为E，中序GFE中GF都在E左侧；该左子树后序为GF，根为F，G是F的左孩子，故右子树先序为EFG。整树先序为A+BCD+EFG，即ABCDEFG，与选项A一致。选项B、C、D均把左子树先序BCD错误写成BDC，选项C、D还改变了右子树的先序顺序。易错点是混淆中序和先序的结点顺序。复习时应先由后序确定根，再按中序划分子树并递归处理。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "某二叉树的后序遍历序列为 CDBGFEA，中序遍历序列为 CBDAGFE，则该二叉树的先序遍历序列是（ ）。",
+        "options": [
+          "A. ABCDEFG",
+          "B. ABDCEFG",
+          "C. ABDCFEG",
+          "D. ABDCEGF"
+        ],
+        "answer": "C",
+        "analysis": "正确答案为C。后序序列CDBGFEA的最后一个结点A为根；在中序序列CBDAGFE中，A左侧为CBD，右侧为GFE，故左子树中序CBD、右子树中序GFE。左子树后序为CDB，根为B，中序CBD中B左侧为C、右侧为D，故左子树先序为BCD；右子树后序为GFE，根为E，中序GFE中E左侧为GF，故右子树先序为EFG。整棵树先序为A+BCD+EFG，即ABDCEFG。错误选项A、B、D分别错在左右子树划分、结点顺序或右子树内部顺序。常见易错点是由后序确定根后，未正确利用中序划分左右子树。复习建议：牢记后序最后为根、中序根左为左子树、根右为右子树，并反复练习重建二叉树。",
+        "difficulty": "medium"
+      },
+      "apply_hint": "用修订后内容建题 → submit_review → approve → publish",
+      "ready_for_apply": true,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-019",
+      "sheet_row": 20,
+      "knowledge_point_name": "排序的基本概念与稳定性",
+      "knowledge_point_code": "DS.SORT.BASIC",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "某排序算法在每一趟结束后，都能保证至少有一个元素被放置到其最终位置上。下列哪种排序算法一定不具备这一性质？",
+        "options": [
+          "A. 快速排序",
+          "B. 冒泡排序",
+          "C. 简单选择排序",
+          "D. 直接插入排序"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是D。直接插入排序在每一趟中只是将当前元素插入到前面已排好序的子序列中，已有序子序列中的元素位置仍可能因后续元素的插入而整体后移，因此不能保证每趟至少有一个元素到达最终位置。冒泡排序每趟可将最大或最小元素送到最终位置，快速排序每趟划分可将枢轴元素放到最终位置，简单选择排序每趟可选择最小元素放到最终位置，三者均具备该性质。常见易错点是把“局部有序”误认为“最终位置确定”，复习时应重点区分各排序算法每趟操作后元素位置的确定性。",
+        "difficulty": "medium"
+      },
+      "original": {
+        "stem": "某排序算法在每一趟结束后，都能保证至少有一个元素被放置到其最终位置上。下列哪种排序算法一定不具备这一性质？",
+        "options": [
+          "A. 快速排序",
+          "B. 冒泡排序",
+          "C. 简单选择排序",
+          "D. 直接插入排序"
+        ],
+        "answer": "D",
+        "analysis": "正确答案是D。直接插入排序在每一趟中只是将当前元素插入到前面已排好序的子序列中，已有序子序列中的元素位置仍可能因后续元素的插入而整体后移，因此不能保证每趟至少有一个元素到达最终位置。冒泡排序每趟可将最大或最小元素送到最终位置，快速排序每趟划分可将枢轴元素放到最终位置，简单选择排序每趟可选择最小元素放到最终位置，三者均具备该性质。常见易错点是把“局部有序”误认为“最终位置确定”，复习时应重点区分各排序算法每趟操作后元素位置的确定性。",
+        "difficulty": "medium"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 20,
+          "question_id": "P43-01-019",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "question_id": "P43-01-020",
+      "sheet_row": 21,
+      "knowledge_point_name": "排序的基本概念与稳定性",
+      "knowledge_point_code": "DS.SORT.BASIC",
+      "gate_passed": true,
+      "gate_reasons": [],
+      "suggested_action": "accept",
+      "decision_label": null,
+      "decision": null,
+      "note": "",
+      "changed_fields": [],
+      "revision_diff": [],
+      "overridden_gates": [],
+      "revised_gate_check": null,
+      "final": {
+        "stem": "对序列 (5, 3, 5', 2) 进行排序，其中 5 与 5' 的关键字相同，5 在 5' 之前。若要求排序后 5 仍排在 5' 之前，则下列排序算法中一定不能满足要求的是？",
+        "options": [
+          "A. 冒泡排序",
+          "B. 堆排序",
+          "C. 直接插入排序",
+          "D. 归并排序"
+        ],
+        "answer": "B",
+        "analysis": "正确答案是B。堆排序在调整堆的过程中可能将关键字相同的元素交换到相对次序相反的位置，因此是不稳定排序，无法保证排序后 5 仍位于 5' 之前。直接插入排序、归并排序和冒泡排序都是稳定排序，在关键字相等时不会改变元素的相对次序。常见易错点是把“时间复杂度为O(nlogn)”与“稳定”混为一谈，误认为归并排序和堆排序都稳定。复习建议是熟记常见排序算法的稳定性：稳定的有插入、冒泡、归并、基数排序；不稳定的有选择、快速、希尔、堆排序。",
+        "difficulty": "easy"
+      },
+      "original": {
+        "stem": "对序列 (5, 3, 5', 2) 进行排序，其中 5 与 5' 的关键字相同，5 在 5' 之前。若要求排序后 5 仍排在 5' 之前，则下列排序算法中一定不能满足要求的是？",
+        "options": [
+          "A. 冒泡排序",
+          "B. 堆排序",
+          "C. 直接插入排序",
+          "D. 归并排序"
+        ],
+        "answer": "B",
+        "analysis": "正确答案是B。堆排序在调整堆的过程中可能将关键字相同的元素交换到相对次序相反的位置，因此是不稳定排序，无法保证排序后 5 仍位于 5' 之前。直接插入排序、归并排序和冒泡排序都是稳定排序，在关键字相等时不会改变元素的相对次序。常见易错点是把“时间复杂度为O(nlogn)”与“稳定”混为一谈，误认为归并排序和堆排序都稳定。复习建议是熟记常见排序算法的稳定性：稳定的有插入、冒泡、归并、基数排序；不稳定的有选择、快速、希尔、堆排序。",
+        "difficulty": "easy"
+      },
+      "apply_hint": null,
+      "ready_for_apply": false,
+      "errors": [
+        {
+          "sheet_row": 21,
+          "question_id": "P43-01-020",
+          "code": "E01",
+          "severity": "error",
+          "reason": "未审核（判定为空）"
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": [
+    {
+      "sheet_row": 2,
+      "question_id": "P43-01-001",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 3,
+      "question_id": "P43-01-002",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 4,
+      "question_id": "P43-01-003",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 5,
+      "question_id": "P43-01-004",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 6,
+      "question_id": "P43-01-005",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 7,
+      "question_id": "P43-01-006",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 8,
+      "question_id": "P43-01-007",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 9,
+      "question_id": "P43-01-008",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 10,
+      "question_id": "P43-01-009",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 11,
+      "question_id": "P43-01-010",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 12,
+      "question_id": "P43-01-011",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 13,
+      "question_id": "P43-01-012",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 14,
+      "question_id": "P43-01-013",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 15,
+      "question_id": "P43-01-014",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 16,
+      "question_id": "P43-01-015",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 17,
+      "question_id": "P43-01-016",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 18,
+      "question_id": "P43-01-017",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 20,
+      "question_id": "P43-01-019",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    },
+    {
+      "sheet_row": 21,
+      "question_id": "P43-01-020",
+      "code": "E01",
+      "severity": "error",
+      "reason": "未审核（判定为空）"
+    }
+  ]
+}
