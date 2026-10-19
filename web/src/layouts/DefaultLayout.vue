@@ -2,6 +2,7 @@
 import {
   BarChart3,
   Bell,
+  BookOpen,
   BookOpenCheck,
   Calendar,
   CalendarDays,
@@ -36,6 +37,7 @@ const navGroups = [
       { label: '学习计划', to: '/plans', icon: CalendarDays },
       { label: '对话规划', to: '/plans/chat', icon: MessageSquareText },
       { label: '智能练习', to: '/questions', icon: FileQuestion },
+      { label: '共享题库', to: '/question-bank', icon: BookOpen },
       { label: '知识图谱', to: '/knowledge', icon: Network },
       { label: '错题本', to: '/wrong-book', icon: BookOpenCheck },
       { label: '文件出题', to: '/files', icon: Files },

@@ -63,6 +63,11 @@ const router = createRouter({
           component: () => import('@/views/QuestionsView.vue'),
         },
         {
+          path: 'question-bank',
+          name: 'question-bank',
+          component: () => import('@/views/QuestionBankView.vue'),
+        },
+        {
           path: 'knowledge',
           name: 'knowledge',
           component: () => import('@/views/KnowledgeExploreView.vue'),

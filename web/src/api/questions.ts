@@ -30,7 +30,7 @@ export interface QuestionBankParams {
 
 export const questionsApi = {
   list: () => http.get<Question[]>('/questions'),
-  // M4：共享题库（visibility='shared'），对全部登录用户开放浏览/作答。
+  // 共享题库仅返回 approved + shared；权限与发布门禁由后端校验。
   questionBank: (params?: QuestionBankParams) =>
     http.get<Question[]>('/question-bank', { params }),
   generate: (data: QuestionGeneratePayload) =>

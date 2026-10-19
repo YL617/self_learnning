@@ -243,6 +243,7 @@ onMounted(async () => {
         <h1 class="page-title">智能练习</h1>
         <p class="page-subtitle">按学科与知识点生成练习题，AI 自动判题并沉淀错题</p>
       </div>
+      <router-link class="btn btn-ghost" to="/question-bank">共享题库</router-link>
     </div>
 
     <div class="card">
